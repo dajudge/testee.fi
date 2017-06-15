@@ -1,0 +1,9 @@
+apply plugin: 'java'
+
+dependencies {
+    compile libSlf4j
+    compile libJUnit4
+    compile project(":core")
+
+    testCompile libLogback
+}

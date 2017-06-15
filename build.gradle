@@ -1,0 +1,38 @@
+buildscript {
+    // We use this to specify the globally applied list of repos (see subprojects block later)
+    repositories {
+        mavenCentral()
+    }
+}
+
+allprojects {
+    // Settings for all projects
+    group "com.dajudge.testee"
+    version "0.0.1-SNAPSHOT"
+}
+
+subprojects {
+    // Apply the maven repos defined by the root buildscript block for all subprojects
+    buildscript.repositories.addAll(rootProject.buildscript.repositories)
+    repositories.addAll(rootProject.buildscript.repositories)
+}
+
+ext {
+    // Dependencies
+    libSlf4j = 'org.slf4j:slf4j-api:1.7.21'
+    libLogback = 'ch.qos.logback:logback-classic:1.1.7'
+    libWeld = 'org.jboss.weld:weld-core-impl:2.4.3.Final'
+    libMockito = 'org.mockito:mockito-core:2.2.11'
+    libJavaEE = 'javax:javaee-api:7.0'
+    libCommonsLang3 = 'org.apache.commons:commons-lang3:3.2'
+    libCommonsIO = 'commons-io:commons-io:2.4'
+    libJUnit4 = 'junit:junit:4.12'
+    libEclipseLink = 'org.eclipse.persistence:eclipselink:2.6.0'
+    libDbcp2 = 'org.apache.commons:commons-dbcp2:2.1.1'
+}
+
+task wrapper(type: Wrapper) {
+    // As of 2017-03-15 the IntelliJ gradle plugin had problems with dependency scopes
+    // with gradle 3.4 and later, so we're sticking to 3.3 for now.
+    gradleVersion = '3.3'
+}

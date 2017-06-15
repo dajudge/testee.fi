@@ -1,0 +1,15 @@
+apply plugin: 'java'
+
+dependencies {
+    compile libWeld
+    compile libJavaEE
+    compile libSlf4j
+    compile libCommonsLang3
+    compile libCommonsIO
+    compile project(":core-spi")
+    compile project(":common")
+
+    testCompile libEclipseLink
+    testCompile libJUnit4
+    testCompile libLogback
+}
