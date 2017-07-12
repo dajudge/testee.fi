@@ -1,3 +1,5 @@
+rootProject.name = "testee"
+
 include 'common'        // Shared code
 include 'core'          // ITest Container core
 include 'core-spi'      // Core extension API

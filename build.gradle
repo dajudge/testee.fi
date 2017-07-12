@@ -5,16 +5,40 @@ buildscript {
     }
 }
 
+plugins {
+    id "org.sonarqube" version "2.5"
+}
+
+sonarqube {
+    properties {
+        property "sonar.host.url", "https://sonar.it-stockinger.de"
+        property "sonar.login", System.getenv("SONAR_USER")
+        property "sonar.password", System.getenv("SONAR_PASSWORD")
+    }
+}
+
 allprojects {
     // Settings for all projects
     group "com.dajudge.testee"
     version "0.0.1-SNAPSHOT"
 }
 
+def ignoreTestFailures = Boolean.valueOf(System.getenv("IGNORE_TEST_FAILURES") ?: "false")
+if(ignoreTestFailures) {
+    println "Continuing on test failures"
+}
 subprojects {
     // Apply the maven repos defined by the root buildscript block for all subprojects
     buildscript.repositories.addAll(rootProject.buildscript.repositories)
     repositories.addAll(rootProject.buildscript.repositories)
+
+    afterEvaluate { Project project ->
+        if (project.pluginManager.hasPlugin("java")) {
+            test {
+                ignoreFailures = ignoreTestFailures
+            }
+        }
+    }
 }
 
 ext {
