@@ -113,7 +113,7 @@ public class TestInstance {
         if (set.isEmpty()) {
             throw new RuntimeException("No matching bean found for class " + clazz.getName());
         } else if (set.size() > 1) {
-            throw new RuntimeException("Multiple amgibuous beans found for class " + clazz.getName());
+            throw new RuntimeException("Multiple ambiguous beans found for class " + clazz.getName());
         } else {
             return set.iterator().next();
         }
