@@ -14,7 +14,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
@@ -35,7 +34,6 @@ import static javax.xml.xpath.XPathConstants.STRING;
  */
 public class PersistenceUnitDiscovery {
     private static final DocumentBuilder BUILDER = createDocumentBuilder();
-    private static final XPath XPATH = XPathFactory.newInstance().newXPath();
     private Map<String, PersistenceUnitInfoImpl> units;
     private BeanArchiveDiscovery beanArchiveDiscovery;
 
@@ -58,7 +56,7 @@ public class PersistenceUnitDiscovery {
         try {
             final Document doc = BUILDER.parse(new ByteArrayInputStream(xml.getBytes()));
             final Element root = doc.getDocumentElement();
-            final NodeList units = (NodeList) XPATH.evaluate("//persistence/persistence-unit", root, NODESET);
+            final NodeList units = (NodeList) xpath().evaluate("//persistence/persistence-unit", root, NODESET);
 
             final Collection<PersistenceUnitInfoImpl> ret = new HashSet<>();
             for (int i = 0; i < units.getLength(); i++) {
@@ -71,15 +69,20 @@ public class PersistenceUnitDiscovery {
         }
     }
 
+    private XPath xpath() {
+        return XPathFactory.newInstance().newXPath();
+    }
+
     private PersistenceUnitInfoImpl addUnit(
             final JavaArchive archive,
             final Element unit
     ) throws XPathExpressionException {
+        final XPath xpath = xpath();
         final String name = unit.getAttribute("name");
         final String transactionType = unit.getAttribute("transaction-type");
-        final String provider = (String) XPATH.evaluate("provider/text()", unit, STRING);
-        final String dataSource = (String) XPATH.evaluate("jta-data-source/text()", unit, STRING);
-        final NodeList props = (NodeList) XPATH.evaluate("properties/property", unit, NODESET);
+        final String provider = (String) xpath.evaluate("provider/text()", unit, STRING);
+        final String dataSource = (String) xpath.evaluate("jta-data-source/text()", unit, STRING);
+        final NodeList props = (NodeList) xpath.evaluate("properties/property", unit, NODESET);
         final Properties properties = new Properties();
         for (int i = 0; i < props.getLength(); i++) {
             final Element prop = (Element) props.item(i);
