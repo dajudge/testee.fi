@@ -46,22 +46,20 @@ public class DirectoryJavaArchive extends AbstractBaseJavaArchive {
 
     private static <T> T iterate(final List<String> prefix, final File file, final Callback<T> cb) {
         try {
-            {
-                final T ret = cb.item(() -> new FileInputStream(file), StringUtils.join(prefix, "/") + "/" + file.getName());
-                if (ret != null) {
-                    return ret;
-                }
+            final T result = cb.item(() -> new FileInputStream(file), StringUtils.join(prefix, "/") + "/" + file.getName());
+            if (result != null) {
+                return result;
             }
             for (final File child : file.listFiles()) {
                 if (child.isDirectory()) {
-                    final T ret = iterate(prefix(prefix, child.getName()), child, cb);
-                    if (ret != null) {
-                        return ret;
+                    final T childResult = iterate(prefix(prefix, child.getName()), child, cb);
+                    if (childResult != null) {
+                        return childResult;
                     }
                 } else {
-                    final T ret = cb.item(() -> new FileInputStream(child), StringUtils.join(prefix, "/") + "/" + child.getName());
-                    if (ret != null) {
-                        return ret;
+                    final T childResult = cb.item(() -> new FileInputStream(child), StringUtils.join(prefix, "/") + "/" + child.getName());
+                    if (childResult != null) {
+                        return childResult;
                     }
                 }
             }
