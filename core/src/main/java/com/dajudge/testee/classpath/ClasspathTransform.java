@@ -25,6 +25,9 @@ import java.util.stream.Collectors;
 public class ClasspathTransform {
     private static final Logger LOG = LoggerFactory.getLogger(ClasspathTransform.class);
 
+    private ClasspathTransform() {
+    }
+
     /**
      * Transforms the classpath.
      *
