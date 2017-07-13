@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -43,7 +44,7 @@ public class BeanArchiveDiscovery {
     public Set<ClasspathResource> findResource(final String name) {
         return getBeanArchives().stream()
                 .map(it -> it.findResource(name))
-                .filter(it -> it != null)
+                .filter(Objects::nonNull)
                 .collect(toSet());
     }
 
