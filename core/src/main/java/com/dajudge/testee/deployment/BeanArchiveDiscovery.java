@@ -29,12 +29,6 @@ public class BeanArchiveDiscovery {
     private Collection<JavaArchive> beanArchives = null;
 
     /**
-     * Constructor.
-     */
-    public BeanArchiveDiscovery() {
-    }
-
-    /**
      * Returns the available bean archives on the classpath.
      *
      * @return the available bean archives in an immutable collection.
