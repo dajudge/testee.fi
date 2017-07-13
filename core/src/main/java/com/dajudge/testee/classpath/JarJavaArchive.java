@@ -1,5 +1,7 @@
 package com.dajudge.testee.classpath;
 
+import com.dajudge.testee.exceptions.TesteeException;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -37,7 +39,7 @@ public class JarJavaArchive extends AbstractBaseJavaArchive {
             }
             return null;
         } catch (final IOException e) {
-            throw new RuntimeException("Could not read JAR file " + file.getAbsolutePath(), e);
+            throw new TesteeException("Could not read JAR file " + file.getAbsolutePath(), e);
         }
     }
 
@@ -46,7 +48,7 @@ public class JarJavaArchive extends AbstractBaseJavaArchive {
         try {
             return file.toURI().toURL();
         } catch (final MalformedURLException e) {
-            throw new RuntimeException("Failed to create URL for classpath entry: " + file.getAbsolutePath(), e);
+            throw new TesteeException("Failed to create URL for classpath entry: " + file.getAbsolutePath(), e);
         }
     }
 

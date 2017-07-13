@@ -1,5 +1,6 @@
 package com.dajudge.testee.classpath;
 
+import com.dajudge.testee.exceptions.TesteeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +77,7 @@ public class ClasspathTransform {
         try {
             return new URL(matcher.group(1) + "[any]" + matcher.group(2));
         } catch (final MalformedURLException e) {
-            throw new RuntimeException("Failed to build composite java archive URL", e);
+            throw new TesteeException("Failed to build composite java archive URL", e);
         }
     }
 }

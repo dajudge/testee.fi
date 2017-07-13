@@ -1,5 +1,6 @@
 package com.dajudge.testee.mockito;
 
+import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.spi.PluginTestInstance;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.mockito.Mock;
@@ -36,7 +37,7 @@ public class MockitoTestInstance implements PluginTestInstance {
                     try {
                         return it.get(testClassInstance);
                     } catch (final IllegalAccessException e) {
-                        throw new RuntimeException("Could not extract mock from " + testClassInstance, e);
+                        throw new TesteeException("Could not extract mock from " + testClassInstance, e);
                     }
                 })
                 .collect(Collectors.toSet());

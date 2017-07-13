@@ -6,6 +6,7 @@ dependencies {
     compile libCommonsLang3
     compile libWeld
     compile project(":core-spi")
+    compile project(":common")
 
     testCompile libJUnit4
     testCompile libLogback

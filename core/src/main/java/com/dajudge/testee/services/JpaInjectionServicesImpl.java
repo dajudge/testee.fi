@@ -1,5 +1,6 @@
 package com.dajudge.testee.services;
 
+import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.persistence.PersistenceUnitDiscovery;
 import com.dajudge.testee.persistence.PersistenceUnitInfoImpl;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
@@ -68,7 +69,7 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
             entityManagers.put(unit.getPersistenceUnitName(), entityManager);
             return entityManager;
         } catch (final IllegalAccessException | InstantiationException | ClassNotFoundException e) {
-            throw new RuntimeException("Failed to load persistence provider class " + providerClassName, e);
+            throw new TesteeException("Failed to load persistence provider class " + providerClassName, e);
         }
     }
 

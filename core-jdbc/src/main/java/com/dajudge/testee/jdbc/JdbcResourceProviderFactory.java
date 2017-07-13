@@ -1,5 +1,6 @@
 package com.dajudge.testee.jdbc;
 
+import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.jdbc.spi.DataSourceFactory;
 import com.dajudge.testee.spi.ResourceProvider;
 import com.dajudge.testee.spi.ResourceProviderFactory;
@@ -87,7 +88,7 @@ public class JdbcResourceProviderFactory implements ResourceProviderFactory {
                 it.setAccessible(true);
                 it.invoke(null);
             } catch (final IllegalAccessException | InvocationTargetException e) {
-                throw new RuntimeException("Failed to invoke @TestData method", e);
+                throw new TesteeException("Failed to invoke @TestData method", e);
             }
         });
     }
@@ -142,7 +143,7 @@ public class JdbcResourceProviderFactory implements ResourceProviderFactory {
         try {
             return new ManagedDataSource(testDataSource.name(), factoryClass.newInstance());
         } catch (final InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException("Failed to instantiate " + factoryClass.getName(), e);
+            throw new TesteeException("Failed to instantiate " + factoryClass.getName(), e);
         }
     }
 }

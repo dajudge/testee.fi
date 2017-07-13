@@ -3,6 +3,7 @@ package com.dajudge.testee.persistence;
 import com.dajudge.testee.classpath.ClasspathResource;
 import com.dajudge.testee.classpath.JavaArchive;
 import com.dajudge.testee.deployment.BeanArchiveDiscovery;
+import com.dajudge.testee.exceptions.TesteeException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -45,7 +46,7 @@ public class PersistenceUnitDiscovery {
         try {
             return DocumentBuilderFactory.newInstance().newDocumentBuilder();
         } catch (ParserConfigurationException e) {
-            throw new RuntimeException("Failed to initialize " + DocumentBuilder.class.getName(), e);
+            throw new TesteeException("Failed to initialize " + DocumentBuilder.class.getName(), e);
         }
     }
 
@@ -65,7 +66,7 @@ public class PersistenceUnitDiscovery {
             }
             return ret;
         } catch (final XPathExpressionException | SAXException | IOException e) {
-            throw new RuntimeException("Failed to read persistence.xml", e);
+            throw new TesteeException("Failed to read persistence.xml", e);
         }
     }
 

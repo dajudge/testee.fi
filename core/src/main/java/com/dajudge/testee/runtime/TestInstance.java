@@ -2,6 +2,7 @@ package com.dajudge.testee.runtime;
 
 import com.dajudge.testee.deployment.BeanDeploymentArchiveManagement;
 import com.dajudge.testee.deployment.DeploymentImpl;
+import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.spi.PluginTestInstance;
 import org.jboss.weld.Container;
 import org.jboss.weld.bean.AbstractClassBean;
@@ -91,7 +92,7 @@ public class TestInstance {
     public void inject(final Object o) {
         final Bean<Object> bean = resolveUnique((Class<Object>) o.getClass());
         if (!(bean instanceof AbstractClassBean)) {
-            throw new RuntimeException("Injection of " + bean + " is not supported");
+            throw new TesteeException("Injection of " + bean + " is not supported");
         }
         ((AbstractClassBean) bean).getProducer().inject(o, emptyContext());
     }
@@ -116,14 +117,14 @@ public class TestInstance {
                     .map(BeanManagerImpl::getBeans)
                     .flatMap(Collection::stream)
                     .collect(toSet());
-            throw new RuntimeException(
+            throw new TesteeException(
                     "No matching bean found for class "
                             + clazz.getName()
                             + ", available beans are: "
                             + allBeans
             );
         } else if (set.size() > 1) {
-            throw new RuntimeException("Multiple ambiguous beans found for class " + clazz.getName());
+            throw new TesteeException("Multiple ambiguous beans found for class " + clazz.getName());
         } else {
             return set.iterator().next();
         }

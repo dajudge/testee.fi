@@ -1,5 +1,6 @@
 package com.dajudge.testee.classpath;
 
+import com.dajudge.testee.exceptions.TesteeException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
@@ -34,7 +35,7 @@ public class DirectoryJavaArchive extends AbstractBaseJavaArchive {
         try {
             return file.toURI().toURL();
         } catch (final MalformedURLException e) {
-            throw new RuntimeException("Failed to create URL for classpath entry: " + file.getAbsolutePath(), e);
+            throw new TesteeException("Failed to create URL for classpath entry: " + file.getAbsolutePath(), e);
         }
     }
 
@@ -65,7 +66,7 @@ public class DirectoryJavaArchive extends AbstractBaseJavaArchive {
                 }
             }
         } catch (final IOException e) {
-            throw new RuntimeException("Error iterating classpath", e);
+            throw new TesteeException("Error iterating classpath", e);
         }
         return null;
     }
