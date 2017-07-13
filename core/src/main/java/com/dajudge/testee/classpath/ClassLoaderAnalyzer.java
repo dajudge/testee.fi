@@ -29,6 +29,9 @@ import java.util.stream.Collectors;
 public class ClassLoaderAnalyzer {
     private static final Logger LOG = LoggerFactory.getLogger(ClassLoaderAnalyzer.class);
 
+    private ClassLoaderAnalyzer() {
+    }
+
     public static Set<URL> getClasspath(final ClassLoader classLoader) {
         if (!(classLoader instanceof URLClassLoader)) {
             return Collections.emptySet();
