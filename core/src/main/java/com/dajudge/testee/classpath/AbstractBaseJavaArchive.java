@@ -40,9 +40,9 @@ public abstract class AbstractBaseJavaArchive implements JavaArchive {
         return classes;
     }
 
+    protected abstract <T> T iterate(Callback<T> cb);
+
     protected interface Callback<T> {
         T item(InputStreamSupplier zipInputStream, String name) throws IOException;
     }
-
-    protected abstract <T> T iterate(Callback<T> cb);
 }
