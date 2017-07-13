@@ -3,8 +3,6 @@ rootProject.name = "testee"
 include 'common'        // Shared code
 include 'core'          // ITest Container core
 include 'core-spi'      // Core extension API
-include 'core-jdbc'     // JDBC support
-include 'core-jdbc-spi' // JDBC extension API
 include 'mockito'       // Mockito intgration
 include 'junit4'        // JUnit 4 integration
 include 'h2'            // H2 in memory database support

@@ -1,7 +1,7 @@
 package com.dajudge.testee.jdbc;
 
 import com.dajudge.testee.exceptions.TesteeException;
-import com.dajudge.testee.jdbc.spi.DataSourceFactory;
+import com.dajudge.testee.spi.DataSourceFactory;
 import com.dajudge.testee.spi.ResourceProvider;
 import com.dajudge.testee.spi.ResourceProviderFactory;
 

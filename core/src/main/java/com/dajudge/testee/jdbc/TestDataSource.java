@@ -1,6 +1,6 @@
 package com.dajudge.testee.jdbc;
 
-import com.dajudge.testee.jdbc.spi.DataSourceFactory;
+import com.dajudge.testee.spi.DataSourceFactory;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;

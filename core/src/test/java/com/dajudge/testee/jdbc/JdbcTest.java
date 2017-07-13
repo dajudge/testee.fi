@@ -1,6 +1,6 @@
 package com.dajudge.testee.jdbc;
 
-import com.dajudge.testee.jdbc.spi.DataSourceFactory;
+import com.dajudge.testee.spi.DataSourceFactory;
 import com.dajudge.testee.runtime.TestInstance;
 import com.dajudge.testee.runtime.TestRuntime;
 import com.dajudge.testee.runtime.TestSetup;

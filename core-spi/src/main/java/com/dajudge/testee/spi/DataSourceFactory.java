@@ -1,4 +1,4 @@
-package com.dajudge.testee.jdbc.spi;
+package com.dajudge.testee.spi;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

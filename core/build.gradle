@@ -8,8 +8,10 @@ dependencies {
     compile libCommonsIO
     compile project(":core-spi")
     compile project(":common")
+    compile libCommonsLang3
 
     testCompile libEclipseLink
     testCompile libJUnit4
+    testCompile libMockito
     testCompile libLogback
 }
