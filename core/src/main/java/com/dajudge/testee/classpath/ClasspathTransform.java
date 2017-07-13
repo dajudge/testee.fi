@@ -48,9 +48,7 @@ public class ClasspathTransform {
                 .peek(it -> LOG.trace("Processing directory java archive{}", it))
                 .map(it -> (DirectoryJavaArchive) it)
                 .filter(it -> getBuildDir(it) != null)
-                .collect(Collectors.groupingBy(
-                        it -> getBuildDir(it)
-                ))
+                .collect(Collectors.groupingBy(ClasspathTransform::getBuildDir))
                 .entrySet().stream()
                 .map(it -> new CompositeJavaArchive(it.getValue(), it.getKey()))
                 .forEach(ret::add);
