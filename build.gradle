@@ -24,7 +24,7 @@ allprojects {
 }
 
 def ignoreTestFailures = Boolean.valueOf(System.getenv("IGNORE_TEST_FAILURES") ?: "false")
-if(ignoreTestFailures) {
+if (ignoreTestFailures) {
     println "Continuing on test failures"
 }
 subprojects {
@@ -34,6 +34,10 @@ subprojects {
 
     afterEvaluate { Project project ->
         if (project.pluginManager.hasPlugin("java")) {
+            compileJava {
+                options.encoding = 'UTF-8'
+                options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+            }
             test {
                 ignoreFailures = ignoreTestFailures
             }
