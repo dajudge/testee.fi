@@ -1,5 +1,8 @@
 package com.dajudge.testee.classpath;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collection;
@@ -20,6 +23,8 @@ import java.util.stream.Collectors;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class ClasspathTransform {
+    private static final Logger LOG = LoggerFactory.getLogger(ClasspathTransform.class);
+
     /**
      * Transforms the classpath.
      *
@@ -37,6 +42,7 @@ public class ClasspathTransform {
         // Directory entries transformed if matching
         in.stream()
                 .filter(it -> it instanceof DirectoryJavaArchive)
+                .peek(it -> LOG.trace("Processing directory java archive{}", it))
                 .map(it -> (DirectoryJavaArchive) it)
                 .filter(it -> getBuildDir(it) != null)
                 .collect(Collectors.groupingBy(

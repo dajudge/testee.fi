@@ -20,11 +20,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.enterprise.inject.spi.Bean;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static com.dajudge.testee.utils.ProxyUtils.trace;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * The instance of a {@link TestSetup}.
@@ -108,10 +109,19 @@ public class TestInstance {
                         return null;
                     }
                 })
-                .filter(it -> it != null)
-                .collect(Collectors.toSet());
+                .filter(Objects::nonNull)
+                .collect(toSet());
         if (set.isEmpty()) {
-            throw new RuntimeException("No matching bean found for class " + clazz.getName());
+            final Set<Bean<?>> allBeans = container().beanDeploymentArchives().values().stream()
+                    .map(BeanManagerImpl::getBeans)
+                    .flatMap(Collection::stream)
+                    .collect(toSet());
+            throw new RuntimeException(
+                    "No matching bean found for class "
+                            + clazz.getName()
+                            + ", available beans are: "
+                            + allBeans
+            );
         } else if (set.size() > 1) {
             throw new RuntimeException("Multiple ambiguous beans found for class " + clazz.getName());
         } else {

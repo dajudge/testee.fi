@@ -56,7 +56,9 @@ public class BeanArchiveDiscovery {
     private static Collection<JavaArchive> discoverBeanArchives() {
         final long start = System.currentTimeMillis();
         final Classpath cp = new Classpath(BeanArchiveDiscovery.class.getClassLoader());
-        final Collection<JavaArchive> transformed = ClasspathTransform.transform(cp.getAll());
+        final Collection<JavaArchive> classpathEntries = cp.getAll();
+        LOG.trace("Bean archive discovery using these classpath entries: {}", classpathEntries);
+        final Collection<JavaArchive> transformed = ClasspathTransform.transform(classpathEntries);
         final Collection<JavaArchive> beanArchiveClasspathEntries = transformed.stream()
                 .filter(HAS_BEANS_XML.or(HAS_CDI_EXTENSION))
                 .collect(toSet());

@@ -5,8 +5,10 @@
         </encoder>
     </appender>
 
-    <root level="INFO">
+    <root level="TRACE">
         <appender-ref ref="STDOUT" />
     </root>
+
+    <logger name="com.dajudge.testee.utils.ProxyUtils" level="INFO" />
 
 </configuration>

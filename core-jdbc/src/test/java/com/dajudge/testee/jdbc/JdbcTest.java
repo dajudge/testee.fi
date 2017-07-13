@@ -45,7 +45,7 @@ public class JdbcTest {
     }
 
     @TestDataSource(name = "jdbc/test", factory = PlaygroundDataSourceFactory.class)
-    static class SubClass extends BaseClass {
+    public static class SubClass extends BaseClass {
         @Resource(mappedName = "jdbc/test")
         private DataSource dataSource;
 

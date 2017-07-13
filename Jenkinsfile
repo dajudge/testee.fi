@@ -1,7 +1,6 @@
 node() {
     stage("Checkout source code") {
         git url: "https://github.com/dajudge/testee.git"
-        sh "chmod 755 gradlew"
     }
 
     stage("Build") {
