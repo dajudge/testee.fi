@@ -26,7 +26,7 @@ public abstract class AbstractBaseJavaArchive implements JavaArchive {
     }
 
     @Override
-    public synchronized final Collection<String> getClasses() {
+    public final synchronized Collection<String> getClasses() {
         if (classes != null) {
             return classes;
         }
