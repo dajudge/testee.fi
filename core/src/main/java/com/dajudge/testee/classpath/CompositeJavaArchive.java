@@ -25,7 +25,7 @@ public class CompositeJavaArchive implements JavaArchive {
     public CompositeJavaArchive(final Collection<? extends JavaArchive> archives) {
         this.archives = Collections.unmodifiableCollection(archives);
         this.url = createCompositeUrl(archives.stream()
-                .map(it -> it.getURL())
+                .map(JavaArchive::getURL)
                 .collect(toList())
         );
     }
