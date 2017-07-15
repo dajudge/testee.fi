@@ -1,4 +1,4 @@
-package com.dajudge.testee.persistence;
+package com.dajudge.testee.jpa;
 
 import javax.persistence.SharedCacheMode;
 import javax.persistence.ValidationMode;
@@ -16,29 +16,57 @@ import java.util.Properties;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class PersistenceUnitInfoImpl implements PersistenceUnitInfo {
+    private final URL rootUrl;
     private final String provider;
     private final String name;
     private final PersistenceUnitTransactionType transactionType;
+    private final DataSource jtaDataSource;
     private final Properties properties;
+    private final List<URL> jarFileUrls;
+    private final List<String> mappingFileNames;
+    private final List<String> managedClassNames;
+    private final boolean excludeUnlistedClasses;
+    private final ClassLoader classLoader;
 
     /**
      * Constructor.
      *
-     * @param provider        provider class name.
-     * @param name            the persistence unit name.
-     * @param transactionType the transaction type.
-     * @param properties      the properties.
+     * @param rootUrl                the URL for the jar file or directory that is the root of the persistence unit.
+     * @param provider               provider class name.
+     * @param name                   the persistence unit name.
+     * @param transactionType        the transaction type.
+     * @param jtaDataSource          the JTA data source.
+     * @param properties             the properties.
+     * @param jarFileUrls            <code>jar-file</code> elements from <code>persistence.xml</code>.
+     * @param mappingFileNames       <code>mapping-file</code> elements from <code>persistence.xml</code>.
+     * @param managedClassNames      <code>class</code> elements from <code>persistence.xml</code>.
+     * @param excludeUnlistedClasses <code>exclude-unlisted-classes</code> element from <code>persistence.xml</code>.
+     * @param classLoader            the class loader to use.
      */
     public PersistenceUnitInfoImpl(
+            final URL rootUrl,
             final String provider,
             final String name,
             final PersistenceUnitTransactionType transactionType,
-            final Properties properties
+            final DataSource jtaDataSource,
+            final Properties properties,
+            final List<URL> jarFileUrls,
+            final List<String> mappingFileNames,
+            final List<String> managedClassNames,
+            final boolean excludeUnlistedClasses,
+            final ClassLoader classLoader
     ) {
+        this.rootUrl = rootUrl;
         this.provider = provider;
         this.name = name;
         this.transactionType = transactionType;
+        this.jtaDataSource = jtaDataSource;
         this.properties = properties;
+        this.jarFileUrls = jarFileUrls;
+        this.mappingFileNames = mappingFileNames;
+        this.managedClassNames = managedClassNames;
+        this.excludeUnlistedClasses = excludeUnlistedClasses;
+        this.classLoader = classLoader;
     }
 
     @Override
@@ -58,7 +86,7 @@ public class PersistenceUnitInfoImpl implements PersistenceUnitInfo {
 
     @Override
     public DataSource getJtaDataSource() {
-        return null;
+        return jtaDataSource;
     }
 
     @Override
@@ -68,27 +96,27 @@ public class PersistenceUnitInfoImpl implements PersistenceUnitInfo {
 
     @Override
     public List<String> getMappingFileNames() {
-        return null;
+        return mappingFileNames;
     }
 
     @Override
     public List<URL> getJarFileUrls() {
-        return null;
+        return jarFileUrls;
     }
 
     @Override
     public URL getPersistenceUnitRootUrl() {
-        return null;
+        return rootUrl;
     }
 
     @Override
     public List<String> getManagedClassNames() {
-        return null;
+        return managedClassNames;
     }
 
     @Override
     public boolean excludeUnlistedClasses() {
-        return false;
+        return excludeUnlistedClasses;
     }
 
     @Override
@@ -113,7 +141,7 @@ public class PersistenceUnitInfoImpl implements PersistenceUnitInfo {
 
     @Override
     public ClassLoader getClassLoader() {
-        return null;
+        return classLoader;
     }
 
     @Override

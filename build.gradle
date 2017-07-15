@@ -56,7 +56,8 @@ ext {
     libCommonsIO = 'commons-io:commons-io:2.4'
     libJUnit4 = 'junit:junit:4.12'
     libEclipseLink = 'org.eclipse.persistence:eclipselink:2.6.0'
-    libDbcp2 = 'org.apache.commons:commons-dbcp2:2.1.1'
+    libH2 = 'com.h2database:h2:1.4.196'
+    libFlyway = 'org.flywaydb:flyway-core:4.2.0'
 }
 
 task wrapper(type: Wrapper) {

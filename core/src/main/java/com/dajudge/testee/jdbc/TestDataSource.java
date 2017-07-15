@@ -1,6 +1,6 @@
 package com.dajudge.testee.jdbc;
 
-import com.dajudge.testee.spi.DataSourceFactory;
+import com.dajudge.testee.spi.ConnectionFactory;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;
@@ -25,9 +25,9 @@ public @interface TestDataSource {
     String name();
 
     /**
-     * The {@link DataSourceFactory} to use.
+     * The {@link ConnectionFactory} to use.
      *
-     * @return @link DataSourceFactory} to use.
+     * @return @link ConnectionFactory} to use.
      */
-    Class<? extends DataSourceFactory> factory();
+    Class<? extends ConnectionFactory> factory();
 }

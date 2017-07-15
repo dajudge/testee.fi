@@ -2,4 +2,5 @@ apply plugin: 'java'
 
 dependencies {
     compile libWeld
+    compile project(":common")
 }

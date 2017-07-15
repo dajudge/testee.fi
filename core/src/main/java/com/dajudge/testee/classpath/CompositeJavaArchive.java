@@ -5,6 +5,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
+import static com.dajudge.testee.utils.UrlUtils.createCompositeUrl;
+import static java.util.stream.Collectors.toList;
+
 /**
  * A {@link JavaArchive} merging multiple delegate archives to one.
  *
@@ -19,10 +22,14 @@ public class CompositeJavaArchive implements JavaArchive {
      *
      * @param archives the archives to make look like one.
      */
-    public CompositeJavaArchive(final Collection<? extends JavaArchive> archives, final URL url) {
+    public CompositeJavaArchive(final Collection<? extends JavaArchive> archives) {
         this.archives = Collections.unmodifiableCollection(archives);
-        this.url = url;
+        this.url = createCompositeUrl(archives.stream()
+                .map(it -> it.getURL())
+                .collect(toList())
+        );
     }
+
 
     @Override
     public ClasspathResource findResource(final String s) {

@@ -10,5 +10,7 @@ import javax.enterprise.inject.spi.InjectionPoint;
 public interface ResourceProvider {
     Object resolve(InjectionPoint injectionPoint);
 
-    void cleanup();
+    Object resolve(String jndiName, String mappedName);
+
+    void shutdown();
 }

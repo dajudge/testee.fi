@@ -60,7 +60,7 @@ public final class ProxyUtils {
                 (proxy, method, args) -> {
                     try {
                         if (method.getDeclaringClass() != Object.class) {
-                            LOG.debug("CALL: {} {}", method, args == null ? "[]" : asList(args));
+                            LOG.trace("CALL: {} {}", method, args == null ? "[]" : asList(args));
                         }
                         return method.invoke(delegate, args);
                     } catch (final InvocationTargetException e) {

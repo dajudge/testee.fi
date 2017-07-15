@@ -6,3 +6,6 @@ include 'core-spi'      // Core extension API
 include 'mockito'       // Mockito intgration
 include 'junit4'        // JUnit 4 integration
 include 'h2'            // H2 in memory database support
+include 'junit4-all'    // Standard distribution for JUnit4
+include 'flyway'        // Flyway integration
+include 'eclipselink'   // EclipseLink integration

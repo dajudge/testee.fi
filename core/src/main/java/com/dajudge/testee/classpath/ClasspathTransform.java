@@ -51,7 +51,7 @@ public class ClasspathTransform {
                 .filter(it -> getBuildDir(it) != null)
                 .collect(Collectors.groupingBy(ClasspathTransform::getBuildDir))
                 .entrySet().stream()
-                .map(it -> new CompositeJavaArchive(it.getValue(), it.getKey()))
+                .map(it -> new CompositeJavaArchive(it.getValue()))
                 .forEach(ret::add);
 
         // Other directory entries

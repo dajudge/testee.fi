@@ -1,16 +1,21 @@
-package com.dajudge.testee.persistence;
+package com.dajudge.testee.jpa;
 
 import com.dajudge.testee.classpath.ClasspathResource;
 import com.dajudge.testee.classpath.JavaArchive;
 import com.dajudge.testee.deployment.BeanArchiveDiscovery;
 import com.dajudge.testee.exceptions.TesteeException;
+import com.dajudge.testee.utils.ProxyUtils;
+import com.dajudge.testee.utils.UrlUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.persistence.spi.PersistenceUnitInfo;
 import javax.persistence.spi.PersistenceUnitTransactionType;
+import javax.sql.DataSource;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -19,12 +24,17 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static javax.xml.xpath.XPathConstants.NODESET;
 import static javax.xml.xpath.XPathConstants.STRING;
 
@@ -35,11 +45,16 @@ import static javax.xml.xpath.XPathConstants.STRING;
  */
 public class PersistenceUnitDiscovery {
     private static final DocumentBuilder BUILDER = createDocumentBuilder();
-    private Map<String, PersistenceUnitInfoImpl> units;
+    private Map<String, PersistenceUnitInfo> units;
     private BeanArchiveDiscovery beanArchiveDiscovery;
+    private ResourceInjectionServices resourceInjectionServices;
 
-    public PersistenceUnitDiscovery(final BeanArchiveDiscovery beanArchiveDiscovery) {
+    public PersistenceUnitDiscovery(
+            final BeanArchiveDiscovery beanArchiveDiscovery,
+            final ResourceInjectionServices resourceInjectionServices
+    ) {
         this.beanArchiveDiscovery = beanArchiveDiscovery;
+        this.resourceInjectionServices = resourceInjectionServices;
     }
 
     private static DocumentBuilder createDocumentBuilder() {
@@ -50,7 +65,7 @@ public class PersistenceUnitDiscovery {
         }
     }
 
-    private Collection<PersistenceUnitInfoImpl> unitsFrom(
+    private Collection<PersistenceUnitInfo> unitsFrom(
             final JavaArchive archive,
             final ClasspathResource xml
     ) {
@@ -59,10 +74,9 @@ public class PersistenceUnitDiscovery {
             final Element root = doc.getDocumentElement();
             final NodeList units = (NodeList) xpath().evaluate("//persistence/persistence-unit", root, NODESET);
 
-            final Collection<PersistenceUnitInfoImpl> ret = new HashSet<>();
+            final Collection<PersistenceUnitInfo> ret = new HashSet<>();
             for (int i = 0; i < units.getLength(); i++) {
-                final PersistenceUnitInfoImpl info = addUnit(archive, (Element) units.item(i));
-                ret.add(info);
+                ret.add(createUnitInfo(archive, (Element) units.item(i)));
             }
             return ret;
         } catch (final XPathExpressionException | SAXException | IOException e) {
@@ -74,15 +88,16 @@ public class PersistenceUnitDiscovery {
         return XPathFactory.newInstance().newXPath();
     }
 
-    private PersistenceUnitInfoImpl addUnit(
+    private PersistenceUnitInfo createUnitInfo(
             final JavaArchive archive,
             final Element unit
-    ) throws XPathExpressionException {
+    ) throws XPathExpressionException, MalformedURLException {
         final XPath xpath = xpath();
         final String name = unit.getAttribute("name");
         final String transactionType = unit.getAttribute("transaction-type");
-        final String provider = (String) xpath.evaluate("provider/text()", unit, STRING);
-        final String dataSource = (String) xpath.evaluate("jta-data-source/text()", unit, STRING);
+        final String provider = stringTag(unit, xpath, "provider");
+        final String jtaDataSourceName = stringTag(unit, xpath, "jta-data-source");
+        final String excludeUnlistedClassesString = stringTag(unit, xpath, "exclude-unlisted-classes");
         final NodeList props = (NodeList) xpath.evaluate("properties/property", unit, NODESET);
         final Properties properties = new Properties();
         for (int i = 0; i < props.getLength(); i++) {
@@ -91,22 +106,67 @@ public class PersistenceUnitDiscovery {
             final String propValue = prop.getAttribute("value");
             properties.put(propName, propValue);
         }
+        final List<URL> jarFileUrls = collectStringListElements(unit, xpath, "jar-file").stream()
+                .map(UrlUtils::toUrl)
+                .collect(toList());
+        final List<String> mappingFileNames = collectStringListElements(unit, xpath, "mapping-file");
+        final List<String> managedClassNames = collectStringListElements(unit, xpath, "class");
+        boolean excludeUnlistedClasses = excludeUnlistedClassesString != null
+                && Boolean.parseBoolean(excludeUnlistedClassesString);
         return new PersistenceUnitInfoImpl(
+                archive.getURL(),
                 provider,
                 name,
                 PersistenceUnitTransactionType.valueOf(transactionType),
-                properties
+                ProxyUtils.lazy(() -> resolveDataSource(jtaDataSourceName), DataSource.class),
+                properties,
+                jarFileUrls,
+                mappingFileNames,
+                managedClassNames,
+                excludeUnlistedClasses,
+                getClass().getClassLoader()
         );
     }
 
-    public synchronized PersistenceUnitInfoImpl findByUnitName(final String unitName) {
+    private String stringTag(
+            final Element element,
+            final XPath xpath,
+            final String tagName
+    ) throws XPathExpressionException {
+        return (String) xpath.evaluate(tagName + "/text()", element, STRING);
+    }
+
+    private List<String> collectStringListElements(
+            final Element unit,
+            final XPath xpath,
+            final String elementName
+    ) throws XPathExpressionException {
+        final NodeList nodes = (NodeList) xpath.evaluate(elementName, unit, NODESET);
+        final List<String> strings = new ArrayList<>();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            strings.add(nodes.item(i).getTextContent());
+        }
+        return strings;
+    }
+
+    private DataSource resolveDataSource(final String dataSourceName) {
+        final Object result = resourceInjectionServices.registerResourceInjectionPoint(null, dataSourceName)
+                .<DataSource>createResource()
+                .getInstance();
+        if (!(result instanceof DataSource)) {
+            throw new TesteeException("The resolved container managed resource is not a DataSource: " + result);
+        }
+        return (DataSource) result;
+    }
+
+    public synchronized PersistenceUnitInfo findByUnitName(final String unitName) {
         if (units == null) {
             units = discover();
         }
         return units.get(unitName);
     }
 
-    private Map<String, PersistenceUnitInfoImpl> discover() {
+    private Map<String, PersistenceUnitInfo> discover() {
         return beanArchiveDiscovery.getBeanArchives().stream()
                 .map(it -> new ImmutablePair<>(it, it.findResource("META-INF/persistence.xml")))
                 .filter(it -> it.getRight() != null)

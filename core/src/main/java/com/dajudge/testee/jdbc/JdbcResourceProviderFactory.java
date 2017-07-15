@@ -1,26 +1,19 @@
 package com.dajudge.testee.jdbc;
 
 import com.dajudge.testee.exceptions.TesteeException;
-import com.dajudge.testee.spi.DataSourceFactory;
+import com.dajudge.testee.spi.ConnectionFactory;
 import com.dajudge.testee.spi.ResourceProvider;
 import com.dajudge.testee.spi.ResourceProviderFactory;
 
 import javax.annotation.Resource;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.sql.DataSource;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Function;
 
-import static com.dajudge.testee.utils.ProxyUtils.lazy;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
 
 /**
  * Contributes JDBC support to TestEE core.
@@ -38,16 +31,25 @@ public class JdbcResourceProviderFactory implements ResourceProviderFactory {
         final ResourceProvider resourceProvider = new ResourceProvider() {
             @Override
             public Object resolve(final InjectionPoint injectionPoint) {
+                return resolve(map -> resolveDataSource(map, injectionPoint));
+            }
+
+            @Override
+            public Object resolve(String jndiName, String mappedName) {
+                return resolve(map -> resolveDataSource(map, mappedName));
+            }
+
+            private Object resolve(Function<Map<String, ManagedDataSource>, DataSource> resolver) {
                 synchronized (container) {
                     if (container.managedDataSources == null) {
                         container.managedDataSources = discover(setupClass);
                     }
-                    return JdbcResourceProviderFactory.resolve(container.managedDataSources, injectionPoint);
+                    return resolver.apply(container.managedDataSources);
                 }
             }
 
             @Override
-            public void cleanup() {
+            public void shutdown() {
                 synchronized (container) {
                     if (container.managedDataSources != null) {
                         container.managedDataSources.values().forEach(ManagedDataSource::shutdown);
@@ -56,44 +58,10 @@ public class JdbcResourceProviderFactory implements ResourceProviderFactory {
                 }
             }
         };
-        setupTestData(setupClass, resourceProvider);
         return resourceProvider;
     }
 
-    private void setupTestData(
-            final Class<?> setupClass,
-            final ResourceProvider resourceProvider
-    ) {
-        Class<?> currentClass = setupClass;
-        final List<Method> methodsToInvoke = new ArrayList<>();
-        while (currentClass != null && currentClass != Object.class) {
-            final Set<Method> candidates = stream(currentClass.getDeclaredMethods())
-                    .filter(it -> it.getAnnotation(TestData.class) != null)
-                    .collect(toSet());
-            currentClass = currentClass.getSuperclass();
-            if (candidates.isEmpty()) {
-                continue;
-            }
-            if (candidates.size() > 1) {
-                throw new IllegalStateException("Only one @TestData method allowed per class");
-            }
-            final Method candidate = candidates.iterator().next();
-            if (!Modifier.isStatic(candidate.getModifiers())) {
-                throw new IllegalStateException("Methods annotated with @TestData must be static");
-            }
-            methodsToInvoke.add(0, candidate);
-        }
-        methodsToInvoke.forEach(it -> {
-            try {
-                it.setAccessible(true);
-                it.invoke(null);
-            } catch (final IllegalAccessException | InvocationTargetException e) {
-                throw new TesteeException("Failed to invoke @TestData method", e);
-            }
-        });
-    }
-
-    private static DataSource resolve(
+    private static DataSource resolveDataSource(
             final Map<String, ManagedDataSource> managedDataSources,
             final InjectionPoint injectionPoint
     ) {
@@ -104,25 +72,18 @@ public class JdbcResourceProviderFactory implements ResourceProviderFactory {
         if (annotation == null) {
             return null;
         }
-        final ManagedDataSource ds = managedDataSources.get(annotation.mappedName());
+        return resolveDataSource(managedDataSources, annotation.mappedName());
+    }
+
+    private static DataSource resolveDataSource(
+            final Map<String, ManagedDataSource> managedDataSources,
+            final String mappedName
+    ) {
+        final ManagedDataSource ds = managedDataSources.get(mappedName);
         if (ds == null) {
             return null;
         }
-        return lazy(() -> ds.factory.create(), DataSource.class);
-    }
-
-    private static class ManagedDataSource {
-        private final String name;
-        private final DataSourceFactory factory;
-
-        ManagedDataSource(final String name, final DataSourceFactory factory) {
-            this.name = name;
-            this.factory = factory;
-        }
-
-        private void shutdown() {
-            factory.shutdown();
-        }
+        return new DataSourceImpl(ds.getConnection());
     }
 
     private Map<String, ManagedDataSource> discover(final Class<?> testClass) {
@@ -133,15 +94,18 @@ public class JdbcResourceProviderFactory implements ResourceProviderFactory {
         return stream(annotations)
                 .map(this::initialize)
                 .collect(toMap(
-                        it -> it.name,
+                        it -> it.getName(),
                         it -> it
                 ));
     }
 
     private ManagedDataSource initialize(final TestDataSource testDataSource) {
-        final Class<? extends DataSourceFactory> factoryClass = testDataSource.factory();
+        final Class<? extends ConnectionFactory> factoryClass = testDataSource.factory();
         try {
-            return new ManagedDataSource(testDataSource.name(), factoryClass.newInstance());
+            return new ManagedDataSource(
+                    testDataSource.name(),
+                    factoryClass.newInstance()
+            );
         } catch (final InstantiationException | IllegalAccessException e) {
             throw new TesteeException("Failed to instantiate " + factoryClass.getName(), e);
         }

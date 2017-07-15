@@ -8,6 +8,7 @@ import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
 import javax.enterprise.inject.spi.InjectionPoint;
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.Function;
 
 import static java.util.stream.Collectors.toSet;
 
@@ -28,28 +29,51 @@ public class ResourceInjectionServicesImpl implements ResourceInjectionServices 
     public ResourceReferenceFactory<Object> registerResourceInjectionPoint(
             final InjectionPoint injectionPoint
     ) {
-        return () -> new SimpleResourceReference<>(findResource(providers, injectionPoint));
+        return registerInjectionPoint(o -> o.resolve(injectionPoint), injectionPoint.toString());
     }
 
-    private Object findResource(final Collection<ResourceProvider> providers, final InjectionPoint injectionPoint) {
+    private ResourceReferenceFactory<Object> registerInjectionPoint(
+            final Function<ResourceProvider, Object> resolver,
+            final String description
+    ) {
+        return () -> new SimpleResourceReference<>(findResource(providers, new Function<ResourceProvider, Object>() {
+            @Override
+            public Object apply(final ResourceProvider o) {
+                return resolver.apply(o);
+            }
+
+            @Override
+            public String toString() {
+                return description;
+            }
+        }));
+    }
+
+    private static Object findResource(
+            final Collection<ResourceProvider> providers,
+            final Function<ResourceProvider, Object> resolver
+    ) {
         final Set<Object> candidates = providers.stream()
-                .map(it -> it.resolve(injectionPoint))
+                .map(resolver)
                 .collect(toSet());
         if (candidates.isEmpty()) {
-            throw new IllegalStateException("Failed to resolve resource " + injectionPoint);
+            throw new IllegalStateException("Failed to resolve resource specification " + resolver);
         }
         if (candidates.size() > 1) {
-            throw new IllegalStateException("Ambiguous resource injection point " + injectionPoint + ": " + candidates);
+            throw new IllegalStateException("Ambiguous resource specification" + resolver + ": " + candidates);
         }
         return candidates.iterator().next();
     }
 
     @Override
     public ResourceReferenceFactory<Object> registerResourceInjectionPoint(
-            final String s,
-            final String s1
+            final String jndiName,
+            final String mappedName
     ) {
-        throw new UnsupportedOperationException("Not implemented");
+        return registerInjectionPoint(
+                o -> o.resolve(jndiName, mappedName),
+                "jndiName: " + jndiName + ", mappedName: " + mappedName
+        );
     }
 
     @Override
@@ -69,6 +93,6 @@ public class ResourceInjectionServicesImpl implements ResourceInjectionServices 
 
     @Override
     public void cleanup() {
-        providers.forEach(it -> it.cleanup());
+        providers.forEach(it -> it.shutdown());
     }
 }

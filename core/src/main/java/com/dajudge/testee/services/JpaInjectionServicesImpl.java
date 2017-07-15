@@ -1,8 +1,7 @@
 package com.dajudge.testee.services;
 
 import com.dajudge.testee.exceptions.TesteeException;
-import com.dajudge.testee.persistence.PersistenceUnitDiscovery;
-import com.dajudge.testee.persistence.PersistenceUnitInfoImpl;
+import com.dajudge.testee.jpa.PersistenceUnitDiscovery;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
@@ -14,6 +13,9 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceContext;
 import javax.persistence.spi.PersistenceProvider;
+import javax.persistence.spi.PersistenceUnitInfo;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,8 +43,8 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
                 .getAnnotated()
                 .getAnnotation(PersistenceContext.class);
         final String unitName = persistenceContext.unitName();
-        LOG.info("Creating persistence context for unit '{}'", unitName);
-        final PersistenceUnitInfoImpl unit = getUnitByName(unitName);
+        LOG.debug("Creating persistence context for unit '{}'", unitName);
+        final PersistenceUnitInfo unit = getUnitByName(unitName);
         if (unit == null) {
             return null;
         }
@@ -50,14 +52,31 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
                 () -> getEntityManager(unit),
                 EntityManager.class
         );
-        return () -> new SimpleResourceReference<>(entityManager);
+        return () -> new SimpleResourceReference<>(safeguard(entityManager));
     }
 
-    private PersistenceUnitInfoImpl getUnitByName(String unitName) {
+    private EntityManager safeguard(final EntityManager entityManager) {
+        return (EntityManager) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{EntityManager.class},
+                (proxy, method, args) -> {
+                    try {
+                        if ("close".equals(method.getName())) {
+                            return null;
+                        }
+                        return method.invoke(entityManager, args);
+                    } catch (final InvocationTargetException e) {
+                        throw e.getTargetException();
+                    }
+                }
+        );
+    }
+
+    private PersistenceUnitInfo getUnitByName(String unitName) {
         return persistenceUnitDiscovery.findByUnitName(unitName);
     }
 
-    private synchronized EntityManager getEntityManager(final PersistenceUnitInfoImpl unit) {
+    private synchronized EntityManager getEntityManager(final PersistenceUnitInfo unit) {
         if (entityManagers.containsKey(unit.getPersistenceUnitName())) {
             return entityManagers.get(unit.getPersistenceUnitName());
         }
@@ -96,6 +115,10 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
 
     @Override
     public void cleanup() {
-        entityManagers.values().forEach(it -> it.close());
+        entityManagers.values().forEach(it -> {
+            if (it.isOpen()) {
+                it.close();
+            }
+        });
     }
 }

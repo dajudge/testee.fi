@@ -14,6 +14,7 @@ import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
 import org.jboss.weld.bootstrap.spi.CDI11Deployment;
 import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.exceptions.UnsatisfiedResolutionException;
+import org.jboss.weld.injection.spi.JpaInjectionServices;
 import org.jboss.weld.manager.BeanManagerImpl;
 import org.jboss.weld.resolution.ResolvableBuilder;
 import org.slf4j.Logger;
@@ -102,7 +103,7 @@ public class TestInstance {
     }
 
     private <T> Bean<T> resolveUnique(final Class<T> clazz) {
-        Set<Bean<T>> set = container().beanDeploymentArchives().values().stream()
+        final Set<Bean<T>> set = container().beanDeploymentArchives().values().stream()
                 .map(it -> {
                     try {
                         return (Bean<T>) it.getBean(new ResolvableBuilder(it).addType(clazz).create());

@@ -57,7 +57,7 @@ public class BeanArchiveDiscovery {
         final Collection<JavaArchive> beanArchiveClasspathEntries = transformed.stream()
                 .filter(HAS_BEANS_XML.or(HAS_CDI_EXTENSION))
                 .collect(toSet());
-        LOG.info("Bean archive discovery completed in {}ms", System.currentTimeMillis() - start);
+        LOG.debug("Bean archive discovery completed in {}ms", System.currentTimeMillis() - start);
         return beanArchiveClasspathEntries;
     }
 }
