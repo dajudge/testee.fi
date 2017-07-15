@@ -47,7 +47,7 @@ public final class UrlUtils {
      */
     public static URL createCompositeUrl(final List<URL> urls) {
         final List<String> strings = urls.stream().map(Object::toString).collect(toList());
-        final StringBuffer sep = new StringBuffer("|");
+        final StringBuilder sep = new StringBuilder("|");
         while (contains(strings, sep.toString())) {
             sep.append(COMPOSITE_SEPARATOR_CHAR);
         }
