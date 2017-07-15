@@ -63,9 +63,10 @@ public final class UrlUtils {
      */
     public static List<URL> splitCompositeUrl(final URL composite) {
         final String remainder = composite.toString().substring(COMPOSITE_PREFIX.length());
-        final int sepLen = Integer.parseInt(remainder.substring(0, remainder.indexOf("/")));
+        final int sepIdx = remainder.indexOf('/');
+        final int sepLen = Integer.parseInt(remainder.substring(0, sepIdx));
         final String separator = StringUtils.repeat(COMPOSITE_SEPARATOR_CHAR, sepLen);
-        final String composed = remainder.substring(remainder.indexOf("/") + 1);
+        final String composed = remainder.substring(sepIdx + 1);
         return Arrays.stream(split(composed, separator))
                 .map(UrlUtils::toUrl)
                 .collect(toList());
