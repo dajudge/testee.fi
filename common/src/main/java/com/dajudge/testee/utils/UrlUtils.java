@@ -20,7 +20,7 @@ import static org.apache.commons.lang3.StringUtils.split;
  */
 public final class UrlUtils {
     private static final String COMPOSITE_PREFIX = "file:/:testeeComposite/";
-    public static final String COMPOSITE_SEPARATOR_CHAR = "|";
+    private static final String COMPOSITE_SEPARATOR_CHAR = "|";
 
     private UrlUtils() {
     }
