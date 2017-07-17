@@ -1,8 +1,8 @@
 package com.dajudge.testee.runtime;
 
+import com.dajudge.testee.spi.BeanModifier;
+import com.dajudge.testee.spi.BeanModifierFactory;
 import com.dajudge.testee.spi.DataSourceMigrator;
-import com.dajudge.testee.spi.PluginTestInstance;
-import com.dajudge.testee.spi.PluginTestSetup;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
@@ -13,7 +13,6 @@ import javax.enterprise.inject.spi.Bean;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -28,7 +27,6 @@ import static com.dajudge.testee.runtime.TestDataSetup.setupTestData;
  */
 public class TestSetup {
     private static final Logger LOG = LoggerFactory.getLogger(TestSetup.class);
-    private final Set<PluginTestSetup> plugins;
     private final DependencyInjectionRealm realm;
 
     public TestSetup(
@@ -43,10 +41,6 @@ public class TestSetup {
         realm = new DependencyInjectionRealm(serviceRegistry, runtime.getBeanArchiveDiscorvery());
 
         try {
-            plugins = runtime.getPlugins().stream()
-                    .map(it -> it.setup(setupClass))
-                    .filter(Objects::nonNull) // Plugins return null when not interested in this class
-                    .collect(Collectors.toSet());
             final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
             txContext.run((clazz, realm) -> {
                 final Set<DataSourceMigrator> migrators = realm.getInstancesOf(DataSourceMigrator.class);
@@ -67,21 +61,19 @@ public class TestSetup {
         LOG.debug("Instantiating test run '{}' for class {}", name, testClassInstance.getClass().getName());
         final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
         txContext.run((clazz, realm) -> {
-            final Collection<PluginTestInstance> pluginTestInstances = plugins.stream()
-                    .map(it -> it.instantiate(testClassInstance))
-                    .filter(it -> it != null)
+            final Set<BeanModifier> instancesOf = realm.getInstancesOf(BeanModifierFactory.class).stream()
+                    .map(it -> it.createBeanModifier(testClassInstance))
                     .collect(Collectors.toSet());
-            realm.getAllBeans().forEach(initializeBeans(pluginTestInstances));
+            realm.getAllBeans().forEach(initializeBeans(instancesOf));
             realm.inject(testClassInstance);
         });
         return () -> txContext.rollback();
     }
 
-    private Consumer<Bean<?>> initializeBeans(final Collection<PluginTestInstance> pluginTestInstances) {
-        return bean -> pluginTestInstances.forEach(it -> it.initializeForBean(bean));
+    private Consumer<Bean<?>> initializeBeans(final Collection<BeanModifier> beanModifiers) {
+        return bean -> beanModifiers.forEach(it -> it.initializeForBean(bean));
     }
 
     public void shutdown() {
-        plugins.forEach(it -> it.shutdown());
     }
 }

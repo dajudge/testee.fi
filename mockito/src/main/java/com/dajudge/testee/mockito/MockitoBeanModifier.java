@@ -1,7 +1,7 @@
 package com.dajudge.testee.mockito;
 
 import com.dajudge.testee.exceptions.TesteeException;
-import com.dajudge.testee.spi.PluginTestInstance;
+import com.dajudge.testee.spi.BeanModifier;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -12,15 +12,15 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 /**
- * A {@link PluginTestInstance} for integrating Mockito with TestEE.
+ * A {@link BeanModifier} for integrating Mockito with TestEE.
  *
  * @author Alex Stockinger, IT-Stockinger
  */
-public class MockitoTestInstance implements PluginTestInstance {
-    private final MockManager mockManager;
+public class MockitoBeanModifier implements BeanModifier {
+    private MockManager mockManager;
 
-    public MockitoTestInstance(final Object testClassInstance) {
-        mockManager = new MockManager(createMocksFor(testClassInstance));
+    MockitoBeanModifier(final Object testSetupClass) {
+        mockManager = new MockManager(createMocksFor(testSetupClass));
     }
 
     @Override

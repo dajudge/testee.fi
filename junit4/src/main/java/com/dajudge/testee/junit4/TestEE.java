@@ -54,7 +54,9 @@ public class TestEE extends BlockJUnit4ClassRunner {
     }
 
     private synchronized void shutdownInstanceFor(final FrameworkMethod method) {
-        instances.get(method).run();
+        if (instances.containsKey(method)) {
+            instances.get(method).run();
+        }
     }
 
     @Override

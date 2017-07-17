@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
  */
 public class PlaygroundConnectionFactory implements ConnectionFactory {
     static Connection c = mock(Connection.class);
+    static boolean shutdown;
 
     @Override
     public Connection createConnection(final String name) {

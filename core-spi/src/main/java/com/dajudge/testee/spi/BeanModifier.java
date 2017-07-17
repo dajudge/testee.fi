@@ -3,10 +3,10 @@ package com.dajudge.testee.spi;
 import javax.enterprise.inject.spi.Bean;
 
 /**
- * Interface for lifecycle objects of a {@link Plugin} that contains state for a single test instace.
+ * Allows modification of Beans.
  *
  * @author Alex Stockinger, IT-Stockinger
  */
-public interface PluginTestInstance {
+public interface BeanModifier {
     <T> void initializeForBean(Bean<T> bean);
 }
