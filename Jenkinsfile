@@ -3,13 +3,9 @@ node() {
         git url: "https://github.com/dajudge/testee.git"
     }
 
-    stage("Build") {
-        sh './gradlew clean assemble'
-    }
-
-    stage("Test") {
+    stage("Build and Test") {
         try {
-            sh "IGNORE_TEST_FAILURES=true ./gradlew test"
+            sh "IGNORE_TEST_FAILURES=true ./gradlew clean build"
         } finally {
             junit "**/build/test-results/**/TEST-*.xml"
         }

@@ -23,18 +23,15 @@ public class IteratorUtils {
             final List<T> items,
             final Function<T, Iterator<S>> toIterator
     ) {
-        class Container {
-            private Iterator<S> current;
-        }
-        final Container container = new Container();
+        final MutableContainer<Iterator<S>> container = new MutableContainer<>();
         return new Iterator<S>() {
             @Override
             public boolean hasNext() {
-                if (container.current == null || !container.current.hasNext()) {
+                if (container.getObject() == null || !container.getObject().hasNext()) {
                     if (items.isEmpty()) {
                         return false;
                     }
-                    container.current = toIterator.apply(items.remove(0));
+                    container.setObject(toIterator.apply(items.remove(0)));
                 } else {
                     return true;
                 }
@@ -46,7 +43,7 @@ public class IteratorUtils {
                 if (!hasNext()) {
                     return null;
                 }
-                return container.current.next();
+                return container.getObject().next();
             }
         };
     }

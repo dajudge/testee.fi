@@ -5,9 +5,11 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
+import java.util.Arrays;
 import java.util.function.Supplier;
 
-import static java.util.Arrays.asList;
+import static java.lang.System.identityHashCode;
+import static java.lang.reflect.Proxy.newProxyInstance;
 
 /**
  * Tools useful for development.
@@ -22,21 +24,18 @@ public final class ProxyUtils {
     }
 
     public static <T> T lazy(final Supplier<T> delegateFactory, final Class<T> iface) {
-        class Container<T> {
-            T instance;
-        }
-        final Container<T> container = new Container<>();
+        final MutableContainer<T> container = new MutableContainer<>();
         return (T) Proxy.newProxyInstance(
                 delegateFactory.getClass().getClassLoader(),
                 new Class[]{iface},
                 (proxy, method, args) -> {
                     synchronized (container) {
-                        if (container.instance == null) {
-                            container.instance = delegateFactory.get();
+                        if (container.getObject() == null) {
+                            container.setObject(delegateFactory.get());
                         }
                     }
                     try {
-                        return method.invoke(container.instance, args);
+                        return method.invoke(container.getObject(), args);
                     } catch (final InvocationTargetException e) {
                         throw e.getCause();
                     }
@@ -53,18 +52,21 @@ public final class ProxyUtils {
      * @param <T>      the interface type to wrap.
      * @return the logging proxy.
      */
-    public static <T> T trace(final T delegate, final Class<T> iface) {
-        return (T) Proxy.newProxyInstance(
-                delegate.getClass().getClassLoader(),
-                new Class[]{iface},
+    public static <T> T trace(final Object delegate, final Class<T> iface) {
+        final String oid = delegate.getClass().getName() + "@" + identityHashCode(delegate);
+        return (T) newProxyInstance(
+                JdbcUtils.class.getClassLoader(),
+                new Class<?>[]{iface},
                 (proxy, method, args) -> {
                     try {
-                        if (method.getDeclaringClass() != Object.class) {
-                            LOG.trace("CALL: {} {}", method, args == null ? "[]" : asList(args));
+                        LOG.trace("CALL {} {} {}", oid, method, args == null ? "[]" : Arrays.asList(args));
+                        if (method.getReturnType().isInterface()) {
+                            return trace(method.invoke(delegate, args), method.getReturnType());
+                        } else {
+                            return method.invoke(delegate, args);
                         }
-                        return method.invoke(delegate, args);
                     } catch (final InvocationTargetException e) {
-                        throw e.getCause();
+                        throw e.getTargetException();
                     }
                 }
         );

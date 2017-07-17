@@ -9,31 +9,44 @@ plugins {
     id "org.sonarqube" version "2.5"
 }
 
+def jacocoDestination = "$rootProject.buildDir/jacoco/test.exec"
 sonarqube {
     properties {
         property "sonar.host.url", "https://sonar.it-stockinger.de"
         property "sonar.login", System.getenv("SONAR_USER")
         property "sonar.password", System.getenv("SONAR_PASSWORD")
+        property "sonar.jacoco.reportPaths", jacocoDestination
+        property "sonar.buildbreaker.skip" , "false"
+
     }
 }
 
 allprojects {
     // Settings for all projects
+    repositories.addAll(rootProject.buildscript.repositories)
+
     group "com.dajudge.testee"
     version "0.0.1-SNAPSHOT"
+
+    apply plugin: 'jacoco'
 }
 
 def ignoreTestFailures = Boolean.valueOf(System.getenv("IGNORE_TEST_FAILURES") ?: "false")
-if (ignoreTestFailures) {
-    println "Continuing on test failures"
-}
 subprojects {
     // Apply the maven repos defined by the root buildscript block for all subprojects
     buildscript.repositories.addAll(rootProject.buildscript.repositories)
-    repositories.addAll(rootProject.buildscript.repositories)
 
     afterEvaluate { Project project ->
         if (project.pluginManager.hasPlugin("java")) {
+
+            jacocoTestReport.reports.xml.enabled = true
+
+            project.tasks.withType(Test) {
+                jacoco {
+                    destinationFile = file(jacocoDestination)
+                }
+            }
+
             compileJava {
                 options.encoding = 'UTF-8'
                 options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
@@ -64,4 +77,10 @@ task wrapper(type: Wrapper) {
     // As of 2017-03-15 the IntelliJ gradle plugin had problems with dependency scopes
     // with gradle 3.4 and later, so we're sticking to 3.3 for now.
     gradleVersion = '3.3'
+}
+
+task clean {
+    doLast {
+        delete buildDir
+    }
 }

@@ -3,4 +3,8 @@ apply plugin: 'java'
 dependencies {
     compile libCommonsLang3
     compile libSlf4j
+
+    testCompile libJUnit4
+    testCompile libLogback
+    testCompile libMockito
 }
