@@ -2,6 +2,7 @@ package com.dajudge.testee.jdbc;
 
 import com.dajudge.testee.spi.ConnectionFactory;
 
+import javax.annotation.PreDestroy;
 import java.sql.Connection;
 
 import static org.mockito.Mockito.mock;
@@ -19,6 +20,7 @@ public class PlaygroundConnectionFactory implements ConnectionFactory {
     }
 
     @Override
-    public void release(final String dbName) {
+    public void release() {
+        shutdown = true;
     }
 }

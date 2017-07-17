@@ -1,9 +1,7 @@
 package com.dajudge.testee.jdbc;
 
-import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.spi.ConnectionFactory;
 import com.dajudge.testee.spi.ResourceProvider;
-import com.dajudge.testee.utils.AnnotationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,11 +10,11 @@ import javax.enterprise.inject.spi.InjectionPoint;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import static com.dajudge.testee.utils.AnnotationUtils.collectAnnotations;
 import static java.util.stream.Collectors.toMap;
 
 public class JdbcResourceProvider implements ResourceProvider {
@@ -24,9 +22,10 @@ public class JdbcResourceProvider implements ResourceProvider {
 
     @Resource(mappedName = "testee/testSetupClass")
     private Class<?> testSetupClass;
+    @Resource(mappedName = "testee/connectionFactoryManager")
+    private ConnectionFactoryManager connectionFactoryManager;
 
     private final Map<String, TesteeDataSource> dataSources = new HashMap<>();
-
     private Map<String, ConnectionFactory> connectionFactories;
 
     @Override
@@ -61,25 +60,12 @@ public class JdbcResourceProvider implements ResourceProvider {
         return connectionFactories;
     }
 
-    private static Map<String, ConnectionFactory> discover(final Class<?> testClass) {
-        return collectDataSources(testClass).stream()
+    private Map<String, ConnectionFactory> discover(final Class<?> testClass) {
+        return collectAnnotations(testClass, TestDataSource.class).stream()
                 .collect(toMap(
                         it -> it.name(),
-                        it -> initialize(it)
+                        it -> connectionFactoryManager.getFactoryFor(it)
                 ));
-    }
-
-    private static List<TestDataSource> collectDataSources(final Class<?> testClass) {
-        return AnnotationUtils.collectAnnotations(testClass, TestDataSource.class);
-    }
-
-    private static ConnectionFactory initialize(final TestDataSource testDataSource) {
-        final Class<? extends ConnectionFactory> factoryClass = testDataSource.factory();
-        try {
-            return factoryClass.newInstance();
-        } catch (final InstantiationException | IllegalAccessException e) {
-            throw new TesteeException("Failed to instantiate " + factoryClass.getName(), e);
-        }
     }
 
     public void shutdown(final boolean rollback) {

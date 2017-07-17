@@ -1,7 +1,10 @@
 package com.dajudge.testee.runtime;
 
+import com.dajudge.testee.jdbc.ConnectionFactoryManager;
+import com.dajudge.testee.jdbc.TestDataSource;
 import com.dajudge.testee.spi.BeanModifier;
 import com.dajudge.testee.spi.BeanModifierFactory;
+import com.dajudge.testee.spi.ConnectionFactory;
 import com.dajudge.testee.spi.DataSourceMigrator;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
@@ -28,6 +31,7 @@ import static com.dajudge.testee.runtime.TestDataSetup.setupTestData;
 public class TestSetup {
     private static final Logger LOG = LoggerFactory.getLogger(TestSetup.class);
     private final DependencyInjectionRealm realm;
+    private final Map<Class<? extends ConnectionFactory>, ConnectionFactory> connectionFactories = new HashMap<>();
 
     public TestSetup(
             final Class<?> setupClass,
@@ -37,6 +41,7 @@ public class TestSetup {
         final Map<String, Object> params = new HashMap<>();
         params.put("testee/testSetupClass", setupClass);
         params.put("testee/beanArchiveDiscovery", runtime.getBeanArchiveDiscorvery());
+        params.put("testee/connectionFactoryManager", (ConnectionFactoryManager) this::connectionFactoryManager);
         serviceRegistry.add(ResourceInjectionServices.class, new TestSetupResourceInjectionServices(params));
         realm = new DependencyInjectionRealm(serviceRegistry, runtime.getBeanArchiveDiscorvery());
 
@@ -52,6 +57,13 @@ public class TestSetup {
             realm.shutdown();
             throw e;
         }
+    }
+
+    private synchronized ConnectionFactory connectionFactoryManager(TestDataSource testDataSource) {
+        if (!connectionFactories.containsKey(testDataSource.factory())) {
+            connectionFactories.put(testDataSource.factory(), realm.getInstanceOf(testDataSource.factory()));
+        }
+        return connectionFactories.get(testDataSource.factory());
     }
 
     public Runnable prepareTestInstance(
@@ -75,5 +87,7 @@ public class TestSetup {
     }
 
     public void shutdown() {
+        connectionFactories.values().forEach(ConnectionFactory::release);
+        realm.shutdown();
     }
 }

@@ -1,14 +1,10 @@
 package com.dajudge.testee;
 
-import com.dajudge.testee.jdbc.PlaygroundConnectionFactory;
-import com.dajudge.testee.jdbc.TestDataSource;
 import com.dajudge.testee.runtime.TestRuntime;
 import com.dajudge.testee.runtime.TestSetup;
 import org.junit.Test;
 
-import javax.annotation.Resource;
 import javax.inject.Inject;
-import javax.sql.DataSource;
 
 import static org.junit.Assert.assertNotNull;
 

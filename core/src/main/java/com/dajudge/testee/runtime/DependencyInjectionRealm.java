@@ -57,14 +57,14 @@ public class DependencyInjectionRealm {
 
     private void ensureTransactionServices(ServiceRegistry serviceRegistry) {
         // Odd workaround for the message WELD-000101 that happens when you don't have transactional services
-        if(serviceRegistry.get(TransactionServices.class) == null) {
+        if (serviceRegistry.get(TransactionServices.class) == null) {
             serviceRegistry.add(TransactionServices.class, new TransactionServicesImpl());
         }
     }
 
     void shutdown() {
         LOG.trace("Shutting down dependency injection realm {}", contextId);
-        bootstrap.shutdown();
+        container().cleanup();
     }
 
     public <T> Collection<Bean<T>> resolve(final Class<T> clazz) {

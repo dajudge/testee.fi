@@ -17,5 +17,5 @@ public interface ConnectionFactory {
      */
     Connection createConnection(String dbName);
 
-    void release(String dbName);
+    void release();
 }

@@ -38,11 +38,11 @@ public class TestRuntime {
         realm = new DependencyInjectionRealm(serviceRegistry, beanArchiveDiscovery);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> realm.shutdown()));
         LOG.trace("Notifying runtime lifecycle listeners about start");
-        getInstancesOf(RuntimeLifecycleListener.class).forEach(it -> it.onRuntimeStarted());
+        realm.getInstancesOf(RuntimeLifecycleListener.class).forEach(it -> it.onRuntimeStarted());
     }
 
-    <T> Set<T> getInstancesOf(final Class<T> clazz) {
-        return realm.getInstancesOf(clazz);
+    public DependencyInjectionRealm getRealm() {
+        return realm;
     }
 
     public BeanArchiveDiscovery getBeanArchiveDiscorvery() {

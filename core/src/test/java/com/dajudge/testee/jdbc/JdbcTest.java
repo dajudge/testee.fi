@@ -3,6 +3,7 @@ package com.dajudge.testee.jdbc;
 import com.dajudge.testee.runtime.TestRuntime;
 import com.dajudge.testee.runtime.TestSetup;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.annotation.Resource;
@@ -12,9 +13,9 @@ import java.util.UUID;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class JdbcTest {
+    private TestSetup testSetup;
 
     @TestDataSource(name = "jdbc/test", factory = PlaygroundConnectionFactory.class)
     private static abstract class BaseClass {
@@ -44,7 +45,8 @@ public class JdbcTest {
     public void resetStatic() {
         BaseClass.baseClass = false;
         BaseClass.subClass = false;
-        final TestSetup testSetup = new TestSetup(SubClass.class, TestRuntime.instance());
+        PlaygroundConnectionFactory.shutdown = false;
+        testSetup = new TestSetup(SubClass.class, TestRuntime.instance());
         testSetup.prepareTestInstance(UUID.randomUUID().toString(), testClassInstance).run();
     }
 
@@ -56,5 +58,11 @@ public class JdbcTest {
     @Test
     public void sets_up_test_data() {
         assertTrue("TestData setup not performed", BaseClass.baseClass && BaseClass.subClass);
+    }
+
+    @Test
+    public void shuts_down_properly() {
+        testSetup.shutdown();
+        assertTrue("DataSource factory was not shut down properly", PlaygroundConnectionFactory.shutdown);
     }
 }

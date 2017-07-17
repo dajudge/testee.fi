@@ -4,8 +4,12 @@ import com.dajudge.testee.spi.ConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PreDestroy;
+import javax.inject.Singleton;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.dajudge.testee.utils.JdbcUtils.execute;
 
@@ -14,32 +18,41 @@ import static com.dajudge.testee.utils.JdbcUtils.execute;
  *
  * @author Alex Stockinger, IT-Stockinger
  */
+@Singleton
 public class H2PostgresConnectionFactory implements ConnectionFactory {
     private static final Logger LOG = LoggerFactory.getLogger(H2PostgresConnectionFactory.class);
 
+    private Set<String> dbNames = new HashSet<>();
+
     @Override
     public Connection createConnection(final String dbName) {
+        dbNames.add(dbName);
+        LOG.debug("Creating connection to H2 database: {}", dbName);
         return connect(dbName, -1);
     }
 
     private Connection connect(String dbName, int closeDelay) {
-        final String url = "jdbc:h2:mem:" + dbName + ";MODE=PostgreSQL;DB_CLOSE_DELAY=" + closeDelay;
-        LOG.debug("Creating connection to H2 database: {}", url);
+        final String url = url(dbName, closeDelay);
         return execute(
                 () -> DriverManager.getConnection(url, "sa", ""),
                 e -> "Failed to open connection to H2 database"
         );
     }
 
+    private String url(String dbName, int closeDelay) {
+        return "jdbc:h2:mem:" + dbName + ";MODE=PostgreSQL;DB_CLOSE_DELAY=" + closeDelay;
+    }
+
     @Override
-    public void release(final String dbName) {
+    public void release() {
         // FIXME this never gets called
-        execute(
+        dbNames.forEach(dbName -> execute(
                 () -> {
+                    LOG.debug("Cleaning up H2 database: {}", dbName);
                     connect(dbName, 0).close();
                     return null;
                 },
                 e -> "Failed to close H2 database"
-        );
+        ));
     }
 }
