@@ -93,6 +93,5 @@ public class ResourceInjectionServicesImpl implements ResourceInjectionServices 
 
     @Override
     public void cleanup() {
-        providers.forEach(it -> it.shutdown());
     }
 }

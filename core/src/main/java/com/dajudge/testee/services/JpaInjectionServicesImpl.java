@@ -62,7 +62,9 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
                 (proxy, method, args) -> {
                     try {
                         if ("close".equals(method.getName())) {
-                            return null;
+                            return throwAccessDenied("One does not simply close the entity manager.");
+                        } else if ("getTransaction".equals(method.getName())) {
+                            return throwAccessDenied("One does not simply access the transaction.");
                         }
                         return method.invoke(entityManager, args);
                     } catch (final InvocationTargetException e) {
@@ -70,6 +72,10 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
                     }
                 }
         );
+    }
+
+    private static Object throwAccessDenied(final String message) {
+        throw new TesteeException("Naughty developer. " + message);
     }
 
     private PersistenceUnitInfo getUnitByName(String unitName) {
@@ -86,6 +92,7 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
             final EntityManagerFactory emf = provider.createContainerEntityManagerFactory(unit, new HashMap());
             final EntityManager entityManager = emf.createEntityManager();
             entityManagers.put(unit.getPersistenceUnitName(), entityManager);
+            entityManager.getTransaction().begin();
             return entityManager;
         } catch (final IllegalAccessException | InstantiationException | ClassNotFoundException e) {
             throw new TesteeException("Failed to load persistence provider class " + providerClassName, e);
@@ -118,6 +125,14 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
         entityManagers.values().forEach(it -> {
             if (it.isOpen()) {
                 it.close();
+            }
+        });
+    }
+
+    public void flush() {
+        entityManagers.values().forEach(it -> {
+            if (it.isOpen() && it.getTransaction().isActive()) {
+                it.flush();
             }
         });
     }

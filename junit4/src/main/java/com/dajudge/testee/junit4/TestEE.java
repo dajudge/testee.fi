@@ -1,7 +1,6 @@
 package com.dajudge.testee.junit4;
 
 import com.dajudge.testee.runtime.TestRuntime;
-import com.dajudge.testee.runtime.TestInstance;
 import com.dajudge.testee.runtime.TestSetup;
 import org.junit.runner.Runner;
 import org.junit.runner.notification.RunNotifier;
@@ -20,7 +19,7 @@ import java.util.Map;
  */
 public class TestEE extends BlockJUnit4ClassRunner {
     private final TestSetup testSetup;
-    private final Map<FrameworkMethod, TestInstance> instances = new HashMap<>();
+    private final Map<FrameworkMethod, Runnable> instances = new HashMap<>();
 
     /**
      * Creates a TestEE test runner to run {@code klass}.
@@ -49,24 +48,19 @@ public class TestEE extends BlockJUnit4ClassRunner {
                 + method.getMethod().toString()
                 + ":"
                 + System.identityHashCode(target);
-        final TestInstance testInstance = testSetup.newInstance(instanceId, target);
-        testInstance.inject(target);
-        instances.put(method, testInstance);
+        final Runnable testShutdown = testSetup.prepareTestInstance(instanceId, target);
+        instances.put(method, testShutdown);
 
     }
 
     private synchronized void shutdownInstanceFor(final FrameworkMethod method) {
-        instances.get(method).shutdown();
+        instances.get(method).run();
     }
 
     @Override
-    protected Statement withAfters(
-            final FrameworkMethod method,
-            final Object target,
-            final Statement statement
-    ) {
+    protected void runChild(FrameworkMethod method, RunNotifier notifier) {
         try {
-            return super.withAfters(method, target, statement);
+            super.runChild(method, notifier);
         } finally {
             shutdownInstanceFor(method);
         }

@@ -13,14 +13,13 @@ import java.util.function.Function;
  *
  * @author Alex Stockinger, IT-Stockinger
  */
-class DatabaseMigration {
+public class DatabaseMigration {
     static void migrateDataSources(
             final Class<?> setupClass,
-            final TestRuntime runtime,
+            final Set<DataSourceMigrator> migrators,
             final ServiceRegistry serviceRegistry
     ) {
         final ResourceInjectionServices injectionServices = serviceRegistry.get(ResourceInjectionServices.class);
-        final Set<DataSourceMigrator> migrators = runtime.getInstancesOf(DataSourceMigrator.class);
         final Function<String, DataSource> dataSourceAccessor = mappedName -> (DataSource) injectionServices
                 .registerResourceInjectionPoint(null, mappedName)
                 .createResource()

@@ -12,5 +12,5 @@ public interface ResourceProvider {
 
     Object resolve(String jndiName, String mappedName);
 
-    void shutdown();
+    void shutdown(boolean rollback);
 }

@@ -46,7 +46,7 @@ public class MockManager {
         if (bean instanceof AbstractClassBean) {
             ((ManagedBean) bean).setProducer(wrap(bean, ((ManagedBean) bean).getProducer()));
         } else if (bean instanceof AbstractBuiltInBean) {
-            LOG.trace("Not replacing producer for {}", bean);
+            // Not replacing those
         } else {
             throw new UnsupportedOperationException("Unknown bean type encountered: " + bean);
         }
@@ -75,7 +75,7 @@ public class MockManager {
             public T produce(final CreationalContext<T> ctx) {
                 final T mock = findMockFor((Class<T>) bean.getBeanClass());
                 if (mock != null) {
-                    LOG.info("Injecting mock for {}", bean);
+                    LOG.debug("Injecting mock for {}", bean);
                     return mock;
                 }
                 return delegate.produce(ctx);

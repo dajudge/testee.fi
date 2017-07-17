@@ -8,8 +8,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-import static com.dajudge.testee.utils.ProxyUtils.trace;
-
 /**
  * Management of bean deployment archives. Thread safe.
  *
@@ -41,7 +39,6 @@ public class BeanDeploymentArchiveManagement {
             archives = beanArchiveDiscovery.getBeanArchives().stream()
                     .peek(it -> LOG.debug("Found bean archive: {}", it))
                     .map(it -> new BeanDeploymentArchiveImpl(serviceRegistry, it))
-                    .map(it -> trace(it, BeanDeploymentArchive.class))
                     .collect(Collectors.toSet());
         }
         return archives;

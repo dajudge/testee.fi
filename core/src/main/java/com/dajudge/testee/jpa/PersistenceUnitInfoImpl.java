@@ -19,6 +19,7 @@ public class PersistenceUnitInfoImpl implements PersistenceUnitInfo {
     private final URL rootUrl;
     private final String provider;
     private final String name;
+    private final String actualName;
     private final PersistenceUnitTransactionType transactionType;
     private final DataSource jtaDataSource;
     private final Properties properties;
@@ -47,6 +48,7 @@ public class PersistenceUnitInfoImpl implements PersistenceUnitInfo {
             final URL rootUrl,
             final String provider,
             final String name,
+            final String actualName,
             final PersistenceUnitTransactionType transactionType,
             final DataSource jtaDataSource,
             final Properties properties,
@@ -59,6 +61,7 @@ public class PersistenceUnitInfoImpl implements PersistenceUnitInfo {
         this.rootUrl = rootUrl;
         this.provider = provider;
         this.name = name;
+        this.actualName = actualName;
         this.transactionType = transactionType;
         this.jtaDataSource = jtaDataSource;
         this.properties = properties;
@@ -72,6 +75,10 @@ public class PersistenceUnitInfoImpl implements PersistenceUnitInfo {
     @Override
     public String getPersistenceUnitName() {
         return name;
+    }
+
+    public String getActualPersistenceUnitName() {
+        return actualName;
     }
 
     @Override

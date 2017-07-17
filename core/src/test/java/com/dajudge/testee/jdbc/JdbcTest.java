@@ -1,16 +1,12 @@
 package com.dajudge.testee.jdbc;
 
-import com.dajudge.testee.runtime.TestInstance;
 import com.dajudge.testee.runtime.TestRuntime;
 import com.dajudge.testee.runtime.TestSetup;
-import com.dajudge.testee.spi.ConnectionFactory;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Resource;
 import javax.sql.DataSource;
-import java.rmi.activation.ActivationInstantiator;
-import java.sql.Connection;
 import java.util.UUID;
 
 import static org.junit.Assert.assertFalse;
@@ -19,18 +15,14 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class JdbcTest {
-    public static class PlaygroundConnectionFactory implements ConnectionFactory {
-        static Connection c = mock(Connection.class);
 
-        @Override
-        public Connection createConnection(final String name) {
-            return c;
-        }
-    }
-
+    @TestDataSource(name = "jdbc/test", factory = PlaygroundConnectionFactory.class)
     private static abstract class BaseClass {
         static boolean baseClass = false;
         static boolean subClass = false;
+
+        @Resource(mappedName = "jdbc/test")
+        protected DataSource dataSource;
 
         @TestData
         private static void setupBaseClass() {
@@ -39,11 +31,7 @@ public class JdbcTest {
         }
     }
 
-    @TestDataSource(name = "jdbc/test", factory = PlaygroundConnectionFactory.class)
     public static class SubClass extends BaseClass {
-        @Resource(mappedName = "jdbc/test")
-        private DataSource dataSource;
-
         @TestData
         private static void setupSubClass() {
             subClass = true;
@@ -51,15 +39,13 @@ public class JdbcTest {
     }
 
     private final SubClass testClassInstance = new SubClass();
-    private TestInstance instance;
 
     @Before
     public void resetStatic() {
         BaseClass.baseClass = false;
         BaseClass.subClass = false;
         final TestSetup testSetup = new TestSetup(SubClass.class, TestRuntime.instance());
-        instance = testSetup.newInstance(UUID.randomUUID().toString(), testClassInstance);
-        instance.inject(testClassInstance);
+        testSetup.prepareTestInstance(UUID.randomUUID().toString(), testClassInstance).run();
     }
 
     @Test

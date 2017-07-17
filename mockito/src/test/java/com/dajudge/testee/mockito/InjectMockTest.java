@@ -1,42 +1,35 @@
 package com.dajudge.testee.mockito;
 
 import com.dajudge.testee.runtime.TestRuntime;
-import com.dajudge.testee.runtime.TestInstance;
 import com.dajudge.testee.runtime.TestSetup;
-import com.dajudge.testee.spi.Plugin;
-import org.junit.After;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import javax.inject.Inject;
-import java.util.Collection;
 
-import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.when;
 
 public class InjectMockTest {
-    private final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
-    private final TestBean testClassInstance = new TestBean();
-    private final TestInstance testInstance = testSetup.newInstance("myInstance", testClassInstance);
 
     @Test
     public void injects_well() {
         // Given
-        when(testClassInstance.mock.doIt()).thenReturn("lolcats");
+        final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
+        final TestBean testClassInstance = new TestBean();
 
         // When
-        testInstance.inject(testClassInstance);
+        final Runnable cleanup = testSetup.prepareTestInstance("myInstance", testClassInstance);
+        when(testClassInstance.mock.doIt()).thenReturn("lolcats");
 
-        // Then
-        assertNotNull(testClassInstance.bean); // Injection works
-        assertEquals("lolcats", testClassInstance.bean.delegateIt()); // Mock actually works
-    }
-
-    @After
-    public void cleanup() {
-        testInstance.shutdown();
+        try {
+            // Then
+            assertNotNull(testClassInstance.bean); // Injection works
+            assertEquals("lolcats", testClassInstance.bean.delegateIt()); // Mock actually works
+        } finally {
+            cleanup.run();
+        }
     }
 
     static class ExampleBean2 {

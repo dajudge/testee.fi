@@ -8,6 +8,8 @@ import com.dajudge.testee.utils.ProxyUtils;
 import com.dajudge.testee.utils.UrlUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -32,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -44,8 +47,9 @@ import static javax.xml.xpath.XPathConstants.STRING;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class PersistenceUnitDiscovery {
+    private static final Logger LOG = LoggerFactory.getLogger(PersistenceUnitDiscovery.class);
     private static final DocumentBuilder BUILDER = createDocumentBuilder();
-    private Map<String, PersistenceUnitInfo> units;
+    private Map<String, ? extends PersistenceUnitInfo> units;
     private BeanArchiveDiscovery beanArchiveDiscovery;
     private ResourceInjectionServices resourceInjectionServices;
 
@@ -65,7 +69,7 @@ public class PersistenceUnitDiscovery {
         }
     }
 
-    private Collection<PersistenceUnitInfo> unitsFrom(
+    private Collection<PersistenceUnitInfoImpl> unitsFrom(
             final JavaArchive archive,
             final ClasspathResource xml
     ) {
@@ -74,7 +78,7 @@ public class PersistenceUnitDiscovery {
             final Element root = doc.getDocumentElement();
             final NodeList units = (NodeList) xpath().evaluate("//persistence/persistence-unit", root, NODESET);
 
-            final Collection<PersistenceUnitInfo> ret = new HashSet<>();
+            final Collection<PersistenceUnitInfoImpl> ret = new HashSet<>();
             for (int i = 0; i < units.getLength(); i++) {
                 ret.add(createUnitInfo(archive, (Element) units.item(i)));
             }
@@ -88,12 +92,13 @@ public class PersistenceUnitDiscovery {
         return XPathFactory.newInstance().newXPath();
     }
 
-    private PersistenceUnitInfo createUnitInfo(
+    private PersistenceUnitInfoImpl createUnitInfo(
             final JavaArchive archive,
             final Element unit
     ) throws XPathExpressionException, MalformedURLException {
         final XPath xpath = xpath();
         final String name = unit.getAttribute("name");
+        LOG.debug("Initializing persistence unit info for {}", name);
         final String transactionType = unit.getAttribute("transaction-type");
         final String provider = stringTag(unit, xpath, "provider");
         final String jtaDataSourceName = stringTag(unit, xpath, "jta-data-source");
@@ -116,6 +121,7 @@ public class PersistenceUnitDiscovery {
         return new PersistenceUnitInfoImpl(
                 archive.getURL(),
                 provider,
+                name + "/" + UUID.randomUUID(),
                 name,
                 PersistenceUnitTransactionType.valueOf(transactionType),
                 ProxyUtils.lazy(() -> resolveDataSource(jtaDataSourceName), DataSource.class),
@@ -166,14 +172,14 @@ public class PersistenceUnitDiscovery {
         return units.get(unitName);
     }
 
-    private Map<String, PersistenceUnitInfo> discover() {
+    private Map<String, PersistenceUnitInfoImpl> discover() {
         return beanArchiveDiscovery.getBeanArchives().stream()
                 .map(it -> new ImmutablePair<>(it, it.findResource("META-INF/persistence.xml")))
                 .filter(it -> it.getRight() != null)
                 .map(it -> unitsFrom(it.getLeft(), it.getRight()))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toMap(
-                        it -> it.getPersistenceUnitName(),
+                        it -> it.getActualPersistenceUnitName(),
                         it -> it
                 ));
     }

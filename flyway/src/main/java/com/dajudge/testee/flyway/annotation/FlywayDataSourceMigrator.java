@@ -4,7 +4,10 @@ import com.dajudge.testee.spi.DataSourceMigrator;
 import org.flywaydb.core.Flyway;
 
 import javax.sql.DataSource;
+import java.util.List;
 import java.util.function.Function;
+
+import static com.dajudge.testee.utils.AnnotationUtils.collectAnnotations;
 
 /**
  * Implementation of a {@link DataSourceMigrator}
@@ -18,8 +21,8 @@ public class FlywayDataSourceMigrator implements DataSourceMigrator {
             final Class<?> testSetupClass,
             final Function<String, DataSource> dataSourceProvider
     ) {
-        com.dajudge.testee.flyway.annotation.Flyway[] annotations =
-                testSetupClass.getAnnotationsByType(com.dajudge.testee.flyway.annotation.Flyway.class);
+        final List<com.dajudge.testee.flyway.annotation.Flyway> annotations =
+                collectAnnotations(testSetupClass, com.dajudge.testee.flyway.annotation.Flyway.class);
         if (annotations == null) {
             return;
         }
