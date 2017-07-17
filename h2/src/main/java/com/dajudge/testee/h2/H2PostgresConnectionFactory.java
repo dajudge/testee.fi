@@ -24,7 +24,7 @@ public class H2PostgresConnectionFactory implements ConnectionFactory {
 
     private Connection connect(String dbName, int closeDelay) {
         final String url = "jdbc:h2:mem:" + dbName + ";MODE=PostgreSQL;DB_CLOSE_DELAY=" + closeDelay;
-        LOG.debug("Creating connection to H2 database: " + url);
+        LOG.debug("Creating connection to H2 database: {}", url);
         return execute(
                 () -> DriverManager.getConnection(url, "sa", ""),
                 e -> "Failed to open connection to H2 database"

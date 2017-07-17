@@ -43,6 +43,10 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
                 .getAnnotated()
                 .getAnnotation(PersistenceContext.class);
         final String unitName = persistenceContext.unitName();
+        return registerPersistenceContextInjectionPoint(unitName);
+    }
+
+    public ResourceReferenceFactory<EntityManager> registerPersistenceContextInjectionPoint(final String unitName) {
         LOG.debug("Creating persistence context for unit '{}'", unitName);
         final PersistenceUnitInfo unit = getUnitByName(unitName);
         if (unit == null) {
