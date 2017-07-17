@@ -5,16 +5,16 @@ import com.dajudge.testee.jdbc.TestData;
 import com.dajudge.testee.jdbc.TestDataSources;
 import com.dajudge.testee.jpa.TestPersistenceUnits;
 import com.dajudge.testee.model.TestEntity;
+import com.dajudge.testee.utils.JdbcUtils;
 import org.junit.Test;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class PersistenceITest extends AbstractBaseDatabaseTest {
     @TestData
@@ -28,17 +28,19 @@ public class PersistenceITest extends AbstractBaseDatabaseTest {
 
     @Test
     public void jdbc_setup_worked() throws SQLException {
-        try (
-                final Connection c = ds.getConnection();
-                final PreparedStatement s = c.prepareStatement("SELECT id, stringValue FROM test WHERE id=?")
-        ) {
-            s.setLong(1, 1);
-            try (final ResultSet rs = s.executeQuery()) {
-                assertTrue(rs.next());
-                assertEquals(1, rs.getLong(1));
-                assertEquals("value1", rs.getString(2));
-            }
+        try (final Connection c = ds.getConnection()) {
+            final List<Map<String, Object>> result = JdbcUtils.query(
+                    c,
+                    "SELECT id, stringValue FROM test WHERE id=?",
+                    JdbcUtils::mapRowMapper,
+                    1
+            );
+            assertEquals(1, result.size());
+            final Map<String, Object> row = result.get(0);
+            assertEquals(1L, (long)row.get("ID"));
+            assertEquals("value1", row.get("STRINGVALUE"));
         }
+
     }
 
     @Test(expected = TesteeException.class)

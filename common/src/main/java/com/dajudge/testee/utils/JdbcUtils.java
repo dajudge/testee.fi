@@ -88,6 +88,21 @@ public final class JdbcUtils {
         }
     }
 
+    public static int update(
+            final Connection c,
+            final String sql,
+            final Object... args
+    ) {
+        return execute(
+                () -> {
+                    try (final PreparedStatement s = applyArgs(c.prepareStatement(sql), args)) {
+                        return s.executeUpdate();
+                    }
+                },
+                e -> ("Failed to execute SQL update: " + sql)
+        );
+    }
+
     public static <O> List<O> query(
             final Connection c,
             final String sql,
