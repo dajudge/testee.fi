@@ -18,6 +18,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static com.dajudge.testee.utils.ProxyUtils.lazy;
 
@@ -28,6 +29,7 @@ import static com.dajudge.testee.utils.ProxyUtils.lazy;
  */
 public class JpaInjectionServicesImpl implements JpaInjectionServices {
     private static final Logger LOG = LoggerFactory.getLogger(JpaInjectionServicesImpl.class);
+    public static final Supplier<RuntimeException> NOT_SUPPORTED = () -> new UnsupportedOperationException("This is not implemented, yet");
     private PersistenceUnitDiscovery persistenceUnitDiscovery;
     private Map<String, EntityManager> entityManagers = new HashMap<>();
 
@@ -50,7 +52,7 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
         LOG.debug("Creating persistence context for unit '{}'", unitName);
         final PersistenceUnitInfo unit = getUnitByName(unitName);
         if (unit == null) {
-            return null;
+            throw new IllegalStateException("Unknown persistence unit: " + unitName);
         }
         final EntityManager entityManager = lazy(
                 () -> getEntityManager(unit),
@@ -66,9 +68,11 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
                 (proxy, method, args) -> {
                     try {
                         if ("close".equals(method.getName())) {
-                            return throwAccessDenied("One does not simply close the entity manager.");
+                            throw new TesteeException("Naughty developer. "
+                                    + "One does not simply close the entity manager.");
                         } else if ("getTransaction".equals(method.getName())) {
-                            return throwAccessDenied("One does not simply access the transaction.");
+                            throw new TesteeException("Naughty developer. "
+                                    + "One does not simply access the transaction.");
                         }
                         return method.invoke(entityManager, args);
                     } catch (final InvocationTargetException e) {
@@ -76,10 +80,6 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
                     }
                 }
         );
-    }
-
-    private static Object throwAccessDenied(final String message) {
-        throw new TesteeException("Naughty developer. " + message);
     }
 
     private PersistenceUnitInfo getUnitByName(String unitName) {
@@ -107,21 +107,21 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
     public ResourceReferenceFactory<EntityManagerFactory> registerPersistenceUnitInjectionPoint(
             final InjectionPoint injectionPoint
     ) {
-        throw new UnsupportedOperationException("This is not implemented, yet");
+        throw NOT_SUPPORTED.get();
     }
 
     @Override
     public EntityManager resolvePersistenceContext(
             final InjectionPoint injectionPoint
     ) {
-        throw new UnsupportedOperationException("This is not implemented, yet");
+        throw NOT_SUPPORTED.get();
     }
 
     @Override
     public EntityManagerFactory resolvePersistenceUnit(
             final InjectionPoint injectionPoint
     ) {
-        throw new UnsupportedOperationException("This is not implemented, yet");
+        throw NOT_SUPPORTED.get();
     }
 
     @Override
