@@ -1,6 +1,5 @@
 package com.dajudge.testee.services;
 
-import org.jboss.weld.exceptions.WeldException;
 import org.jboss.weld.serialization.spi.ProxyServices;
 
 /**
@@ -9,8 +8,6 @@ import org.jboss.weld.serialization.spi.ProxyServices;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class ProxyServicesImpl implements ProxyServices {
-    // TODO find out more about when this is used.
-
     @Override
     public ClassLoader getClassLoader(final Class<?> proxiedBeanType) {
         return proxiedBeanType.getClassLoader();
@@ -18,11 +15,7 @@ public class ProxyServicesImpl implements ProxyServices {
 
     @Override
     public Class<?> loadBeanClass(final String s) {
-        try {
-            return Class.forName(s);
-        } catch (final ClassNotFoundException e) {
-            throw new WeldException("Could not load class " + s, e);
-        }
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
