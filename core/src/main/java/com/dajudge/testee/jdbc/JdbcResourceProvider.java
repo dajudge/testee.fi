@@ -1,7 +1,9 @@
 package com.dajudge.testee.jdbc;
 
+import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.spi.ConnectionFactory;
 import com.dajudge.testee.spi.ResourceProvider;
+import com.dajudge.testee.utils.JdbcUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,9 +11,9 @@ import javax.annotation.Resource;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static com.dajudge.testee.utils.AnnotationUtils.collectAnnotations;
@@ -69,10 +71,17 @@ public class JdbcResourceProvider implements ResourceProvider {
     }
 
     public void shutdown(final boolean rollback) {
-        final Consumer<TesteeDataSource> action = rollback
+        final JdbcUtils.JdbcConsumer<TesteeDataSource> action = rollback
                 ? TesteeDataSource::rollback
                 : TesteeDataSource::commit;
-        dataSources.values().forEach(action);
-        dataSources.values().forEach(TesteeDataSource::close);
+        dataSources.values().forEach(it -> {
+            try {
+                action.run(it);
+                it.close();
+            } catch (final SQLException e) {
+                throw new TesteeException("Failed to shut down JDBC resources", e);
+            }
+        });
+
     }
 }

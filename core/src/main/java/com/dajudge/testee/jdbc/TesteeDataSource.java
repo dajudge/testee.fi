@@ -112,34 +112,30 @@ class TesteeDataSource implements DataSource {
         throw new SQLFeatureNotSupportedException("JUL not used");
     }
 
-    void rollback() {
+    void rollback() throws SQLException {
         withConnection(c -> {
             LOG.debug("Rolling back connection {} on {}", name, this);
             c.rollback();
         });
     }
 
-    void commit() {
+    void commit() throws SQLException {
         withConnection(c -> {
             LOG.debug("Committing connection {} on {}", name, this);
             c.commit();
         });
     }
 
-    void close() {
+    void close() throws SQLException {
         withConnection(c -> {
             LOG.debug("Closing connection to {} on {}", name, this);
             c.close();
         });
     }
 
-    private void withConnection(final JdbcUtils.JdbcConsumer<Connection> runnable) {
+    private void withConnection(final JdbcUtils.JdbcConsumer<Connection> runnable) throws SQLException {
         if (connection != null) {
-            try {
-                runnable.run(connection);
-            } catch (final SQLException e) {
-                throw new TesteeException("Failed to perform JDBC operation", e);
-            }
+            runnable.run(connection);
         }
     }
 
