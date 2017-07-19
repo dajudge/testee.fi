@@ -1,18 +1,15 @@
 package com.dajudge.testee.deployment;
 
 import com.dajudge.testee.classpath.Classpath;
-import com.dajudge.testee.classpath.ClasspathResource;
 import com.dajudge.testee.classpath.ClasspathTransform;
 import com.dajudge.testee.classpath.JavaArchive;
+import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.Objects;
 import java.util.Set;
-import java.util.function.Predicate;
 
-import static java.util.Collections.unmodifiableCollection;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -22,42 +19,32 @@ import static java.util.stream.Collectors.toSet;
  */
 public class BeanArchiveDiscovery {
     private static final Logger LOG = LoggerFactory.getLogger(BeanArchiveDiscovery.class);
-    private static final Predicate<JavaArchive> HAS_BEANS_XML =
-            cp -> cp.findResource("META-INF/beans.xml") != null;
-    private static final Predicate<JavaArchive> HAS_CDI_EXTENSION =
-            cp -> cp.findResource("META-INF/services/javax.enterprise.inject.spi.CDIProvider") != null;
 
-    private Collection<JavaArchive> beanArchives = null;
+    private final Collection<BeanArchive> beanArchives;
 
     /**
      * Returns the available bean archives on the classpath.
      *
      * @return the available bean archives in an immutable collection.
      */
-    public synchronized Collection<JavaArchive> getBeanArchives() {
-        if (beanArchives == null) {
-            beanArchives = unmodifiableCollection(discoverBeanArchives());
-        }
+    public synchronized Collection<BeanArchive> getBeanArchives() {
         return beanArchives;
     }
 
-    public Set<ClasspathResource> findResource(final String name) {
-        return getBeanArchives().stream()
-                .map(it -> it.findResource(name))
-                .filter(Objects::nonNull)
-                .collect(toSet());
-    }
-
-    private static Collection<JavaArchive> discoverBeanArchives() {
+    public BeanArchiveDiscovery() {
         final long start = System.currentTimeMillis();
         final Classpath cp = new Classpath(BeanArchiveDiscovery.class.getClassLoader());
         final Collection<JavaArchive> classpathEntries = cp.getAll();
         LOG.trace("Bean archive discovery using these classpath entries: {}", classpathEntries);
         final Collection<JavaArchive> transformed = ClasspathTransform.transform(classpathEntries);
-        final Collection<JavaArchive> beanArchiveClasspathEntries = transformed.stream()
-                .filter(HAS_BEANS_XML.or(HAS_CDI_EXTENSION))
+        beanArchives = transformed.parallelStream()
+                .map(it -> new BeanArchive(it))
+                .filter(BeanArchive::isRelevant)
                 .collect(toSet());
         LOG.debug("Bean archive discovery completed in {}ms", System.currentTimeMillis() - start);
-        return beanArchiveClasspathEntries;
+    }
+
+    public Set<EjbDescriptor<?>> getSessionBeans() {
+        return beanArchives.stream().map(BeanArchive::getEjbs).flatMap(Collection::stream).collect(toSet());
     }
 }

@@ -1,13 +1,16 @@
 package com.dajudge.testee.runtime;
 
+import com.dajudge.testee.deployment.BeanArchive;
 import com.dajudge.testee.jdbc.ConnectionFactoryManager;
 import com.dajudge.testee.jdbc.TestDataSource;
 import com.dajudge.testee.spi.BeanModifier;
 import com.dajudge.testee.spi.BeanModifierFactory;
 import com.dajudge.testee.spi.ConnectionFactory;
 import com.dajudge.testee.spi.DataSourceMigrator;
+import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
+import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,10 +21,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static com.dajudge.testee.runtime.DatabaseMigration.migrateDataSources;
 import static com.dajudge.testee.runtime.TestDataSetup.setupTestData;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * Setup for a test. It contains the state shared by all instances of the test setup.
@@ -42,8 +45,9 @@ public class TestSetup {
         params.put("testee/testSetupClass", setupClass);
         params.put("testee/beanArchiveDiscovery", runtime.getBeanArchiveDiscorvery());
         params.put("testee/connectionFactoryManager", (ConnectionFactoryManager) this::connectionFactoryManager);
+        params.put("testee/ejbDescriptors", getEjbDescriptors(runtime));
         serviceRegistry.add(ResourceInjectionServices.class, new TestSetupResourceInjectionServices(params));
-        realm = new DependencyInjectionRealm(serviceRegistry, runtime.getBeanArchiveDiscorvery());
+        realm = new DependencyInjectionRealm(serviceRegistry, runtime.getBeanArchiveDiscorvery(), Environments.SE);
 
         try {
             final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
@@ -57,6 +61,13 @@ public class TestSetup {
             realm.shutdown();
             throw e;
         }
+    }
+
+    private Set<EjbDescriptor<?>> getEjbDescriptors(final TestRuntime runtime) {
+        return runtime.getBeanArchiveDiscorvery().getBeanArchives().stream()
+                .map(BeanArchive::getEjbs)
+                .flatMap(Collection::stream)
+                .collect(toSet());
     }
 
     private synchronized ConnectionFactory connectionFactoryManager(TestDataSource testDataSource) {
@@ -75,7 +86,7 @@ public class TestSetup {
         txContext.run((clazz, realm) -> {
             final Set<BeanModifier> instancesOf = realm.getInstancesOf(BeanModifierFactory.class).stream()
                     .map(it -> it.createBeanModifier(testClassInstance))
-                    .collect(Collectors.toSet());
+                    .collect(toSet());
             realm.getAllBeans().forEach(initializeBeans(instancesOf));
             realm.inject(testClassInstance);
         });

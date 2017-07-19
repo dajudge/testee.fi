@@ -15,33 +15,26 @@ import java.util.Collections;
  *
  * @author Alex Stockinger, IT-Stockinger
  */
-class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
+public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
     private final ServiceRegistry serviceRegistry;
-    private final JavaArchive classpathEntry;
+    private final BeanArchive beanArchive;
 
-    /**
-     * Constructor.
-     *
-     * @param serviceRegistry the {@link ServiceRegistry} for this BDA.
-     * @param javaArchive     the {@link JavaArchive} for this BDA.
-     */
     public BeanDeploymentArchiveImpl(
             final ServiceRegistry serviceRegistry,
-            final JavaArchive javaArchive
+            final BeanArchive beanArchive
     ) {
         this.serviceRegistry = serviceRegistry;
-        this.classpathEntry = javaArchive;
+        this.beanArchive = beanArchive;
     }
 
     @Override
     public Collection<BeanDeploymentArchive> getBeanDeploymentArchives() {
-        // TODO: find out what this is for
         return Collections.emptyList();
     }
 
     @Override
     public Collection<String> getBeanClasses() {
-        return classpathEntry.getClasses();
+        return beanArchive.getBeanClasses();
     }
 
     @Override
@@ -52,8 +45,7 @@ class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
 
     @Override
     public Collection<EjbDescriptor<?>> getEjbs() {
-        // TODO: EJB support
-        return Collections.emptyList();
+        return beanArchive.getEjbs();
     }
 
     @Override
@@ -63,11 +55,6 @@ class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
 
     @Override
     public String getId() {
-        return classpathEntry.getURL().toExternalForm();
-    }
-
-    @Override
-    public String toString() {
-        return "BeanDeploymentArchive for " + classpathEntry;
+        return beanArchive.getClasspathEntry().getURL().toExternalForm();
     }
 }

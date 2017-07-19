@@ -16,7 +16,7 @@ sonarqube {
         property "sonar.login", System.getenv("SONAR_USER")
         property "sonar.password", System.getenv("SONAR_PASSWORD")
         property "sonar.jacoco.reportPaths", jacocoDestination
-        property "sonar.buildbreaker.skip" , "false"
+        property "sonar.buildbreaker.skip", "false"
 
     }
 }
@@ -71,6 +71,8 @@ ext {
     libEclipseLink = 'org.eclipse.persistence:eclipselink:2.6.0'
     libH2 = 'com.h2database:h2:1.4.196'
     libFlyway = 'org.flywaydb:flyway-core:4.2.0'
+    libScannotation = 'org.scannotation:scannotation:1.0.3'
+    libJavassist = 'org.javassist:javassist:3.21.0-GA'
 }
 
 task wrapper(type: Wrapper) {

@@ -1,5 +1,6 @@
 package com.dajudge.testee.classpath;
 
+import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
@@ -7,6 +8,7 @@ import java.util.stream.Collectors;
 
 import static com.dajudge.testee.utils.UrlUtils.createCompositeUrl;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * A {@link JavaArchive} merging multiple delegate archives to one.
@@ -50,6 +52,11 @@ public class CompositeJavaArchive implements JavaArchive {
     @Override
     public Collection<String> getClasses() {
         return archives.stream().map(JavaArchive::getClasses).flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
+    @Override
+    public Collection<Class<?>> annotatedWith(Class<? extends Annotation>[] annotations) {
+        return archives.stream().map(it -> it.annotatedWith(annotations)).flatMap(Collection::stream).collect(toSet());
     }
 
     @Override

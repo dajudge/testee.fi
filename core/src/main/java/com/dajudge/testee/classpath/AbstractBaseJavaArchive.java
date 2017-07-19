@@ -3,16 +3,24 @@ package com.dajudge.testee.classpath;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.util.Collection;
 import java.util.HashSet;
+
+import static java.util.Arrays.asList;
 
 /**
  * Base class for real java archives.
  *
  * @author Alex Stockinger, IT-Stockinger
  */
-public abstract class AbstractBaseJavaArchive implements JavaArchive {
+abstract class AbstractBaseJavaArchive implements JavaArchive {
     private Collection<String> classes;
+    private final AnnotationScanner annotationScanner;
+
+    protected AbstractBaseJavaArchive() {
+        this.annotationScanner = new AnnotationScanner(() -> asList(getURL()));
+    }
 
     @Override
     public final synchronized ClasspathResource findResource(final String s) {
@@ -44,5 +52,10 @@ public abstract class AbstractBaseJavaArchive implements JavaArchive {
 
     protected interface Callback<T> {
         T item(InputStreamSupplier zipInputStream, String name) throws IOException;
+    }
+
+    @Override
+    public Collection<Class<?>> annotatedWith(final Class<? extends Annotation>[] annotations) {
+        return annotationScanner.scanFor(annotations);
     }
 }

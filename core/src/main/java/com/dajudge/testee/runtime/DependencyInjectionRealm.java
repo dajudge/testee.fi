@@ -7,6 +7,7 @@ import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.services.TransactionServicesImpl;
 import org.jboss.weld.Container;
 import org.jboss.weld.bean.AbstractClassBean;
+import org.jboss.weld.bean.SessionBean;
 import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.bootstrap.api.Bootstrap;
 import org.jboss.weld.bootstrap.api.Environments;
@@ -38,7 +39,8 @@ public class DependencyInjectionRealm {
 
     public DependencyInjectionRealm(
             final ServiceRegistry serviceRegistry,
-            final BeanArchiveDiscovery beanArchiveDiscovery
+            final BeanArchiveDiscovery beanArchiveDiscovery,
+            final Environments environment
     ) {
         LOG.trace("Starting dependency injection realm {}", contextId);
         ensureTransactionServices(serviceRegistry);
@@ -48,7 +50,7 @@ public class DependencyInjectionRealm {
         );
         final CDI11Deployment deployment = new DeploymentImpl(bdaManagement, serviceRegistry);
         bootstrap = new WeldBootstrap()
-                .startContainer(contextId, Environments.SE, deployment)
+                .startContainer(contextId, environment, deployment)
                 .startInitialization()
                 .deployBeans()
                 .validateBeans()
@@ -134,6 +136,6 @@ public class DependencyInjectionRealm {
         if (!(bean instanceof AbstractClassBean)) {
             throw new TesteeException("Injection of " + bean + " is not supported");
         }
-        ((AbstractClassBean) bean).getProducer().inject(o, emptyContext());
+        ((AbstractClassBean) bean).getProducer().inject(o, new CreationalContextImpl<>(bean));
     }
 }

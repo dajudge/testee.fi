@@ -174,9 +174,9 @@ public class PersistenceUnitDiscovery {
 
     private Map<String, PersistenceUnitInfoImpl> discover() {
         return beanArchiveDiscovery.getBeanArchives().stream()
-                .map(it -> new ImmutablePair<>(it, it.findResource("META-INF/persistence.xml")))
+                .map(it -> new ImmutablePair<>(it, it.getClasspathEntry().findResource("META-INF/persistence.xml")))
                 .filter(it -> it.getRight() != null)
-                .map(it -> unitsFrom(it.getLeft(), it.getRight()))
+                .map(it -> unitsFrom(it.getLeft().getClasspathEntry(), it.getRight()))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toMap(
                         it -> it.getActualPersistenceUnitName(),

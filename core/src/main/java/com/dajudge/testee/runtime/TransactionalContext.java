@@ -1,8 +1,10 @@
 package com.dajudge.testee.runtime;
 
 import com.dajudge.testee.deployment.BeanArchiveDiscovery;
+import com.dajudge.testee.ejb.EjbBridge;
 import com.dajudge.testee.jpa.PersistenceUnitDiscovery;
 import com.dajudge.testee.services.EjbInjectionServicesImpl;
+import com.dajudge.testee.services.EjbServicesImpl;
 import com.dajudge.testee.services.ExecutorServicesImpl;
 import com.dajudge.testee.services.JpaInjectionServicesImpl;
 import com.dajudge.testee.services.ProxyServicesImpl;
@@ -10,11 +12,15 @@ import com.dajudge.testee.services.ResourceInjectionServicesImpl;
 import com.dajudge.testee.services.SecurityServicesImpl;
 import com.dajudge.testee.services.TransactionServicesImpl;
 import com.dajudge.testee.spi.ResourceProvider;
+import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
+import org.jboss.weld.ejb.spi.EjbDescriptor;
+import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
+import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.manager.api.ExecutorServices;
 import org.jboss.weld.security.spi.SecurityServices;
 import org.jboss.weld.serialization.spi.ProxyServices;
@@ -27,8 +33,11 @@ import javax.annotation.Resource;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * A transactional context.
@@ -54,18 +63,37 @@ public class TransactionalContext {
         LOG.trace("Creating new transactional context for {}", testSetupClass);
         resourceProviders = new ArrayList<>();
         resourceProviderInstances.forEach(resourceProviders::add);
+        final Set<EjbDescriptor<?>> sessionBeans = beanArchiveDiscovery.getSessionBeans();
+        final EjbBridge ejbBridge = new EjbBridge(sessionBeans, this::cdiInjection, this::resourceInjection);
         realm = new DependencyInjectionRealm(
                 createInstanceServiceRegistry(
                         resourceProviders,
-                        beanArchiveDiscovery
+                        beanArchiveDiscovery,
+                        ejbBridge::lookupDescriptor,
+                        ejbBridge::createInstance
                 ),
-                beanArchiveDiscovery
+                beanArchiveDiscovery,
+                Environments.EE_INJECT
         );
+    }
+
+    private Object resourceInjection(final Resource resource) {
+        return realm.getServiceRegistry()
+                .get(ResourceInjectionServices.class)
+                .registerResourceInjectionPoint(null, resource.mappedName())
+                .createResource()
+                .getInstance();
+    }
+
+    private void cdiInjection(final Object o) {
+        realm.inject(o);
     }
 
     private static ServiceRegistry createInstanceServiceRegistry(
             final Collection<ResourceProvider> resourceProviders,
-            final BeanArchiveDiscovery beanArchiveDiscovery
+            final BeanArchiveDiscovery beanArchiveDiscovery,
+            final Function<Type, EjbDescriptor<?>> descriptorLookup,
+            final Function<EjbDescriptor<?>, ResourceReferenceFactory<Object>> ejbFactory
     ) {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
         // Resource injection
@@ -80,13 +108,13 @@ public class TransactionalContext {
         );
         serviceRegistry.add(JpaInjectionServices.class, jpaInjectionService);
         serviceRegistry.add(JpaInjectionServicesImpl.class, jpaInjectionService);
+        serviceRegistry.add(EjbInjectionServices.class, new EjbInjectionServicesImpl(descriptorLookup, ejbFactory));
         // Only stubs from here on
         serviceRegistry.add(TransactionServices.class, new TransactionServicesImpl());
         serviceRegistry.add(SecurityServices.class, new SecurityServicesImpl());
-        serviceRegistry.add(EjbInjectionServices.class, new EjbInjectionServicesImpl());
         serviceRegistry.add(ProxyServices.class, new ProxyServicesImpl());
         serviceRegistry.add(ExecutorServices.class, new ExecutorServicesImpl());
-
+        serviceRegistry.add(EjbServices.class, new EjbServicesImpl(ejbFactory));
         return serviceRegistry;
     }
 

@@ -2,6 +2,7 @@ package com.dajudge.testee.classpath;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Collection;
 
@@ -32,6 +33,8 @@ public interface JavaArchive {
      * @return all classes.
      */
     Collection<String> getClasses();
+
+    Collection<Class<?>> annotatedWith(Class<? extends Annotation>... annotations);
 
     interface InputStreamSupplier {
         InputStream get() throws IOException;

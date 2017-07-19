@@ -4,6 +4,7 @@ import com.dajudge.testee.spi.ResourceProvider;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
+import org.slf4j.LoggerFactory;
 
 import javax.enterprise.inject.spi.InjectionPoint;
 import java.util.Collection;
