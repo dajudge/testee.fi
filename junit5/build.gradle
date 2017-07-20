@@ -1,0 +1,22 @@
+buildscript {
+    dependencies {
+        classpath libJUnit5GradlePlugin
+    }
+}
+apply plugin: 'java'
+apply plugin: 'org.junit.platform.gradle.plugin'
+
+junitPlatform {
+    reportsDir file("$buildDir/test-results/test")
+}
+
+dependencies {
+    compile libJUnit5Engine
+    compile libJUnit5Api
+    compile project(":core")
+
+    // Workaround for IntelliJ issues: http://junit.org/junit5/docs/current/user-guide/#running-tests-ide-intellij-idea
+    testRuntime libJUnit5PlatformLauncher
+    testRuntime libJUnit5Engine
+    testRuntime libLogback
+}

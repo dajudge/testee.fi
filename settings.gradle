@@ -5,7 +5,9 @@ include 'core'          // ITest Container core
 include 'core-spi'      // Core extension API
 include 'mockito'       // Mockito intgration
 include 'junit4'        // JUnit 4 integration
+include 'junit4-all'    // Standard distribution for JUnit 4
+include 'junit5'        // JUnit 5 integration
+include 'junit5-all'    // Standard distribution for JUnit 5
 include 'h2'            // H2 in memory database support
-include 'junit4-all'    // Standard distribution for JUnit4
 include 'flyway'        // Flyway integration
 include 'eclipselink'   // EclipseLink integration
