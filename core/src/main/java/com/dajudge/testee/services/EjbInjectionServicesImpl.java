@@ -7,7 +7,6 @@ import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import javax.ejb.EJB;
 import javax.enterprise.inject.spi.InjectionPoint;
 import java.lang.reflect.Type;
-import java.util.function.Function;
 
 /**
  * Implementation of {@link EjbInjectionServices}.
@@ -15,22 +14,24 @@ import java.util.function.Function;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class EjbInjectionServicesImpl implements EjbInjectionServices {
-    private final Function<Type, EjbDescriptor<?>> descriptorLookup;
-    private final Function<EjbDescriptor<?>, ResourceReferenceFactory<Object>> beanFactory;
+    private final EjbLookup lookup;
+    private final EjbFactory factory;
 
     public EjbInjectionServicesImpl(
-            final Function<Type, EjbDescriptor<?>> descriptorLookup,
-            final Function<EjbDescriptor<?>, ResourceReferenceFactory<Object>> beanFactory
+            final EjbLookup lookup,
+            final EjbFactory factory
     ) {
-        this.descriptorLookup = descriptorLookup;
-        this.beanFactory = beanFactory;
+        this.lookup = lookup;
+        this.factory = factory;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public ResourceReferenceFactory<Object> registerEjbInjectionPoint(final InjectionPoint injectionPoint) {
         if (injectionPoint.getAnnotated().getAnnotation(EJB.class) != null) {
             final Type type = injectionPoint.getType();
-            return beanFactory.apply(descriptorLookup.apply(type));
+            final EjbDescriptor<Object> descriptor = (EjbDescriptor<Object>) lookup.lookup(type);
+            return factory.createInstance(descriptor);
         }
         throw new IllegalStateException("Unhandled injection point: " + injectionPoint);
     }
@@ -43,5 +44,13 @@ public class EjbInjectionServicesImpl implements EjbInjectionServices {
     @Override
     public void cleanup() {
 
+    }
+
+    public interface EjbLookup {
+        EjbDescriptor<?> lookup(Type type);
+    }
+
+    public interface EjbFactory {
+        <T> ResourceReferenceFactory<T> createInstance(EjbDescriptor<T> descriptor);
     }
 }

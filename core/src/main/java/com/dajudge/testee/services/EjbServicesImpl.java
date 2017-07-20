@@ -7,20 +7,20 @@ import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.ejb.spi.InterceptorBindings;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
-import java.util.function.Function;
-
 public class EjbServicesImpl implements EjbServices {
 
-    private final Function<EjbDescriptor<?>, ResourceReferenceFactory<Object>> beanFactory;
+    private final EjbInjectionServicesImpl.EjbFactory beanFactory;
 
-    public EjbServicesImpl(final Function<EjbDescriptor<?>, ResourceReferenceFactory<Object>> beanFactory) {
+    public EjbServicesImpl(final EjbInjectionServicesImpl.EjbFactory beanFactory) {
         this.beanFactory = beanFactory;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public SessionObjectReference resolveEjb(final EjbDescriptor<?> ejbDescriptor) {
         final MutableContainer<Boolean> removed = new MutableContainer<>(false);
-        final ResourceReferenceFactory<Object> reference = beanFactory.apply(ejbDescriptor);
+        final ResourceReferenceFactory<Object> reference = beanFactory
+                .createInstance((EjbDescriptor<Object>) ejbDescriptor);
         return new SessionObjectReference() {
             @Override
             public <S> S getBusinessObject(final Class<S> businessInterfaceType) {

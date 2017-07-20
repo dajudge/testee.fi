@@ -1,8 +1,11 @@
 package com.dajudge.testee.mockito;
 
+import com.dajudge.testee.spi.SessionBeanFactory;
 import org.jboss.weld.bean.AbstractClassBean;
-import org.jboss.weld.bean.ManagedBean;
 import org.jboss.weld.bean.builtin.AbstractBuiltInBean;
+import org.jboss.weld.ejb.spi.EjbDescriptor;
+import org.jboss.weld.injection.spi.ResourceReference;
+import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class MockManager {
     private static final Logger LOG = LoggerFactory.getLogger(MockManager.class);
@@ -42,9 +46,10 @@ public class MockManager {
         return null;
     }
 
-    public <T> void wrapProducerFor(final Bean<T> bean) {
+    @SuppressWarnings("unchecked")
+    <T> void instrumentCdiBean(final Bean<T> bean) {
         if (bean instanceof AbstractClassBean) {
-            ((ManagedBean) bean).setProducer(wrap(bean, ((ManagedBean) bean).getProducer()));
+            ((AbstractClassBean) bean).setProducer(wrap(bean, ((AbstractClassBean) bean).getProducer()));
         } else if (bean instanceof AbstractBuiltInBean) {
             // Not replacing those
         } else {
@@ -72,14 +77,18 @@ public class MockManager {
             }
 
             @Override
+            @SuppressWarnings("unchecked")
             public T produce(final CreationalContext<T> ctx) {
-                final T mock = findMockFor((Class<T>) bean.getBeanClass());
+                Class<T> clazz = (Class<T>) bean.getBeanClass();
+                Supplier<T> producer = () -> delegate.produce(ctx);
+                final T mock = findMockFor(clazz);
                 if (mock != null) {
-                    LOG.debug("Injecting mock for {}", bean);
+                    LOG.debug("Injecting mock for {}", clazz);
                     return mock;
                 }
-                return delegate.produce(ctx);
+                return producer.get();
             }
+
 
             @Override
             public void dispose(final T instance) {
@@ -89,6 +98,36 @@ public class MockManager {
             @Override
             public Set<InjectionPoint> getInjectionPoints() {
                 return delegate.getInjectionPoints();
+            }
+        };
+    }
+
+    <T> SessionBeanFactory<T> wrapSessionBean(final SessionBeanFactory<T> sessionBean) {
+        return new SessionBeanFactory<T>() {
+            @Override
+            public EjbDescriptor<T> getDescriptor() {
+                return sessionBean.getDescriptor();
+            }
+
+            @Override
+            public ResourceReferenceFactory<T> getResourceReferenceFactory() {
+                return () -> {
+                    final T mock = findMockFor(sessionBean.getDescriptor().getBeanClass());
+                    if (mock != null) {
+                        return new ResourceReference<T>() {
+                            @Override
+                            public T getInstance() {
+                                return mock;
+                            }
+
+                            @Override
+                            public void release() {
+
+                            }
+                        };
+                    }
+                    return sessionBean.getResourceReferenceFactory().createResource();
+                };
             }
         };
     }

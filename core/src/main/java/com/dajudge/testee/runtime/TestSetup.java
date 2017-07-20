@@ -1,12 +1,14 @@
 package com.dajudge.testee.runtime;
 
 import com.dajudge.testee.deployment.BeanArchive;
+import com.dajudge.testee.ejb.EjbBridge;
 import com.dajudge.testee.jdbc.ConnectionFactoryManager;
 import com.dajudge.testee.jdbc.TestDataSource;
 import com.dajudge.testee.spi.BeanModifier;
 import com.dajudge.testee.spi.BeanModifierFactory;
 import com.dajudge.testee.spi.ConnectionFactory;
 import com.dajudge.testee.spi.DataSourceMigrator;
+import com.dajudge.testee.spi.SessionBeanFactory;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
@@ -51,6 +53,12 @@ public class TestSetup {
 
         try {
             final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
+            txContext.initialize(new EjbBridge.SessionBeanModifier() {
+                @Override
+                public <T> SessionBeanFactory<T> modify(final SessionBeanFactory<T> factory) {
+                    return factory;
+                }
+            });
             txContext.run((clazz, realm) -> {
                 final Set<DataSourceMigrator> migrators = realm.getInstancesOf(DataSourceMigrator.class);
                 migrateDataSources(clazz, migrators, realm.getServiceRegistry());
@@ -82,19 +90,32 @@ public class TestSetup {
             final Object testClassInstance
     ) {
         LOG.debug("Instantiating test run '{}' for class {}", name, testClassInstance.getClass().getName());
+        final Set<BeanModifier> beanModifiers = realm.getInstancesOf(BeanModifierFactory.class).stream()
+                .map(it -> it.createBeanModifier(testClassInstance))
+                .collect(toSet());
         final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
+        txContext.initialize(modfiySessionBeans(beanModifiers));
         txContext.run((clazz, realm) -> {
-            final Set<BeanModifier> instancesOf = realm.getInstancesOf(BeanModifierFactory.class).stream()
-                    .map(it -> it.createBeanModifier(testClassInstance))
-                    .collect(toSet());
-            realm.getAllBeans().forEach(initializeBeans(instancesOf));
+            realm.getAllBeans().forEach(modifyCdiBeans(beanModifiers));
             realm.inject(testClassInstance);
         });
         return () -> txContext.rollback();
     }
 
-    private Consumer<Bean<?>> initializeBeans(final Collection<BeanModifier> beanModifiers) {
-        return bean -> beanModifiers.forEach(it -> it.initializeForBean(bean));
+    private EjbBridge.SessionBeanModifier modfiySessionBeans(final Set<BeanModifier> beanModifiers) {
+        return new EjbBridge.SessionBeanModifier() {
+            @Override
+            public <T> SessionBeanFactory<T> modify(SessionBeanFactory<T> factory) {
+                for (final BeanModifier beanModifier : beanModifiers) {
+                    factory = beanModifier.modifySessionBean(factory);
+                }
+                return factory;
+            }
+        };
+    }
+
+    private Consumer<Bean<?>> modifyCdiBeans(final Collection<BeanModifier> beanModifiers) {
+        return bean -> beanModifiers.forEach(it -> it.modifyCdiBean(bean));
     }
 
     public void shutdown() {

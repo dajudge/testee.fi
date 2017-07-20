@@ -1,6 +1,7 @@
 package com.dajudge.testee.ejb;
 
 import com.dajudge.testee.exceptions.TesteeException;
+import com.dajudge.testee.spi.SessionBeanFactory;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
@@ -26,22 +27,31 @@ import static java.util.stream.Collectors.toMap;
  */
 public class EjbBridge {
     private final Map<Type, EjbDescriptor<?>> ejbDescriptors;
-    private final Map<EjbDescriptor<?>, SessionBeanContainer> containers;
+    private final Map<EjbDescriptor<?>, ResourceReferenceFactory<?>> containers;
 
     public EjbBridge(
             final Set<EjbDescriptor<?>> ejbDescriptors,
             final Consumer<Object> cdiInjection,
-            final Function<Resource, Object> resourceInjection
+            final Function<Resource, Object> resourceInjection,
+            final SessionBeanModifier modifier
     ) {
         final Consumer<Object> injection = cdiInjection
                 .andThen(ejbInjection(EJB.class, this::injectEjb))
                 .andThen(ejbInjection(Resource.class, injectResources(resourceInjection)));
-        this.ejbDescriptors = ejbDescriptors.stream().collect(toMap(it -> it.getBeanClass(), it -> it));
-        this.containers = ejbDescriptors.stream().collect(toMap(it -> it, it -> toBeanContainer(it, injection)));
+
+        this.ejbDescriptors = ejbDescriptors.stream().collect(toMap(
+                it -> it.getBeanClass(),
+                it -> it
+        ));
+
+        this.containers = ejbDescriptors.stream().collect(toMap(
+                it -> it,
+                it -> toBeanContainer(it, injection, modifier)
+        ));
     }
 
     private BiConsumer<Object, Field> injectResources(final Function<Resource, Object> resourceInjection) {
-        return (o,f) -> inject(o, f, resourceInjection.apply(f.getAnnotation(Resource.class)));
+        return (o, f) -> inject(o, f, resourceInjection.apply(f.getAnnotation(Resource.class)));
     }
 
     private Consumer<Object> ejbInjection(
@@ -66,16 +76,25 @@ public class EjbBridge {
         }
     }
 
-    private SessionBeanContainer toBeanContainer(
-            final EjbDescriptor<?> desc, Consumer<Object> injection) {
-        return new SingletonBeanContainer(desc, injection);
+    private <T> ResourceReferenceFactory<T> toBeanContainer(
+            final EjbDescriptor<T> desc,
+            final Consumer<? super T> injection,
+            SessionBeanModifier modifier) {
+        final RootSessionBeanFactory<T> root = new RootSessionBeanFactory<>(injection, desc);
+        return modifier.modify(root).getResourceReferenceFactory();
     }
 
     public EjbDescriptor<?> lookupDescriptor(final Type type) {
         return ejbDescriptors.get(type);
     }
 
-    public ResourceReferenceFactory<Object> createInstance(final EjbDescriptor<?> descriptor) {
-        return containers.get(descriptor).get();
+    @SuppressWarnings("unchecked")
+    public <T> ResourceReferenceFactory<T> createInstance(final EjbDescriptor<T> descriptor) {
+        return (ResourceReferenceFactory<T>) containers.get(descriptor);
+    }
+
+
+   public interface SessionBeanModifier {
+        <T> SessionBeanFactory<T> modify(SessionBeanFactory<T> factory);
     }
 }

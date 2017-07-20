@@ -4,6 +4,7 @@ import com.dajudge.testee.jdbc.PlaygroundConnectionFactory;
 import com.dajudge.testee.jdbc.TestDataSource;
 import com.dajudge.testee.runtime.TestRuntime;
 import com.dajudge.testee.runtime.TestSetup;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -17,64 +18,74 @@ import static org.junit.Assert.assertNotNull;
 
 public class DependencyInjectionTest {
     private TestBean root;
+    private Runnable shutdown;
 
     @Before
     public void setup() {
         final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
         root = new TestBean();
-        testSetup.prepareTestInstance("myInstance", root).run();
+        shutdown = testSetup.prepareTestInstance("myInstance", root);
+    }
+
+    @After
+    public void shutdown() {
+        shutdown.run();
     }
 
     @Test
     public void cdi_in_root_via_inject() {
-        assertNotNull(root.cdiInRootViaInject);
+        assertNotNull(root.getCdiInRootViaInject());
     }
 
     @Test
     public void ejb_in_root_via_ejb() {
-        assertNotNull(root.ejbInRootViaEjb);
+        assertNotNull(root.getEjbInRootViaEjb());
     }
 
     @Test
     public void ejb_in_cdi_via_inject() {
-        assertNotNull(root.cdiInRootViaInject.ejbInCdiViaInject);
+        assertNotNull(root.getCdiInRootViaInject().getEjbInCdiViaInject());
     }
 
     @Test
     public void ejb_in_ejb_via_inject() {
-        assertNotNull(root.ejbInRootViaEjb.ejbInEjbViaInject);
+        assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaInject());
     }
 
     @Test
     public void ejb_in_ejb_via_ejb() {
-        assertNotNull(root.ejbInRootViaEjb.ejbInEjbViaEjb);
+        assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaEjb());
     }
 
     @Test
     public void resource_in_ejb() {
-        assertNotNull(root.ejbInRootViaEjb.resourceInEjb);
+        assertNotNull(root.getEjbInRootViaEjb().getResourceInEjb());
     }
 
     @Test
     public void resource_in_root() {
-        assertNotNull(root.resourceInRoot);
+        assertNotNull(root.getResourceInRoot());
     }
 
     @Test
     public void resource_in_cdi() {
-        assertNotNull(root.ejbInRootViaEjb.resourceInEjb);
+        assertNotNull(root.getEjbInRootViaEjb().getResourceInEjb());
     }
 
     @Test
-    public void ciruclal_ejb_reference() {
-        assertNotNull(root.ejbInRootViaEjb.ejbInEjbViaEjb.ciruclar);
+    public void circular_ejb_reference() {
+        assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaEjb().getCircular());
     }
 
 
     @Stateless
     public static class SessionBean2 {
         @EJB
-        private SessionBean2 ciruclar;
+        private SessionBean2 circular;
+
+        public SessionBean2 getCircular() {
+            return circular;
+        }
     }
 
     @Stateless
@@ -85,6 +96,18 @@ public class DependencyInjectionTest {
         private SessionBean2 ejbInEjbViaEjb;
         @Resource(mappedName = "testds")
         private DataSource resourceInEjb;
+
+        public SessionBean2 getEjbInEjbViaInject() {
+            return ejbInEjbViaInject;
+        }
+
+        public SessionBean2 getEjbInEjbViaEjb() {
+            return ejbInEjbViaEjb;
+        }
+
+        public DataSource getResourceInEjb() {
+            return resourceInEjb;
+        }
     }
 
     public static class ExampleBean1 {
@@ -92,19 +115,39 @@ public class DependencyInjectionTest {
         private SessionBean1 ejbInCdiViaInject;
         @Resource(mappedName = "testds")
         private DataSource resourceInCdi;
+
+        public SessionBean1 getEjbInCdiViaInject() {
+            return ejbInCdiViaInject;
+        }
+
+        public DataSource getResourceInCdi() {
+            return resourceInCdi;
+        }
     }
 
     public static abstract class BaseTestBean {
         @EJB
-        protected SessionBean1 ejbInRootViaEjb;
+        private SessionBean1 ejbInRootViaEjb;
         @Resource(mappedName = "testds")
-        protected DataSource resourceInRoot;
+        private DataSource resourceInRoot;
+
+        public SessionBean1 getEjbInRootViaEjb() {
+            return ejbInRootViaEjb;
+        }
+
+        public DataSource getResourceInRoot() {
+            return resourceInRoot;
+        }
     }
 
     @TestDataSource(name = "testds", factory = PlaygroundConnectionFactory.class)
     public static class TestBean extends BaseTestBean {
         @Inject
         private ExampleBean1 cdiInRootViaInject;
+
+        public ExampleBean1 getCdiInRootViaInject() {
+            return cdiInRootViaInject;
+        }
     }
 
 }

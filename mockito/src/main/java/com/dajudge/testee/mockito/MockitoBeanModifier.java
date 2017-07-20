@@ -2,6 +2,7 @@ package com.dajudge.testee.mockito;
 
 import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.spi.BeanModifier;
+import com.dajudge.testee.spi.SessionBeanFactory;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -24,8 +25,13 @@ public class MockitoBeanModifier implements BeanModifier {
     }
 
     @Override
-    public <T> void initializeForBean(final Bean<T> bean) {
-        mockManager.wrapProducerFor(bean);
+    public <T> void modifyCdiBean(final Bean<T> cdiBean) {
+        mockManager.instrumentCdiBean(cdiBean);
+    }
+
+    @Override
+    public <T> SessionBeanFactory<T> modifySessionBean(final SessionBeanFactory<T> sessionBean) {
+        return mockManager.wrapSessionBean(sessionBean);
     }
 
     private static Collection<Object> createMocksFor(final Object testClassInstance) {

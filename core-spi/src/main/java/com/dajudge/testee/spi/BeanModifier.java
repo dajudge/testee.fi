@@ -8,5 +8,7 @@ import javax.enterprise.inject.spi.Bean;
  * @author Alex Stockinger, IT-Stockinger
  */
 public interface BeanModifier {
-    <T> void initializeForBean(Bean<T> bean);
+    <T> void modifyCdiBean(Bean<T> cdiBean);
+
+    <T> SessionBeanFactory<T> modifySessionBean(SessionBeanFactory<T> sessionBean);
 }

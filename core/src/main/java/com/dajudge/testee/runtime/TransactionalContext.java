@@ -12,6 +12,7 @@ import com.dajudge.testee.services.ResourceInjectionServicesImpl;
 import com.dajudge.testee.services.SecurityServicesImpl;
 import com.dajudge.testee.services.TransactionServicesImpl;
 import com.dajudge.testee.spi.ResourceProvider;
+import com.dajudge.testee.spi.SessionBeanFactory;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
@@ -20,7 +21,6 @@ import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
-import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.manager.api.ExecutorServices;
 import org.jboss.weld.security.spi.SecurityServices;
 import org.jboss.weld.serialization.spi.ProxyServices;
@@ -33,11 +33,9 @@ import javax.annotation.Resource;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * A transactional context.
@@ -58,13 +56,17 @@ public class TransactionalContext {
     private DependencyInjectionRealm realm;
     private Collection<ResourceProvider> resourceProviders;
 
-    @PostConstruct
-    private void setupRealm() {
+    public void initialize(final EjbBridge.SessionBeanModifier sessionBeanModifier) {
         LOG.trace("Creating new transactional context for {}", testSetupClass);
         resourceProviders = new ArrayList<>();
         resourceProviderInstances.forEach(resourceProviders::add);
         final Set<EjbDescriptor<?>> sessionBeans = beanArchiveDiscovery.getSessionBeans();
-        final EjbBridge ejbBridge = new EjbBridge(sessionBeans, this::cdiInjection, this::resourceInjection);
+        final EjbBridge ejbBridge = new EjbBridge(
+                sessionBeans,
+                this::cdiInjection,
+                this::resourceInjection,
+                sessionBeanModifier
+        );
         realm = new DependencyInjectionRealm(
                 createInstanceServiceRegistry(
                         resourceProviders,
@@ -92,8 +94,8 @@ public class TransactionalContext {
     private static ServiceRegistry createInstanceServiceRegistry(
             final Collection<ResourceProvider> resourceProviders,
             final BeanArchiveDiscovery beanArchiveDiscovery,
-            final Function<Type, EjbDescriptor<?>> descriptorLookup,
-            final Function<EjbDescriptor<?>, ResourceReferenceFactory<Object>> ejbFactory
+            final EjbInjectionServicesImpl.EjbLookup ejbLookup,
+            final EjbInjectionServicesImpl.EjbFactory ejbFactory
     ) {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
         // Resource injection
@@ -108,7 +110,7 @@ public class TransactionalContext {
         );
         serviceRegistry.add(JpaInjectionServices.class, jpaInjectionService);
         serviceRegistry.add(JpaInjectionServicesImpl.class, jpaInjectionService);
-        serviceRegistry.add(EjbInjectionServices.class, new EjbInjectionServicesImpl(descriptorLookup, ejbFactory));
+        serviceRegistry.add(EjbInjectionServices.class, new EjbInjectionServicesImpl(ejbLookup, ejbFactory));
         // Only stubs from here on
         serviceRegistry.add(TransactionServices.class, new TransactionServicesImpl());
         serviceRegistry.add(SecurityServices.class, new SecurityServicesImpl());
