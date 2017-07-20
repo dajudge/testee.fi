@@ -122,7 +122,7 @@ public class MockManager {
 
                             @Override
                             public void release() {
-
+                                // Mocks don't need to be released
                             }
                         };
                     }

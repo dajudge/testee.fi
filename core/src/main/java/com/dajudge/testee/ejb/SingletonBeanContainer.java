@@ -34,19 +34,22 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
             proxyFactory.setSuperclass(clazz);
             proxyFactory.setFilter(m -> m.getDeclaringClass() != Object.class);
             final Class<T> proxyClass = proxyFactory.createClass();
-            final MethodHandler handler = (self, thisMethod, proceed, args) -> {
-                try {
-                    return thisMethod.invoke(producer.get(), args);
-                } catch (final InvocationTargetException e) {
-                    throw e.getTargetException();
-                }
-            };
             final Object instance = proxyClass.newInstance();
-            ((ProxyObject) instance).setHandler(handler);
+            ((ProxyObject) instance).setHandler(methodHandler(producer));
             return (T) instance;
         } catch (final IllegalAccessException | InstantiationException e) {
             throw new TesteeException("Failed to create proxy instance of" + clazz, e);
         }
+    }
+
+    private static <T> MethodHandler methodHandler(final Supplier<T> producer) {
+        return (self, thisMethod, proceed, args) -> {
+            try {
+                return thisMethod.invoke(producer.get(), args);
+            } catch (final InvocationTargetException e) {
+                throw e.getTargetException();
+            }
+        };
     }
 
     @Override
@@ -59,7 +62,7 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
 
             @Override
             public void release() {
-
+                // TODO implement this
             }
         };
     }

@@ -38,7 +38,7 @@ public class CompositeArchive extends ArchiveBase implements Archive {
 
     @Override
     public Iterator<String> getEntries() {
-        return composite(new ArrayList<>(archives), a -> a.getEntries());
+        return composite(new ArrayList<>(archives), Archive::getEntries);
     }
 
     @Override

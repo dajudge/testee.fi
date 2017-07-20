@@ -12,7 +12,6 @@ import com.dajudge.testee.services.ResourceInjectionServicesImpl;
 import com.dajudge.testee.services.SecurityServicesImpl;
 import com.dajudge.testee.services.TransactionServicesImpl;
 import com.dajudge.testee.spi.ResourceProvider;
-import com.dajudge.testee.spi.SessionBeanFactory;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
@@ -28,7 +27,6 @@ import org.jboss.weld.transaction.spi.TransactionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;

@@ -153,7 +153,8 @@ public class PersistenceUnitInfoImpl implements PersistenceUnitInfo {
 
     @Override
     public void addTransformer(final ClassTransformer transformer) {
-
+        // This is called by eclipselink but doing nothing with it seems to be no problem right now
+        // TODO investigate
     }
 
     @Override

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import static com.dajudge.testee.ejb.EjbBridge.IDENTITY_SESSION_BEAN_MODIFIER;
 import static com.dajudge.testee.runtime.DatabaseMigration.migrateDataSources;
 import static com.dajudge.testee.runtime.TestDataSetup.setupTestData;
 import static java.util.stream.Collectors.toSet;
@@ -53,16 +54,11 @@ public class TestSetup {
 
         try {
             final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
-            txContext.initialize(new EjbBridge.SessionBeanModifier() {
-                @Override
-                public <T> SessionBeanFactory<T> modify(final SessionBeanFactory<T> factory) {
-                    return factory;
-                }
-            });
-            txContext.run((clazz, realm) -> {
-                final Set<DataSourceMigrator> migrators = realm.getInstancesOf(DataSourceMigrator.class);
-                migrateDataSources(clazz, migrators, realm.getServiceRegistry());
-                setupTestData(clazz, realm.getServiceRegistry());
+            txContext.initialize(IDENTITY_SESSION_BEAN_MODIFIER);
+            txContext.run((clazz, testDataSetupRealm) -> {
+                final Set<DataSourceMigrator> migrators = testDataSetupRealm.getInstancesOf(DataSourceMigrator.class);
+                migrateDataSources(clazz, migrators, testDataSetupRealm.getServiceRegistry());
+                setupTestData(clazz, testDataSetupRealm.getServiceRegistry());
             });
             txContext.commit();
         } catch (final RuntimeException e) {
@@ -85,33 +81,18 @@ public class TestSetup {
         return connectionFactories.get(testDataSource.factory());
     }
 
-    public Runnable prepareTestInstance(
-            final String name,
-            final Object testClassInstance
-    ) {
-        LOG.debug("Instantiating test run '{}' for class {}", name, testClassInstance.getClass().getName());
+    public Runnable prepareTestInstance(final String name, final Object testInstance) {
+        LOG.debug("Instantiating test run '{}' for class {}", name, testInstance.getClass().getName());
         final Set<BeanModifier> beanModifiers = realm.getInstancesOf(BeanModifierFactory.class).stream()
-                .map(it -> it.createBeanModifier(testClassInstance))
+                .map(it -> it.createBeanModifier(testInstance))
                 .collect(toSet());
         final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
-        txContext.initialize(modfiySessionBeans(beanModifiers));
-        txContext.run((clazz, realm) -> {
-            realm.getAllBeans().forEach(modifyCdiBeans(beanModifiers));
-            realm.inject(testClassInstance);
+        txContext.initialize(new SessionBeanModifierImpl(beanModifiers));
+        txContext.run((clazz, testInstanceRealm) -> {
+            testInstanceRealm.getAllBeans().forEach(modifyCdiBeans(beanModifiers));
+            testInstanceRealm.inject(testInstance);
         });
-        return () -> txContext.rollback();
-    }
-
-    private EjbBridge.SessionBeanModifier modfiySessionBeans(final Set<BeanModifier> beanModifiers) {
-        return new EjbBridge.SessionBeanModifier() {
-            @Override
-            public <T> SessionBeanFactory<T> modify(SessionBeanFactory<T> factory) {
-                for (final BeanModifier beanModifier : beanModifiers) {
-                    factory = beanModifier.modifySessionBean(factory);
-                }
-                return factory;
-            }
-        };
+        return txContext::rollback;
     }
 
     private Consumer<Bean<?>> modifyCdiBeans(final Collection<BeanModifier> beanModifiers) {
@@ -121,5 +102,21 @@ public class TestSetup {
     public void shutdown() {
         connectionFactories.values().forEach(ConnectionFactory::release);
         realm.shutdown();
+    }
+
+    private static class SessionBeanModifierImpl implements EjbBridge.SessionBeanModifier {
+        private final Set<BeanModifier> beanModifiers;
+
+        SessionBeanModifierImpl(final Set<BeanModifier> beanModifiers) {
+            this.beanModifiers = beanModifiers;
+        }
+
+        @Override
+        public <T> SessionBeanFactory<T> modify(SessionBeanFactory<T> factory) {
+            for (final BeanModifier beanModifier : beanModifiers) {
+                factory = beanModifier.modifySessionBean(factory);
+            }
+            return factory;
+        }
     }
 }

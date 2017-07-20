@@ -13,21 +13,23 @@ import javax.transaction.UserTransaction;
 public class TransactionServicesImpl implements TransactionServices {
     @Override
     public void registerSynchronization(final Synchronization synchronization) {
-
+        // TODO figure out what to do here
     }
 
     @Override
     public boolean isTransactionActive() {
+        // TODO figure out what to do here
         return false;
     }
 
     @Override
     public UserTransaction getUserTransaction() {
+        // TODO figure out what to do here
         return null;
     }
 
     @Override
     public void cleanup() {
-
+        // Nothing to clean up
     }
 }

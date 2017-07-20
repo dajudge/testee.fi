@@ -43,7 +43,7 @@ public class EjbInjectionServicesImpl implements EjbInjectionServices {
 
     @Override
     public void cleanup() {
-
+        // TODO do we have to do something here?
     }
 
     public interface EjbLookup {

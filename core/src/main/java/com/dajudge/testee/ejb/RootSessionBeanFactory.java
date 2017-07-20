@@ -26,7 +26,7 @@ public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
 
     @Override
     public ResourceReferenceFactory<T> getResourceReferenceFactory() {
-        return new SingletonBeanContainer<T>(descriptor.getBeanClass(), () -> {
+        return new SingletonBeanContainer<>(descriptor.getBeanClass(), () -> {
             try {
                 final T t = descriptor.getBeanClass().newInstance();
                 injection.accept(t);

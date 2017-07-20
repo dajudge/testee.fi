@@ -4,8 +4,6 @@ import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.spi.ConnectionFactory;
 import com.dajudge.testee.spi.ResourceProvider;
 import com.dajudge.testee.utils.JdbcUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Resource;
 import javax.enterprise.inject.spi.InjectionPoint;
@@ -20,8 +18,6 @@ import static com.dajudge.testee.utils.AnnotationUtils.collectAnnotations;
 import static java.util.stream.Collectors.toMap;
 
 public class JdbcResourceProvider implements ResourceProvider {
-    private static final Logger LOG = LoggerFactory.getLogger(JdbcResourceProvider.class);
-
     @Resource(mappedName = "testee/testSetupClass")
     private Class<?> testSetupClass;
     @Resource(mappedName = "testee/connectionFactoryManager")
@@ -65,7 +61,7 @@ public class JdbcResourceProvider implements ResourceProvider {
     private Map<String, ConnectionFactory> discover(final Class<?> testClass) {
         return collectAnnotations(testClass, TestDataSource.class).stream()
                 .collect(toMap(
-                        it -> it.name(),
+                        TestDataSource::name,
                         it -> connectionFactoryManager.getFactoryFor(it)
                 ));
     }

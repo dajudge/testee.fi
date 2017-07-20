@@ -1,6 +1,5 @@
 package com.dajudge.testee.runtime;
 
-import com.dajudge.testee.classpath.AnnotationScanner;
 import com.dajudge.testee.deployment.BeanArchiveDiscovery;
 import com.dajudge.testee.spi.RuntimeLifecycleListener;
 import org.jboss.weld.bootstrap.api.Environments;
@@ -26,7 +25,7 @@ public class TestRuntime {
      *
      * @return the plugin registry.
      */
-    public synchronized static TestRuntime instance() {
+    public static synchronized TestRuntime instance() {
         if (instance == null) {
             instance = new TestRuntime();
         }
@@ -36,9 +35,9 @@ public class TestRuntime {
     private TestRuntime() {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
         realm = new DependencyInjectionRealm(serviceRegistry, beanArchiveDiscovery, Environments.SE);
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> realm.shutdown()));
+        Runtime.getRuntime().addShutdownHook(new Thread(realm::shutdown));
         LOG.trace("Notifying runtime lifecycle listeners about start");
-        realm.getInstancesOf(RuntimeLifecycleListener.class).forEach(it -> it.onRuntimeStarted());
+        realm.getInstancesOf(RuntimeLifecycleListener.class).forEach(RuntimeLifecycleListener::onRuntimeStarted);
     }
 
     public BeanArchiveDiscovery getBeanArchiveDiscorvery() {

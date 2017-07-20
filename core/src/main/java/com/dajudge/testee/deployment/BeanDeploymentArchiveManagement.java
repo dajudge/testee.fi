@@ -20,12 +20,6 @@ public class BeanDeploymentArchiveManagement {
     private final ServiceRegistry serviceRegistry;
     private Collection<BeanDeploymentArchive> archives = null;
 
-    /**
-     * Constructor.
-     *
-     * @param beanArchiveDiscovery to be used for discovering bean archives on the classpath.
-     * @param serviceRegistry      the deployment's service registry.
-     */
     public BeanDeploymentArchiveManagement(
             final BeanArchiveDiscovery beanArchiveDiscovery,
             final ServiceRegistry serviceRegistry

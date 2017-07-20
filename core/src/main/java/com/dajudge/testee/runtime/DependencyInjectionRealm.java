@@ -7,7 +7,6 @@ import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.services.TransactionServicesImpl;
 import org.jboss.weld.Container;
 import org.jboss.weld.bean.AbstractClassBean;
-import org.jboss.weld.bean.SessionBean;
 import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.bootstrap.api.Bootstrap;
 import org.jboss.weld.bootstrap.api.Environments;

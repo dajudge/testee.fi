@@ -40,7 +40,7 @@ public class EjbBridge {
                 .andThen(ejbInjection(Resource.class, injectResources(resourceInjection)));
 
         this.ejbDescriptors = ejbDescriptors.stream().collect(toMap(
-                it -> it.getBeanClass(),
+                EjbDescriptor::getBeanClass,
                 it -> it
         ));
 
@@ -94,7 +94,17 @@ public class EjbBridge {
     }
 
 
-   public interface SessionBeanModifier {
+    public interface SessionBeanModifier {
         <T> SessionBeanFactory<T> modify(SessionBeanFactory<T> factory);
     }
+
+    private static class IdentitySessionBeanModifier implements SessionBeanModifier {
+
+        @Override
+        public <T> SessionBeanFactory<T> modify(final SessionBeanFactory<T> factory) {
+            return factory;
+        }
+    }
+
+    public static final SessionBeanModifier IDENTITY_SESSION_BEAN_MODIFIER = new IdentitySessionBeanModifier();
 }

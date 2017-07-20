@@ -29,7 +29,7 @@ public class EjbServicesImpl implements EjbServices {
 
             @Override
             public void remove() {
-
+                // TODO do we have to do something here?
             }
 
             @Override
@@ -46,6 +46,6 @@ public class EjbServicesImpl implements EjbServices {
 
     @Override
     public void cleanup() {
-
+        // TODO do we have to do something here?
     }
 }

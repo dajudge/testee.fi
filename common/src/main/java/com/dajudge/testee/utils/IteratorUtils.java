@@ -5,11 +5,14 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Utils for iterators.
+ * Utils for {@link Iterator iterators}.
  *
  * @author Alex Stockinger, IT-Stockinger
  */
-public class IteratorUtils {
+public final class IteratorUtils {
+    private IteratorUtils() {
+    }
+
     /**
      * Creates a composite iterator.
      *

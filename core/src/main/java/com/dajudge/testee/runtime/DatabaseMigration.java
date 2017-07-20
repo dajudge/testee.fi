@@ -13,7 +13,10 @@ import java.util.function.Function;
  *
  * @author Alex Stockinger, IT-Stockinger
  */
-public class DatabaseMigration {
+public final class DatabaseMigration {
+    private DatabaseMigration() {
+    }
+
     static void migrateDataSources(
             final Class<?> setupClass,
             final Set<DataSourceMigrator> migrators,

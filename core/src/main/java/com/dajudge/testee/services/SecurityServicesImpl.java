@@ -12,11 +12,12 @@ import java.security.Principal;
 public class SecurityServicesImpl implements SecurityServices {
     @Override
     public Principal getPrincipal() {
+        // TODO this wants to be implemeted?
         return null;
     }
 
     @Override
     public void cleanup() {
-
+        // Nothing to clean up
     }
 }

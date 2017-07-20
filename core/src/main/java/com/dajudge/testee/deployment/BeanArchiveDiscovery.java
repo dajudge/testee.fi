@@ -38,7 +38,7 @@ public class BeanArchiveDiscovery {
         LOG.trace("Bean archive discovery using these classpath entries: {}", classpathEntries);
         final Collection<JavaArchive> transformed = ClasspathTransform.transform(classpathEntries);
         beanArchives = transformed.parallelStream()
-                .map(it -> new BeanArchive(it))
+                .map(BeanArchive::new)
                 .filter(BeanArchive::isRelevant)
                 .collect(toSet());
         LOG.debug("Bean archive discovery completed in {}ms", System.currentTimeMillis() - start);

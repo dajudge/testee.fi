@@ -6,14 +6,11 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 
 /**

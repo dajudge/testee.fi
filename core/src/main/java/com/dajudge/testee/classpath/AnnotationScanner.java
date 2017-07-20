@@ -2,8 +2,6 @@ package com.dajudge.testee.classpath;
 
 import com.dajudge.testee.exceptions.TesteeException;
 import org.scannotation.AnnotationDB;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -14,7 +12,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * Annotation scanning.
@@ -51,7 +48,7 @@ public class AnnotationScanner {
     private synchronized Map<String, Set<String>> index() {
         if (index == null) {
             final AnnotationDB db = new AnnotationDB();
-            final URL urls[] = classpathProvider.get().toArray(new URL[]{});
+            final URL[] urls = classpathProvider.get().toArray(new URL[]{});
             try {
                 db.scanArchives(urls);
             } catch (final IOException e) {

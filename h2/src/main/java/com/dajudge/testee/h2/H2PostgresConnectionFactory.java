@@ -4,7 +4,6 @@ import com.dajudge.testee.spi.ConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PreDestroy;
 import javax.inject.Singleton;
 import java.sql.Connection;
 import java.sql.DriverManager;

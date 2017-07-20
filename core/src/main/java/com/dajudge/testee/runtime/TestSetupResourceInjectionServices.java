@@ -30,7 +30,7 @@ public class TestSetupResourceInjectionServices implements ResourceInjectionServ
 
                 @Override
                 public void release() {
-
+                    // test setup resources don't release
                 }
             };
         };
@@ -38,21 +38,26 @@ public class TestSetupResourceInjectionServices implements ResourceInjectionServ
 
     @Override
     public ResourceReferenceFactory<Object> registerResourceInjectionPoint(final String jndiName, final String mappedName) {
-        throw new UnsupportedOperationException("Not implemented");
+        return notImplemented();
     }
+
 
     @Override
     public Object resolveResource(InjectionPoint injectionPoint) {
-        throw new UnsupportedOperationException("Not implemented");
+        return notImplemented();
     }
 
     @Override
     public Object resolveResource(String jndiName, String mappedName) {
+        return notImplemented();
+    }
+
+    private <T> T notImplemented() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void cleanup() {
-
+        // No cleanup on test setup resources
     }
 }

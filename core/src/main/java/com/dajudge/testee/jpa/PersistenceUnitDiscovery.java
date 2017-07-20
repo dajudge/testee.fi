@@ -26,7 +26,6 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -76,11 +75,14 @@ public class PersistenceUnitDiscovery {
         try {
             final Document doc = BUILDER.parse(new ByteArrayInputStream(xml.getBytes()));
             final Element root = doc.getDocumentElement();
-            final NodeList units = (NodeList) xpath().evaluate("//persistence/persistence-unit", root, NODESET);
-
+            final NodeList unitNodes = (NodeList) xpath().evaluate(
+                    "//persistence/persistence-unit",
+                    root,
+                    NODESET
+            );
             final Collection<PersistenceUnitInfoImpl> ret = new HashSet<>();
-            for (int i = 0; i < units.getLength(); i++) {
-                ret.add(createUnitInfo(archive, (Element) units.item(i)));
+            for (int i = 0; i < unitNodes.getLength(); i++) {
+                ret.add(createUnitInfo(archive, (Element) unitNodes.item(i)));
             }
             return ret;
         } catch (final XPathExpressionException | SAXException | IOException e) {
@@ -95,7 +97,7 @@ public class PersistenceUnitDiscovery {
     private PersistenceUnitInfoImpl createUnitInfo(
             final JavaArchive archive,
             final Element unit
-    ) throws XPathExpressionException, MalformedURLException {
+    ) throws XPathExpressionException {
         final XPath xpath = xpath();
         final String name = unit.getAttribute("name");
         LOG.debug("Initializing persistence unit info for {}", name);
@@ -179,7 +181,7 @@ public class PersistenceUnitDiscovery {
                 .map(it -> unitsFrom(it.getLeft().getClasspathEntry(), it.getRight()))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toMap(
-                        it -> it.getActualPersistenceUnitName(),
+                        PersistenceUnitInfoImpl::getActualPersistenceUnitName,
                         it -> it
                 ));
     }
