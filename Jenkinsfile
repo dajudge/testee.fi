@@ -22,4 +22,16 @@ node() {
             sh "./gradlew -x test sonarqube"
         }
     }
+
+    stage("Publish to Nexus") {
+          withCredentials([
+                    usernamePassword(
+                        credentialsId: 'maven',
+                        usernameVariable: 'MAVEN_USER',
+                        passwordVariable: 'MAVEN_PASSWORD'
+                    )
+                ]) {
+                    sh "./gradlew uploadArchives"
+                }
+    }
 }

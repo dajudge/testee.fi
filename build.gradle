@@ -36,9 +36,20 @@ subprojects {
     // Apply the maven repos defined by the root buildscript block for all subprojects
     buildscript.repositories.addAll(rootProject.buildscript.repositories)
 
+    apply plugin: 'maven'
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                repository(url:"https://maven.it-stockinger.de/nexus/content/repositories/snapshots/") {
+                    authentication(userName: System.getenv("MAVEN_USER"), password: System.getenv("MAVEN_PASSWORD"))
+                }
+            }
+        }
+    }
+
     afterEvaluate { Project project ->
         if (project.pluginManager.hasPlugin("java")) {
-
             jacocoTestReport.reports.xml.enabled = true
 
             project.tasks.withType(Test) {
@@ -57,7 +68,6 @@ subprojects {
         }
     }
 }
-
 ext {
     // Dependencies
     libSlf4j = 'org.slf4j:slf4j-api:1.7.21'
