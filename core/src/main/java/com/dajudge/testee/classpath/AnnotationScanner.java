@@ -19,11 +19,11 @@ import java.util.function.Supplier;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class AnnotationScanner {
-    private final Supplier<Collection<URL>> classpathProvider;
+    private final URL[] urls;
     private Map<String, Set<String>> index;
 
-    public AnnotationScanner(final Supplier<Collection<URL>> classpathProvider) {
-        this.classpathProvider = classpathProvider;
+    public AnnotationScanner(final URL... urls) {
+        this.urls = urls;
     }
 
     public Collection<Class<?>> scanFor(Class<? extends Annotation>... annotations) {
@@ -48,7 +48,6 @@ public class AnnotationScanner {
     private synchronized Map<String, Set<String>> index() {
         if (index == null) {
             final AnnotationDB db = new AnnotationDB();
-            final URL[] urls = classpathProvider.get().toArray(new URL[]{});
             try {
                 db.scanArchives(urls);
             } catch (final IOException e) {

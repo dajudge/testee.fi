@@ -4,6 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.net.URL;
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -18,8 +19,8 @@ abstract class AbstractBaseJavaArchive implements JavaArchive {
     private Collection<String> classes;
     private final AnnotationScanner annotationScanner;
 
-    protected AbstractBaseJavaArchive() {
-        this.annotationScanner = new AnnotationScanner(() -> asList(getURL()));
+    protected AbstractBaseJavaArchive(final URL... urls) {
+        this.annotationScanner = new AnnotationScanner(urls);
     }
 
     @Override

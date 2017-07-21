@@ -25,6 +25,7 @@ public class JarJavaArchive extends AbstractBaseJavaArchive {
      * @param file the JAR file.
      */
     public JarJavaArchive(final File file) {
+        super(toUrl(file));
         this.file = file;
     }
 

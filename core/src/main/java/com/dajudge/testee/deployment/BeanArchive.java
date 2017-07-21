@@ -11,14 +11,11 @@ import java.util.stream.Collectors;
 
 public class BeanArchive {
     private final JavaArchive classpathEntry;
-    private final Collection<EjbDescriptor<?>> ejbs;
+    private Collection<EjbDescriptor<?>> ejbs;
 
     @SuppressWarnings("unchecked")
     public BeanArchive(final JavaArchive javaArchive) {
         this.classpathEntry = javaArchive;
-        ejbs = classpathEntry.annotatedWith(Singleton.class, Stateless.class, Stateful.class).stream()
-                .map(this::toEjbDescriptor)
-                .collect(Collectors.toSet());
     }
 
     @SuppressWarnings("unchecked")
@@ -30,7 +27,12 @@ public class BeanArchive {
         return classpathEntry.getClasses();
     }
 
-    public Collection<EjbDescriptor<?>> getEjbs() {
+    public synchronized Collection<EjbDescriptor<?>> getEjbs() {
+        if (ejbs == null) {
+            ejbs = classpathEntry.annotatedWith(Singleton.class, Stateless.class, Stateful.class).stream()
+                    .map(this::toEjbDescriptor)
+                    .collect(Collectors.toSet());
+        }
         return ejbs;
     }
 

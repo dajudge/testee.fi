@@ -28,6 +28,7 @@ public class DirectoryJavaArchive extends AbstractBaseJavaArchive {
      * @param file the directory.
      */
     public DirectoryJavaArchive(final File file) {
+        super(toUrl(file));
         this.file = file;
     }
 
