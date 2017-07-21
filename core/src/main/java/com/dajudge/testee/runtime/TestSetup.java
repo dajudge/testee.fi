@@ -62,7 +62,7 @@ public class TestSetup {
             });
             txContext.commit();
         } catch (final RuntimeException e) {
-            realm.shutdown();
+            shutdown();
             throw e;
         }
     }
@@ -100,7 +100,14 @@ public class TestSetup {
     }
 
     public void shutdown() {
-        connectionFactories.values().forEach(ConnectionFactory::release);
+        connectionFactories.values().forEach(factory -> {
+            try {
+                factory.release();
+            } catch (final RuntimeException e) {
+                // Continue releasing connection factories on error
+                LOG.error("Failed to release connection factory " + factory, e);
+            }
+        });
         realm.shutdown();
     }
 

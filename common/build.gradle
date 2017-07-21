@@ -3,6 +3,7 @@ apply plugin: 'java'
 dependencies {
     compile libCommonsLang3
     compile libSlf4j
+    compile libGroovy
 
     testCompile libJUnit4
     testCompile libLogback

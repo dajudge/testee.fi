@@ -28,7 +28,7 @@ public final class JdbcUtils {
         final int count = rs.getMetaData().getColumnCount();
         final Map<String, Object> ret = new HashMap<>();
         for (int i = 0; i < count; i++) {
-            ret.put(rs.getMetaData().getColumnName(i + 1), rs.getObject(i + 1));
+            ret.put(rs.getMetaData().getColumnName(i + 1).toUpperCase(), rs.getObject(i + 1));
         }
         return ret;
     }

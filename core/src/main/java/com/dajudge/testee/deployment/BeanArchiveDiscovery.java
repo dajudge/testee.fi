@@ -40,6 +40,7 @@ public class BeanArchiveDiscovery {
         beanArchives = transformed.parallelStream()
                 .map(BeanArchive::new)
                 .filter(BeanArchive::isRelevant)
+                .peek(archive -> LOG.trace("Relevant bean archive: {}", archive.getClasspathEntry().getURL()))
                 .collect(toSet());
         LOG.debug("Bean archive discovery completed in {}ms", System.currentTimeMillis() - start);
     }

@@ -24,4 +24,12 @@ public final class AnnotationUtils {
         }
         return ret;
     }
+
+    public static <T extends Annotation> T firstByTypeHierarchy(
+            final Class<?> clazz,
+            final Class<T> annotation
+    ) {
+        final List<T> ret = collectAnnotations(clazz, annotation);
+        return ret.isEmpty() ? null : ret.get(0);
+    }
 }

@@ -7,7 +7,7 @@ import java.sql.SQLException;
 public class DatabaseIsolationITest extends AbstractBaseDatabaseTest {
     @Test
     public void tests_run_isolated_1() throws SQLException {
-        insertJdbc(ds, 3, "value3");
+        dataSources().forEach(ds -> insertJdbc(ds, 3, "value3"));
     }
 
     @Test

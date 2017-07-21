@@ -5,10 +5,11 @@ import com.dajudge.testee.exceptions.TesteeException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+
+import static com.dajudge.testee.utils.UrlUtils.toUrl;
 
 /**
  * JAR-file based {@link JavaArchive}.
@@ -45,11 +46,7 @@ public class JarJavaArchive extends AbstractBaseJavaArchive {
 
     @Override
     public URL getURL() {
-        try {
-            return file.toURI().toURL();
-        } catch (final MalformedURLException e) {
-            throw new TesteeException("Failed to create URL for classpath entry: " + file.getAbsolutePath(), e);
-        }
+        return toUrl(file);
     }
 
     @Override

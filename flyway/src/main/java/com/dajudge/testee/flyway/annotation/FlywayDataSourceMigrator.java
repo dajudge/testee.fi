@@ -27,8 +27,10 @@ public class FlywayDataSourceMigrator implements DataSourceMigrator {
             return;
         }
         for (final com.dajudge.testee.flyway.annotation.Flyway annotation : annotations) {
-            org.flywaydb.core.Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSourceProvider.apply(annotation.dataSource()));
+            final org.flywaydb.core.Flyway flyway = new Flyway();
+            final DataSource ds = dataSourceProvider.apply(annotation.dataSource());
+            flyway.setDataSource(ds);
+            flyway.setLocations(annotation.locations());
             flyway.migrate();
         }
     }

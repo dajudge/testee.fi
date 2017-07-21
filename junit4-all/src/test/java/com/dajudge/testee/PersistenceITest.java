@@ -14,7 +14,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class PersistenceITest extends AbstractBaseDatabaseTest {
     @TestData
@@ -22,41 +23,60 @@ public class PersistenceITest extends AbstractBaseDatabaseTest {
             final TestDataSources dataSource,
             final TestPersistenceUnits persistenceUnits
     ) throws SQLException {
-        insertJdbc(dataSource.get("jdbc/test"), 1, "value1");
-        persistenceUnits.get("testUnit").persist(new TestEntity(2, "value2"));
+        DATASOURCES.forEach(ds -> insertJdbc(dataSource.get(ds), 1, "value1"));
+        UNITS.forEach(unit -> persistenceUnits.get(unit).persist(new TestEntity(2, "value2")));
     }
 
     @Test
-    public void jdbc_setup_worked() throws SQLException {
-        try (final Connection c = ds.getConnection()) {
-            final List<Map<String, Object>> result = JdbcUtils.query(
-                    c,
-                    "SELECT id, stringValue FROM test WHERE id=?",
-                    JdbcUtils::mapRowMapper,
-                    1
-            );
-            assertEquals(1, result.size());
-            final Map<String, Object> row = result.get(0);
-            assertEquals(1L, (long)row.get("ID"));
-            assertEquals("value1", row.get("STRINGVALUE"));
-        }
-
+    public void jdbc_setup_worked() {
+        dataSources().forEach(ds -> {
+            try (final Connection c = ds.getConnection()) {
+                final List<Map<String, Object>> result = JdbcUtils.query(
+                        c,
+                        "SELECT id, stringValue FROM test WHERE id=?",
+                        JdbcUtils::mapRowMapper,
+                        1
+                );
+                assertEquals(1, result.size());
+                final Map<String, Object> row = result.get(0);
+                assertTrue("ID not contained in " + row, row.containsKey("ID"));
+                assertTrue("STRINGVALUE not contained in " + row, row.containsKey("STRINGVALUE"));
+                assertEquals(1L, (long) row.get("ID"));
+                assertEquals("value1", row.get("STRINGVALUE"));
+            } catch (final SQLException e) {
+                throw new AssertionError("Failed to execute JDBC", e);
+            }
+        });
     }
 
-    @Test(expected = TesteeException.class)
+    @Test
     public void cannot_access_bean_transaction() {
-        em.getTransaction();
+        units().forEach(unit -> {
+            try {
+                unit.getTransaction();
+                fail("Must not allow to access JPA transaction");
+            } catch (final TesteeException e) {
+                // this is the expected behavior
+            }
+        });
     }
 
-    @Test(expected = TesteeException.class)
+    @Test
     public void cannot_close_entity_manager() {
-        em.close();
+        units().forEach(unit -> {
+            try {
+                unit.close();
+                fail("Must not allow to close EntityManager");
+            } catch (final TesteeException e) {
+                // this is the expected behavior
+            }
+        });
     }
 
     @Test
     public void jpa_setup_worked() {
-        final TestEntity entity = em.find(TestEntity.class, 2L);
-        assertNotNull(entity);
-        assertEquals("value2", entity.getStringValue());
+        units().forEach(unit -> {
+
+        });
     }
 }

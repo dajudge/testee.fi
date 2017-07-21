@@ -21,4 +21,11 @@ public @interface Flyway {
      * @return the name of the data source.
      */
     String dataSource();
+
+    /**
+     * The flyway locations to consider for the data source.
+     *
+     * @return the flyway locations.
+     */
+    String[] locations() default {"db/migration"};
 }

@@ -1,5 +1,6 @@
 package com.dajudge.testee.classpath;
 
+import com.dajudge.testee.utils.UrlUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,16 +10,18 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.util.stream.Collectors;
+
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * Retrieving the URLs of the classpath JARs from a
@@ -32,14 +35,34 @@ public class ClassLoaderAnalyzer {
     private ClassLoaderAnalyzer() {
     }
 
-    public static Set<URL> getClasspath(final ClassLoader classLoader) {
+    public static Set<URL> getClasspath(ClassLoader classLoader) {
+        LOG.trace("System properties: {}", System.getProperties());
+        final Set<URL> collect = collectFromClasspath(classLoader);
+        collect.addAll(collectFromLibraryPath());
+        return collect;
+    }
+
+    private static Set<URL> collectFromLibraryPath() {
+        return stream(StringUtils.split(System.getProperty("java.class.path"), File.pathSeparatorChar))
+                .map(it -> new File(it).getAbsoluteFile())
+                .filter(File::exists) // Early out non-existent files
+                .map(it -> UrlUtils.toUrl(it))
+                .collect(toSet());
+    }
+
+    private static Set<URL> collectFromClasspath(ClassLoader classLoader) {
         if (!(classLoader instanceof URLClassLoader)) {
             return Collections.emptySet();
         }
-        return Arrays.stream(((URLClassLoader) classLoader).getURLs())
+        final Set<URL> ret = new HashSet<>();
+        ret.addAll(stream(((URLClassLoader) classLoader).getURLs())
                 .map(ClassLoaderAnalyzer::collectTransitive)
                 .flatMap(Collection::stream)
-                .collect(Collectors.toSet());
+                .collect(toSet()));
+        if (classLoader.getParent() != classLoader && classLoader.getParent() != null) {
+            ret.addAll(collectFromClasspath(classLoader.getParent()));
+        }
+        return ret;
     }
 
     private static List<URL> collectTransitive(final URL start) {

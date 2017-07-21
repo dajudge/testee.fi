@@ -1,16 +1,17 @@
 package com.dajudge.testee.classpath;
 
 import com.dajudge.testee.exceptions.TesteeException;
+import com.dajudge.testee.utils.UrlUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.dajudge.testee.utils.UrlUtils.toUrl;
 import static java.util.Collections.emptyList;
 
 /**
@@ -32,11 +33,7 @@ public class DirectoryJavaArchive extends AbstractBaseJavaArchive {
 
     @Override
     public URL getURL() {
-        try {
-            return file.toURI().toURL();
-        } catch (final MalformedURLException e) {
-            throw new TesteeException("Failed to create URL for classpath entry: " + file.getAbsolutePath(), e);
-        }
+        return toUrl(file);
     }
 
     @Override

@@ -4,6 +4,7 @@ dependencies {
     compile project(":core")
     compile project(":junit4")
     compile project(":h2")
+    compile project(":postgres")
     compile project(":mockito")
     compile project(":flyway")
     compile project(":eclipselink")

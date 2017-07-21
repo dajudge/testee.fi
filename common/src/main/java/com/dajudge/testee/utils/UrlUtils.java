@@ -3,8 +3,11 @@ package com.dajudge.testee.utils;
 import com.dajudge.testee.exceptions.TesteeException;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -34,6 +37,20 @@ public final class UrlUtils {
     public static URL toUrl(final String string) {
         try {
             return new URL(string);
+        } catch (final MalformedURLException e) {
+            throw new TesteeException("Malformed URL", e);
+        }
+    }
+
+    /**
+     * URL from {@link File} throwing a {@link TesteeException} instead of checked ones.
+     *
+     * @param file the file to convert to a URL.
+     * @return the URL.
+     */
+    public static URL toUrl(final File file) {
+        try {
+            return file.toURI().toURL();
         } catch (final MalformedURLException e) {
             throw new TesteeException("Malformed URL", e);
         }
@@ -89,5 +106,14 @@ public final class UrlUtils {
      */
     public static boolean isCompositeURL(final URL url) {
         return url.toString().startsWith(COMPOSITE_PREFIX);
+    }
+
+    public static File toFile(final URL url) {
+        try {
+            // https://stackoverflow.com/questions/2166039/java-how-to-get-a-file-from-an-escaped-url
+            return new File(URLDecoder.decode(url.getFile(), "UTF-8"));
+        } catch (final UnsupportedEncodingException e) {
+            throw new TesteeException("JRE doesn't know UTF-8 encoding", e);
+        }
     }
 }

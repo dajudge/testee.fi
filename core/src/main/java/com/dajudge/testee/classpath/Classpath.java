@@ -1,9 +1,14 @@
 package com.dajudge.testee.classpath;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.net.URL;
 import java.util.Collection;
 import java.util.stream.Collectors;
+
+import static com.dajudge.testee.utils.UrlUtils.toFile;
 
 /**
  * Utilities on classpath. Thread safe.
@@ -11,6 +16,7 @@ import java.util.stream.Collectors;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class Classpath {
+    private static final Logger LOG = LoggerFactory.getLogger(Classpath.class);
     private final ClassLoader classLoader;
 
     private Collection<JavaArchive> entries;
@@ -32,7 +38,9 @@ public class Classpath {
     public synchronized Collection<JavaArchive> getAll() {
         if (entries == null) {
             entries = ClassLoaderAnalyzer.getClasspath(classLoader).stream()
-                    .filter(url -> new File(url.getFile()).exists())
+                    .peek(entry -> LOG.trace("Classpath entry: {}", entry.getFile()))
+                    .filter(url -> toFile(url).exists())
+                    .peek(entry -> LOG.trace("Existing classpath entry: {}", entry))
                     .map(Classpath::toClasspathEntry)
                     .collect(Collectors.toSet());
         }
@@ -40,7 +48,7 @@ public class Classpath {
     }
 
     private static JavaArchive toClasspathEntry(final URL url) {
-        final File file = new File(url.getFile());
+        final File file = toFile(url);
         if (file.isDirectory()) {
             return new DirectoryJavaArchive(file);
         } else {
