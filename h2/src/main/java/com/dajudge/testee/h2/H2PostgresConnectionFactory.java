@@ -44,7 +44,6 @@ public class H2PostgresConnectionFactory implements ConnectionFactory {
 
     @Override
     public void release() {
-        // FIXME this never gets called
         dbNames.forEach(dbName -> execute(
                 () -> {
                     LOG.debug("Cleaning up H2 database: {}", dbName);
