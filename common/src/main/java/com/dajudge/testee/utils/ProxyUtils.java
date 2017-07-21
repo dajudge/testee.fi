@@ -23,6 +23,7 @@ public final class ProxyUtils {
     private ProxyUtils() {
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> T lazy(final Supplier<T> delegateFactory, final Class<T> iface) {
         final MutableContainer<T> container = new MutableContainer<>();
         return (T) Proxy.newProxyInstance(
@@ -52,6 +53,7 @@ public final class ProxyUtils {
      * @param <T>      the interface type to wrap.
      * @return the logging proxy.
      */
+    @SuppressWarnings("unchecked")
     public static <T> T trace(final Object delegate, final Class<T> iface) {
         final String oid = delegate.getClass().getName() + "@" + identityHashCode(delegate);
         return (T) newProxyInstance(
