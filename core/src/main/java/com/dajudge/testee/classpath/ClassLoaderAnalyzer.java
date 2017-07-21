@@ -35,7 +35,7 @@ public class ClassLoaderAnalyzer {
     private ClassLoaderAnalyzer() {
     }
 
-    public static Set<URL> getClasspath(ClassLoader classLoader) {
+    public static Set<URL> getClasspath(final ClassLoader classLoader) {
         LOG.trace("System properties: {}", System.getProperties());
         final Set<URL> collect = collectFromClasspath(classLoader);
         collect.addAll(collectFromLibraryPath());
