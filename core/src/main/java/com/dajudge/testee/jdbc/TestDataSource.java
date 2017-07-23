@@ -27,7 +27,7 @@ public @interface TestDataSource {
     /**
      * The {@link ConnectionFactory} to use.
      *
-     * @return @link ConnectionFactory} to use.
+     * @return {@link ConnectionFactory} to use.
      */
     Class<? extends ConnectionFactory> factory();
 }

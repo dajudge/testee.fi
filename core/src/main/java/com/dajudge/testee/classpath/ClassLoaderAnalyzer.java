@@ -46,7 +46,7 @@ public class ClassLoaderAnalyzer {
         return stream(StringUtils.split(System.getProperty("java.class.path"), File.pathSeparatorChar))
                 .map(it -> new File(it).getAbsoluteFile())
                 .filter(File::exists) // Early out non-existent files
-                .map(it -> UrlUtils.toUrl(it))
+                .map(UrlUtils::toUrl)
                 .collect(toSet());
     }
 
