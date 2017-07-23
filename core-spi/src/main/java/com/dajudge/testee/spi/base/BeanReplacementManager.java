@@ -1,4 +1,4 @@
-package com.dajudge.testee.mockito;
+package com.dajudge.testee.spi.base;
 
 import com.dajudge.testee.spi.SessionBeanFactory;
 import org.jboss.weld.bean.AbstractClassBean;
@@ -19,28 +19,28 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.function.Supplier;
 
-public class MockManager {
-    private static final Logger LOG = LoggerFactory.getLogger(MockManager.class);
+class BeanReplacementManager {
+    private static final Logger LOG = LoggerFactory.getLogger(BeanReplacementManager.class);
 
-    private Collection<Object> mocks = new ArrayList<>();
+    private Collection<Object> replacements = new ArrayList<>();
 
-    public MockManager(final Collection<Object> mocks) {
-        this.mocks = Collections.unmodifiableCollection(mocks);
+    BeanReplacementManager(final Collection<Object> replacements) {
+        this.replacements = Collections.unmodifiableCollection(replacements);
     }
 
-    public boolean isMock(final Object needle) {
-        for (final Object mock : mocks) {
-            if (needle == mock) {
+    boolean isReplaced(final Object needle) {
+        for (final Object replacement : replacements) {
+            if (needle == replacement) {
                 return true;
             }
         }
         return false;
     }
 
-    public <T> T findMockFor(final Class<T> beanClass) {
-        for (final Object mock : mocks) {
-            if (beanClass.isAssignableFrom(mock.getClass())) {
-                return (T) mock;
+    <T> T findReplacementFor(final Class<T> beanClass) {
+        for (final Object replacement : replacements) {
+            if (beanClass.isAssignableFrom(replacement.getClass())) {
+                return (T) replacement;
             }
         }
         return null;
@@ -61,7 +61,7 @@ public class MockManager {
         return new InjectionTarget<T>() {
             @Override
             public void inject(final T instance, final CreationalContext<T> ctx) {
-                if (!isMock(instance)) {
+                if (!isReplaced(instance)) {
                     delegate.inject(instance, ctx);
                 }
             }
@@ -81,10 +81,10 @@ public class MockManager {
             public T produce(final CreationalContext<T> ctx) {
                 Class<T> clazz = (Class<T>) bean.getBeanClass();
                 Supplier<T> producer = () -> delegate.produce(ctx);
-                final T mock = findMockFor(clazz);
-                if (mock != null) {
-                    LOG.debug("Injecting mock for {}", clazz);
-                    return mock;
+                final T replacement = findReplacementFor(clazz);
+                if (replacement != null) {
+                    LOG.debug("Injecting replacement for {}", clazz);
+                    return replacement;
                 }
                 return producer.get();
             }
@@ -112,17 +112,17 @@ public class MockManager {
             @Override
             public ResourceReferenceFactory<T> getResourceReferenceFactory() {
                 return () -> {
-                    final T mock = findMockFor(sessionBean.getDescriptor().getBeanClass());
-                    if (mock != null) {
+                    final T replacement = findReplacementFor(sessionBean.getDescriptor().getBeanClass());
+                    if (replacement != null) {
                         return new ResourceReference<T>() {
                             @Override
                             public T getInstance() {
-                                return mock;
+                                return replacement;
                             }
 
                             @Override
                             public void release() {
-                                // Mocks don't need to be released
+                                // Replacements don't need to be released
                             }
                         };
                     }

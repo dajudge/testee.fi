@@ -1,51 +1,30 @@
 package com.dajudge.testee.mockito;
 
-import com.dajudge.testee.exceptions.TesteeException;
 import com.dajudge.testee.spi.BeanModifier;
-import com.dajudge.testee.spi.SessionBeanFactory;
-import org.apache.commons.lang3.reflect.FieldUtils;
+import com.dajudge.testee.spi.base.AbstractBaseBeanReplacer;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
-import javax.enterprise.inject.spi.Bean;
 import java.util.Collection;
-import java.util.stream.Collectors;
+
+import static com.dajudge.testee.utils.ReflectionUtils.fieldsValuesAnnotatedWith;
 
 /**
  * A {@link BeanModifier} for integrating Mockito with TestEE.
  *
  * @author Alex Stockinger, IT-Stockinger
  */
-public class MockitoBeanModifier implements BeanModifier {
-    private MockManager mockManager;
+public class MockitoBeanModifier extends AbstractBaseBeanReplacer {
 
     MockitoBeanModifier(final Object testSetupClass) {
-        mockManager = new MockManager(createMocksFor(testSetupClass));
+        super(testSetupClass);
     }
 
     @Override
-    public <T> void modifyCdiBean(final Bean<T> cdiBean) {
-        mockManager.instrumentCdiBean(cdiBean);
-    }
-
-    @Override
-    public <T> SessionBeanFactory<T> modifySessionBean(final SessionBeanFactory<T> sessionBean) {
-        return mockManager.wrapSessionBean(sessionBean);
-    }
-
-    private static Collection<Object> createMocksFor(final Object testClassInstance) {
+    protected Collection<Object> createMocksFor(final Object testClassInstance) {
         MockitoAnnotations.initMocks(testClassInstance);
-        return FieldUtils.getAllFieldsList(testClassInstance.getClass()).stream()
-                .filter(it -> it.getAnnotation(Mock.class) != null || it.getAnnotation(Spy.class) != null)
-                .map(it -> {
-                    it.setAccessible(true);
-                    try {
-                        return it.get(testClassInstance);
-                    } catch (final IllegalAccessException e) {
-                        throw new TesteeException("Could not extract mock from " + testClassInstance, e);
-                    }
-                })
-                .collect(Collectors.toSet());
+        return fieldsValuesAnnotatedWith(testClassInstance, Mock.class, Spy.class);
     }
+
 }

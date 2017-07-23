@@ -1,0 +1,14 @@
+apply plugin: 'java'
+
+dependencies {
+    compile libSlf4j
+    compile libEasyMock
+    compile libCommonsLang3
+    compile libWeld
+    compile project(":core-spi")
+    compile project(":common")
+
+    testCompile libJUnit4
+    testCompile libLogback
+    testCompile project(":core")
+}

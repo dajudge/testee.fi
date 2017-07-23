@@ -4,6 +4,7 @@ include 'common'        // Shared code
 include 'core'          // ITest Container core
 include 'core-spi'      // Core extension API
 include 'mockito'       // Mockito intgration
+include 'easymock'      // EasyMock integration
 include 'junit4'        // JUnit 4 integration
 include 'junit4-all'    // Standard distribution for JUnit 4
 include 'junit5'        // JUnit 5 integration
