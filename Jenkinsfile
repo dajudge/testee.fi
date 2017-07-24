@@ -25,26 +25,49 @@ node() {
         }
     }
 
-    try {
-        stage("Publish to Nexus") {
-            if (currentBuild.result == 'UNSTABLE') {
-                throw new RuntimeException("SKIP: Won't deploy because build is unstable");
-            }
-            withCredentials([
-                usernamePassword(
-                credentialsId: 'maven',
-                usernameVariable: 'MAVEN_USER',
-                passwordVariable: 'MAVEN_PASSWORD'
-                )
-            ]) {
-                sh "./gradlew uploadArchives"
-            }
+    stage("Publish to Nexus") {
+        if (currentBuild.result == 'UNSTABLE') {
+            throw new RuntimeException("SKIP: Won't deploy because build is unstable");
         }
-    } catch(Throwable t) {
-        if(!t.message.startsWith("SKIP:")) {
-            throw t;
-        } else {
-            println t.message;
+        withCredentials([
+            usernamePassword(
+            credentialsId: 'maven',
+            usernameVariable: 'MAVEN_USER',
+            passwordVariable: 'MAVEN_PASSWORD'
+            )
+        ]) {
+            sh "./gradlew uploadArchives"
+        }
+    }
+
+    stage("Usage testing") {
+        @NonCPS def imageDirs = findFiles(glob:"usageTests/images/**/Dockerfile").collect { f ->
+            def split = f.path.split("/")
+            "${split[2]}:${split[3]}"
+        }
+        imageDirs.each { imageVersion ->
+            def dockerImage = dir("usageTests/images/${imageVersion.replace(":", "/")}") {
+                docker.build("testee-usage-$imageVersion")
+            }
+
+            dir("usageTests/maven/") {
+                dockerImage.inside {
+                    try {
+                        withCredentials([
+                                    usernamePassword(
+                                    credentialsId: 'maven',
+                                    usernameVariable: 'MAVEN_USER',
+                                    passwordVariable: 'MAVEN_PASSWORD'
+                                    )
+                                ]) {
+                            sh "chmod 755 build.sh && ./build.sh"
+                        }
+                    }   catch(Throwable t) {
+                        currentBuild.result == 'UNSTABLE'
+                        println t.message
+                    }
+                }
+            }
         }
     }
 }
@@ -62,13 +85,15 @@ def withBuildEnv(closure) {
 
     def psqlContainer = "testee-psql-${System.currentTimeMillis()}"
     psqlImage.withRun("--name $psqlContainer -e POSTGRES_DB=testee -e POSTGRES_PASSWORD=testee -e POSTGRES_USER=testee") {
-        withEnv([
-            "TESTEE_PSQL_HOSTNAME=psql",
-            "TESTEE_PSQL_DB=testee",
-            "TESTEE_PSQL_USER=testee",
-            "TESTEE_PSQL_PASSWORD=testee"
-        ]) {
-            jdkImage.inside("--link ${psqlContainer}:psql -e TESTEE_PSQL_HOSTNAME=psql -e TESTEE_PSQL_DB=testee -e TESTEE_PSQL_USER=testee -e TESTEE_PSQL_PASSWORD=testee", closure)
-        }
+        jdkImage.inside(
+            [
+                "--link ${psqlContainer}:psql",
+                "-e TESTEE_PSQL_HOSTNAME=psql",
+                "-e TESTEE_PSQL_DB=testee",
+                "-e TESTEE_PSQL_USER=testee",
+                "-e TESTEE_PSQL_PASSWORD=testee"
+            ].join(" "),
+            closure
+         )
     }
 }

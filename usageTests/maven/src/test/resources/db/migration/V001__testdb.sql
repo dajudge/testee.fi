@@ -1,0 +1,5 @@
+CREATE TABLE testentity(
+  id BIGINT NOT NULL,
+  stringValue VARCHAR(1024) NOT NULL,
+  PRIMARY KEY(id)
+);

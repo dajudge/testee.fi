@@ -36,49 +36,9 @@ subprojects {
 
     apply plugin: 'maven'
 
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                repository(url: "https://maven.it-stockinger.de/nexus/content/repositories/releases/") {
-                    authentication(userName: System.getenv("MAVEN_USER"), password: System.getenv("MAVEN_PASSWORD"))
-                }
-
-                snapshotRepository(url: "https://maven.it-stockinger.de/nexus/content/repositories/snapshots/") {
-                    authentication(userName: System.getenv("MAVEN_USER"), password: System.getenv("MAVEN_PASSWORD"))
-                }
-                pom.project {
-                    name "TestEE.fi - ${project.name} module"
-                    packaging 'jar'
-                    description 'Functional testing for Java-EE.'
-                    url 'https://github.com/dajudge/testee'
-
-                    scm {
-                        connection 'scm:git:https://github.com/dajudge/testee.git'
-                        developerConnection 'scm:git:https://github.com/dajudge/testee.git'
-                        url 'https://github.com/dajudge/testee.git'
-                    }
-
-                    licenses {
-                        license {
-                            name 'The Apache License, Version 2.0'
-                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id 'alexs'
-                            name 'Alex Stockinger'
-                            email 'alex@it-stockinger.de'
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     afterEvaluate { Project project ->
         if (project.pluginManager.hasPlugin("java")) {
+
             jacocoTestReport.reports.xml.enabled = true
 
             project.tasks.withType(Test) {
@@ -95,6 +55,47 @@ subprojects {
                 ignoreFailures = ignoreTestFailures
             }
 
+            uploadArchives {
+                repositories {
+                    mavenDeployer {
+                        repository(url: "https://maven.it-stockinger.de/nexus/content/repositories/releases/") {
+                            authentication(userName: System.getenv("MAVEN_USER"), password: System.getenv("MAVEN_PASSWORD"))
+                        }
+
+                        snapshotRepository(url: "https://maven.it-stockinger.de/nexus/content/repositories/snapshots/") {
+                            authentication(userName: System.getenv("MAVEN_USER"), password: System.getenv("MAVEN_PASSWORD"))
+                        }
+                        pom.project {
+                            name "TestEE.fi - ${project.name} module"
+                            artifactId "testee-${project.name}"
+                            packaging 'jar'
+                            description 'Functional testing for Java-EE.'
+                            url 'https://github.com/dajudge/testee'
+
+                            scm {
+                                connection 'scm:git:https://github.com/dajudge/testee.git'
+                                developerConnection 'scm:git:https://github.com/dajudge/testee.git'
+                                url 'https://github.com/dajudge/testee.git'
+                            }
+
+                            licenses {
+                                license {
+                                    name 'The Apache License, Version 2.0'
+                                    url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                                }
+                            }
+
+                            developers {
+                                developer {
+                                    id 'alexs'
+                                    name 'Alex Stockinger'
+                                    email 'alex@it-stockinger.de'
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             task javadocJar(type: Jar) {
                 classifier = 'javadoc'
                 from javadoc
