@@ -1,4 +1,4 @@
-package com.dajudge.testee.flyway.annotation;
+package com.dajudge.testee.flyway;
 
 import com.dajudge.testee.spi.DataSourceMigrator;
 import org.flywaydb.core.Flyway;
