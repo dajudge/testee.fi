@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -76,7 +77,9 @@ public class PersistenceITest extends AbstractBaseDatabaseTest {
     @Test
     public void jpa_setup_worked() {
         units().forEach(unit -> {
-
+            final TestEntity entity = unit.find(TestEntity.class, 2L);
+            assertNotNull(entity);
+            assertEquals("value2", entity.getStringValue());
         });
     }
 }
