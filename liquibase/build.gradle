@@ -1,0 +1,7 @@
+apply plugin: 'java'
+
+dependencies {
+    compile libLiquibase
+    compile libLiquibaseSlf4j
+    compile project(":core-spi")
+}

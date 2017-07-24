@@ -4,6 +4,7 @@ import com.dajudge.testee.flyway.annotation.Flyway;
 import com.dajudge.testee.h2.H2PostgresConnectionFactory;
 import com.dajudge.testee.jdbc.TestDataSource;
 import com.dajudge.testee.junit4.TestEE;
+import com.dajudge.testee.liqiubase.annotations.Liquibase;
 import com.dajudge.testee.psql.PostgresConfiguration;
 import com.dajudge.testee.psql.PostgresConnectionFactory;
 import com.dajudge.testee.utils.JdbcUtils;
@@ -20,7 +21,7 @@ import static java.util.Arrays.asList;
 
 @TestDataSource(name = AbstractBaseDatabaseTest.H2_DATASOURCE, factory = H2PostgresConnectionFactory.class)
 @TestDataSource(name = AbstractBaseDatabaseTest.PSQL_DATASOURCE, factory = PostgresConnectionFactory.class)
-@Flyway(dataSource = AbstractBaseDatabaseTest.H2_DATASOURCE)
+@Liquibase(dataSource = AbstractBaseDatabaseTest.H2_DATASOURCE)
 @Flyway(dataSource = AbstractBaseDatabaseTest.PSQL_DATASOURCE)
 @PostgresConfiguration(
         hostname = "${System.getenv()['TESTEE_PSQL_HOSTNAME'] ?: 'localhost'}",

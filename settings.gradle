@@ -12,4 +12,5 @@ include 'junit5-all'    // Standard distribution for JUnit 5
 include 'h2'            // H2 in memory database support
 include 'postgres'      // PSQL database support
 include 'flyway'        // Flyway integration
+include 'liquibase'     // Liquibase integration
 include 'eclipselink'   // EclipseLink integration
