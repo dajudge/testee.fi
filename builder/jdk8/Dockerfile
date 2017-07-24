@@ -16,3 +16,6 @@ RUN apt-get update -q && \
     mv "/tmp/jdk1.${JAVA_VERSION}.0_${JAVA_UPDATE}" "/usr/lib/jvm/java-${JAVA_VERSION}-oracle" && \
     ln -s "/usr/lib/jvm/java-${JAVA_VERSION}-oracle" "$JAVA_HOME" && \
     rm "/tmp/"*
+
+ENV HOME=/root
+RUN mkdir -p $HOME/.gnupg && chmod 777 $HOME -R

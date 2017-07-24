@@ -6,37 +6,15 @@ node() {
     withBuildEnv() {
         stage("Build and Test") {
             try {
-                sh "IGNORE_TEST_FAILURES=true ./gradlew --no-daemon clean build"
+                sh 'gpg --import $GPG_KEY_FILE'
+                sh 'IGNORE_TEST_FAILURES=true ./gradlew -Dorg.gradle.project.signing.keyId=CBC58EE1 -Dorg.gradle.project.signing.password=$GPG_PASSWORD -Dorg.gradle.project.signing.secretKeyRingFile=$HOME/.gnupg/secring.gpg --no-daemon clean build uploadArchives --stacktrace'
             } finally {
                 junit "**/build/test-results/**/TEST-*.xml"
             }
         }
 
         stage("Static code analysis") {
-            withCredentials([
-                usernamePassword(
-                    credentialsId: 'sonar',
-                    usernameVariable: 'SONAR_USER',
-                    passwordVariable: 'SONAR_PASSWORD'
-                )
-            ]) {
-                sh "./gradlew --no-daemon -x test sonarqube"
-            }
-        }
-    }
-
-    stage("Publish to Nexus") {
-        if (currentBuild.result == 'UNSTABLE') {
-            throw new RuntimeException("SKIP: Won't deploy because build is unstable");
-        }
-        withCredentials([
-            usernamePassword(
-            credentialsId: 'maven',
-            usernameVariable: 'MAVEN_USER',
-            passwordVariable: 'MAVEN_PASSWORD'
-            )
-        ]) {
-            sh "./gradlew uploadArchives"
+            sh "./gradlew --no-daemon -x test sonarqube"
         }
     }
 
@@ -93,7 +71,31 @@ def withBuildEnv(closure) {
                 "-e TESTEE_PSQL_USER=testee",
                 "-e TESTEE_PSQL_PASSWORD=testee"
             ].join(" "),
-            closure
+            {
+                withCredentials([
+                    file(
+                        credentialsId: 'gpg-key',
+                        variable: 'GPG_KEY_FILE'
+                    ),
+                    usernamePassword(
+                        credentialsId: 'gpg-password',
+                        usernameVariable: 'GPG_USER', // not used
+                        passwordVariable: 'GPG_PASSWORD'
+                    ),
+                    usernamePassword(
+                        credentialsId: 'maven',
+                        usernameVariable: 'MAVEN_USER',
+                        passwordVariable: 'MAVEN_PASSWORD'
+                    ),
+                    usernamePassword(
+                        credentialsId: 'sonar',
+                        usernameVariable: 'SONAR_USER',
+                        passwordVariable: 'SONAR_PASSWORD'
+                    )
+                ]) {
+                    closure()
+                }
+            }
          )
     }
 }

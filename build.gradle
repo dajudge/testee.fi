@@ -35,6 +35,7 @@ subprojects {
     buildscript.repositories.addAll(rootProject.buildscript.repositories)
 
     apply plugin: 'maven'
+    apply plugin: 'signing'
 
     afterEvaluate { Project project ->
         if (project.pluginManager.hasPlugin("java")) {
@@ -106,6 +107,9 @@ subprojects {
             }
             artifacts {
                 archives javadocJar, sourcesJar
+            }
+            signing {
+                sign configurations.archives
             }
         }
     }
