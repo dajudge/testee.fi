@@ -5,13 +5,13 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.dajudge.testee</groupId>
+    <groupId>fi.testee</groupId>
     <artifactId>maven-usage-test</artifactId>
-    <version>${testee.version}</version>
+    <version>${testeefi.version}</version>
     <name>Maven usage test</name>
 
     <properties>
-            <testee.version>0.0.1-SNAPSHOT</testee.version>
+            <testeefi.version>0.0.1-SNAPSHOT</testeefi.version>
     </properties>
 
     <repositories>
@@ -29,8 +29,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.dajudge.testee</groupId>
-            <artifactId>testee-junit4-all</artifactId>
+            <groupId>fi.testee</groupId>
+            <artifactId>testeefi-junit4-all</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

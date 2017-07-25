@@ -1,4 +1,4 @@
-rootProject.name = "testee"
+rootProject.name = "testee.fi"
 
 include 'common'        // Shared code
 include 'core'          // ITest Container core

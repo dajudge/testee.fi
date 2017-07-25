@@ -24,13 +24,13 @@ allprojects {
     // Settings for all projects
     repositories.addAll(rootProject.buildscript.repositories)
 
-    group "com.dajudge.testee"
+    group "fi.testee"
     version "0.0.1-SNAPSHOT"
 
     apply plugin: 'jacoco'
 }
 
-def ignoreTestFailures = Boolean.valueOf(System.getenv("TESTEE_IGNORE_TEST_FAILURES") ?: "false")
+def ignoreTestFailures = Boolean.valueOf(System.getenv("TESTEEFI_IGNORE_TEST_FAILURES") ?: "false")
 subprojects {
     buildscript.repositories.addAll(rootProject.buildscript.repositories)
 
@@ -68,15 +68,15 @@ subprojects {
                         }
                         pom.project {
                             name "TestEE.fi - ${project.name} module"
-                            artifactId "testee-${project.name}"
+                            artifactId "testeefi-${project.name}"
                             packaging 'jar'
                             description 'Functional testing for Java-EE.'
-                            url 'https://github.com/dajudge/testee'
+                            url 'https://github.com/dajudge/testee.fi'
 
                             scm {
-                                connection 'scm:git:https://github.com/dajudge/testee.git'
-                                developerConnection 'scm:git:https://github.com/dajudge/testee.git'
-                                url 'https://github.com/dajudge/testee.git'
+                                connection 'scm:git:https://github.com/dajudge/testee.fi.git'
+                                developerConnection 'scm:git:https://github.com/dajudge/testee.fi.git'
+                                url 'https://github.com/dajudge/testee.fi.git'
                             }
 
                             licenses {
@@ -109,7 +109,7 @@ subprojects {
                 archives javadocJar, sourcesJar
             }
             signing {
-                required { "true" == System.getenv("TESTEE_SIGN_ARTIFACTS") }
+                required { "true" == System.getenv("TESTEEFI_SIGN_ARTIFACTS") }
                 sign configurations.archives
             }
         }

@@ -1,13 +1,13 @@
 node() {
     stage("Checkout source code") {
-        git url: "https://github.com/dajudge/testee.git"
+        git url: "https://github.com/dajudge/testee.fi.git"
     }
 
     withBuildEnv() {
         stage("Build, Test and publish to Nexus") {
             try {
                 sh 'gpg --import $GPG_KEY_FILE'
-                sh 'TESTEE_IGNORE_TEST_FAILURES=true TESTEE_SIGN_ARTIFACTS=true ./gradlew -Dorg.gradle.project.signing.keyId=CBC58EE1 -Dorg.gradle.project.signing.password=$GPG_PASSWORD -Dorg.gradle.project.signing.secretKeyRingFile=$HOME/.gnupg/secring.gpg --no-daemon clean build uploadArchives --stacktrace'
+                sh 'TESTEEFI_IGNORE_TEST_FAILURES=true TESTEEFI_SIGN_ARTIFACTS=true ./gradlew -Dorg.gradle.project.signing.keyId=CBC58EE1 -Dorg.gradle.project.signing.password=$GPG_PASSWORD -Dorg.gradle.project.signing.secretKeyRingFile=$HOME/.gnupg/secring.gpg --no-daemon clean build uploadArchives --stacktrace'
             } finally {
                 junit "**/build/test-results/**/TEST-*.xml"
             }
@@ -25,7 +25,7 @@ node() {
         }
         imageDirs.each { imageVersion ->
             def dockerImage = dir("usageTests/images/${imageVersion.replace(":", "/")}") {
-                docker.build("testee-usage-$imageVersion")
+                docker.build("testeefi-usage-$imageVersion")
             }
 
             dir("usageTests/maven/") {
@@ -54,22 +54,22 @@ def withBuildEnv(closure) {
     def jdkImage, psqlImage
 
     dir("builder/jdk8") {
-        jdkImage = docker.build "testee-jdk8:latest"
+        jdkImage = docker.build "testeefi-jdk8:latest"
     }
 
     dir("builder/psql") {
-        psqlImage = docker.build "testee-psql:latest"
+        psqlImage = docker.build "testeefi-psql:latest"
     }
 
-    def psqlContainer = "testee-psql-${System.currentTimeMillis()}"
-    psqlImage.withRun("--name $psqlContainer -e POSTGRES_DB=testee -e POSTGRES_PASSWORD=testee -e POSTGRES_USER=testee") {
+    def psqlContainer = "testeefi-psql-${System.currentTimeMillis()}"
+    psqlImage.withRun("--name $psqlContainer -e POSTGRES_DB=testeefi -e POSTGRES_PASSWORD=testeefi -e POSTGRES_USER=testeefi") {
         jdkImage.inside(
             [
                 "--link ${psqlContainer}:psql",
-                "-e TESTEE_PSQL_HOSTNAME=psql",
-                "-e TESTEE_PSQL_DB=testee",
-                "-e TESTEE_PSQL_USER=testee",
-                "-e TESTEE_PSQL_PASSWORD=testee"
+                "-e TESTEEFI_PSQL_HOSTNAME=psql",
+                "-e TESTEEFI_PSQL_DB=testeefi",
+                "-e TESTEEFI_PSQL_USER=testeefi",
+                "-e TESTEEFI_PSQL_PASSWORD=testeefi"
             ].join(" "),
             {
                 withCredentials([
