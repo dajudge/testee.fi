@@ -82,4 +82,10 @@ public class BeanArchive {
         return getClasspathEntry().findResource("META-INF/beans.xml") != null;
     }
 
+    @Override
+    public String toString() {
+        return "BeanArchive{" +
+                "classpathEntry=" + classpathEntry +
+                '}';
+    }
 }

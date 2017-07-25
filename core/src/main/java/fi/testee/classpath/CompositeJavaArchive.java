@@ -77,7 +77,8 @@ public class CompositeJavaArchive implements JavaArchive {
     @Override
     public String toString() {
         return "CompositeJavaArchive{" +
-                "url=" + url +
+                "archives=" + archives +
+                ", url=" + url +
                 '}';
     }
 }
