@@ -14,3 +14,4 @@ MAVEN_HOME=$BASE_DIR
 MAVEN_CONFIG="$USER_HOME_DIR/.m2"
 
 $BASE_DIR/bin/mvn clean install
+exit $?

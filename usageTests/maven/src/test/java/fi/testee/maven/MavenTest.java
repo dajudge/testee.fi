@@ -1,11 +1,11 @@
 package fi.testee.maven;
 
-import com.dajudge.testee.flyway.annotation.Flyway;
-import com.dajudge.testee.h2.H2PostgresConnectionFactory;
-import com.dajudge.testee.jdbc.TestData;
-import com.dajudge.testee.jdbc.TestDataSource;
-import com.dajudge.testee.jpa.TestPersistenceUnits;
-import com.dajudge.testee.junit4.TestEEfi;
+import fi.testee.flyway.annotation.Flyway;
+import fi.testee.h2.H2PostgresConnectionFactory;
+import fi.testee.jdbc.TestData;
+import fi.testee.jdbc.TestDataSource;
+import fi.testee.jpa.TestPersistenceUnits;
+import fi.testee.junit4.TestEEfi;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
