@@ -3,13 +3,18 @@ package com.dajudge.testee.deployment;
 import com.dajudge.testee.classpath.Classpath;
 import com.dajudge.testee.classpath.ClasspathTransform;
 import com.dajudge.testee.classpath.JavaArchive;
+import com.dajudge.testee.spi.QualifyingAnnotationExtension;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.annotation.Annotation;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.ServiceLoader;
 import java.util.Set;
 
+import static java.util.ServiceLoader.load;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -38,11 +43,19 @@ public class BeanArchiveDiscovery {
         LOG.trace("Bean archive discovery using these classpath entries: {}", classpathEntries);
         final Collection<JavaArchive> transformed = ClasspathTransform.transform(classpathEntries);
         beanArchives = transformed.parallelStream()
-                .map(BeanArchive::new)
+                .map(it ->new BeanArchive(it, collectQualifyingAnnotations()))
                 .filter(BeanArchive::isRelevant)
                 .peek(archive -> LOG.trace("Relevant bean archive: {}", archive.getClasspathEntry().getURL()))
                 .collect(toSet());
         LOG.debug("Bean archive discovery completed in {}ms", System.currentTimeMillis() - start);
+    }
+
+    private Collection<Class<? extends Annotation>> collectQualifyingAnnotations() {
+        final Collection<Class<? extends Annotation>> ret = new HashSet<>();
+        load(QualifyingAnnotationExtension.class)
+                .iterator()
+                .forEachRemaining(it -> ret.addAll(it.getQualifyingAnnotations()));
+        return ret ;
     }
 
     public Set<EjbDescriptor<?>> getSessionBeans() {

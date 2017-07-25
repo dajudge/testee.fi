@@ -6,16 +6,22 @@ import org.jboss.weld.ejb.spi.EjbDescriptor;
 import javax.ejb.Singleton;
 import javax.ejb.Stateful;
 import javax.ejb.Stateless;
+import java.lang.annotation.Annotation;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
 public class BeanArchive {
     private final JavaArchive classpathEntry;
+    private final Collection<Class<? extends Annotation>> qualifyingAnnotations;
     private Collection<EjbDescriptor<?>> ejbs;
 
     @SuppressWarnings("unchecked")
-    public BeanArchive(final JavaArchive javaArchive) {
+    public BeanArchive(
+            final JavaArchive javaArchive,
+            final Collection<Class<? extends Annotation>> qualifyingAnnotations
+    ) {
         this.classpathEntry = javaArchive;
+        this.qualifyingAnnotations = qualifyingAnnotations;
     }
 
     @SuppressWarnings("unchecked")
@@ -41,7 +47,12 @@ public class BeanArchive {
     }
 
     public boolean isRelevant() {
-        return hasBeansXml() || hasCdiExtension() || hasEjbs();
+        return hasBeansXml() || hasCdiExtension() || hasEjbs() || hasAdditionalQualification();
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean hasAdditionalQualification() {
+        return !classpathEntry.annotatedWith(qualifyingAnnotations.toArray(new Class[]{})).isEmpty();
     }
 
     private boolean hasEjbs() {
