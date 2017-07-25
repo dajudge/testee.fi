@@ -30,7 +30,7 @@ allprojects {
     apply plugin: 'jacoco'
 }
 
-def ignoreTestFailures = Boolean.valueOf(System.getenv("IGNORE_TEST_FAILURES") ?: "false")
+def ignoreTestFailures = Boolean.valueOf(System.getenv("TESTEE_IGNORE_TEST_FAILURES") ?: "false")
 subprojects {
     buildscript.repositories.addAll(rootProject.buildscript.repositories)
 
@@ -109,6 +109,7 @@ subprojects {
                 archives javadocJar, sourcesJar
             }
             signing {
+                required { "true" == System.getenv("TESTEE_SIGN_ARTIFACTS") }
                 sign configurations.archives
             }
         }

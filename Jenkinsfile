@@ -7,7 +7,7 @@ node() {
         stage("Build, Test and publish to Nexus") {
             try {
                 sh 'gpg --import $GPG_KEY_FILE'
-                sh 'IGNORE_TEST_FAILURES=true ./gradlew -Dorg.gradle.project.signing.keyId=CBC58EE1 -Dorg.gradle.project.signing.password=$GPG_PASSWORD -Dorg.gradle.project.signing.secretKeyRingFile=$HOME/.gnupg/secring.gpg --no-daemon clean build uploadArchives --stacktrace'
+                sh 'TESTEE_IGNORE_TEST_FAILURES=true TESTEE_SIGN_ARTIFACTS=true ./gradlew -Dorg.gradle.project.signing.keyId=CBC58EE1 -Dorg.gradle.project.signing.password=$GPG_PASSWORD -Dorg.gradle.project.signing.secretKeyRingFile=$HOME/.gnupg/secring.gpg --no-daemon clean build uploadArchives --stacktrace'
             } finally {
                 junit "**/build/test-results/**/TEST-*.xml"
             }
