@@ -16,8 +16,8 @@
 
     <repositories>
         <repository>
-            <id>nexus</id>
-            <url>https://maven.it-stockinger.de/nexus/content/repositories/snapshots/</url>
+            <id>nexus-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
             <releases>
                 <enabled>false</enabled>
             </releases>

@@ -76,11 +76,11 @@ subprojects {
             uploadArchives {
                 repositories {
                     mavenDeployer {
-                        repository(url: "https://maven.it-stockinger.de/nexus/content/repositories/releases/") {
+                        repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
                             authentication(userName: System.getenv("MAVEN_USER"), password: System.getenv("MAVEN_PASSWORD"))
                         }
 
-                        snapshotRepository(url: "https://maven.it-stockinger.de/nexus/content/repositories/snapshots/") {
+                        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
                             authentication(userName: System.getenv("MAVEN_USER"), password: System.getenv("MAVEN_PASSWORD"))
                         }
                         pom.project {
