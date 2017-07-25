@@ -42,6 +42,23 @@ subprojects {
 
             jacocoTestReport.reports.xml.enabled = true
 
+            task checkLicenseHeader {
+                doLast {
+                    def failedFiles = []
+                    file("${project.projectDir}").eachFileRecurse(groovy.io.FileType.FILES) { f ->
+                        if (!f.isFile() || !f.name.endsWith(".java")) {
+                            return
+                        }
+                        if (!f.text.trim().replace("\r", "").startsWith("/*\n * Copyright")) {
+                            failedFiles.add(f)
+                        }
+                    }
+                    if(!failedFiles.isEmpty())
+                        throw new GradleException("The following files don't have a Copyright notice:\n" + failedFiles.join("\n")+"\n");
+                }
+            }
+            build.dependsOn checkLicenseHeader
+
             project.tasks.withType(Test) {
                 jacoco {
                     destinationFile = file(jacocoDestination)
