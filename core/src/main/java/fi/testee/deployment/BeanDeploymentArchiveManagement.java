@@ -47,7 +47,7 @@ public class BeanDeploymentArchiveManagement {
         if (archives == null) {
             archives = beanArchiveDiscovery.getBeanArchives().stream()
                     .peek(it -> LOG.debug("Found bean archive: {}", it))
-                    .map(it -> new BeanDeploymentArchiveImpl(serviceRegistry, it))
+                    .map(it -> new BeanDeploymentArchiveImpl(serviceRegistry, it, () -> archives))
                     .collect(Collectors.toSet());
         }
         return archives;

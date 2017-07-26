@@ -15,6 +15,7 @@
  */
 package fi.testee;
 
+import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.jdbc.PlaygroundConnectionFactory;
 import fi.testee.jdbc.TestDataSource;
 import fi.testee.runtime.TestRuntime;
@@ -92,6 +93,11 @@ public class DependencyInjectionTest {
         assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaEjb().getCircular());
     }
 
+    @Test
+    public void bean_from_different_archive() {
+        assertNotNull(root.getBeanFromDifferentArchive());
+    }
+
 
     @Stateless
     public static class SessionBean2 {
@@ -159,9 +165,15 @@ public class DependencyInjectionTest {
     public static class TestBean extends BaseTestBean {
         @Inject
         private ExampleBean1 cdiInRootViaInject;
+        @Inject
+        private BeanArchiveDiscovery beanFromDifferentArchive;
 
         public ExampleBean1 getCdiInRootViaInject() {
             return cdiInRootViaInject;
+        }
+
+        public BeanArchiveDiscovery getBeanFromDifferentArchive() {
+            return beanFromDifferentArchive;
         }
     }
 

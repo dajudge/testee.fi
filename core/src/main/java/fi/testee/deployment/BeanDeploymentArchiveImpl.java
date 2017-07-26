@@ -23,6 +23,7 @@ import org.jboss.weld.ejb.spi.EjbDescriptor;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.function.Supplier;
 
 /**
  * Implementation of a {@link BeanDeploymentArchive} (or short <i>BDA</i>), which basically links a {@link JavaArchive}
@@ -33,18 +34,21 @@ import java.util.Collections;
 public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
     private final ServiceRegistry serviceRegistry;
     private final BeanArchive beanArchive;
+    private final Supplier<Collection<BeanDeploymentArchive>> archivesSupplier;
 
     public BeanDeploymentArchiveImpl(
             final ServiceRegistry serviceRegistry,
-            final BeanArchive beanArchive
-    ) {
+            final BeanArchive beanArchive,
+            final Supplier<Collection<BeanDeploymentArchive>> archivesSupplier
+            ) {
         this.serviceRegistry = serviceRegistry;
         this.beanArchive = beanArchive;
+        this.archivesSupplier = archivesSupplier;
     }
 
     @Override
     public Collection<BeanDeploymentArchive> getBeanDeploymentArchives() {
-        return Collections.emptyList();
+        return archivesSupplier.get();
     }
 
     @Override
