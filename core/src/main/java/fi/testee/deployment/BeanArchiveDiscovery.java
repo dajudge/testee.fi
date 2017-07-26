@@ -54,10 +54,11 @@ public class BeanArchiveDiscovery {
         final long start = System.currentTimeMillis();
         final Classpath cp = new Classpath(BeanArchiveDiscovery.class.getClassLoader());
         final Collection<JavaArchive> classpathEntries = cp.getAll();
-        LOG.trace("Bean archive discovery using these classpath entries: {}", classpathEntries);
         final Collection<JavaArchive> transformed = ClasspathTransform.transform(classpathEntries);
+        final Collection<Class<? extends Annotation>> qualifyingAnnotations = collectQualifyingAnnotations();
+        LOG.debug("Additional qualifying annotations: {}", qualifyingAnnotations);
         beanArchives = transformed.parallelStream()
-                .map(it ->new BeanArchive(it, collectQualifyingAnnotations()))
+                .map(it -> new BeanArchive(it, qualifyingAnnotations))
                 .filter(BeanArchive::isRelevant)
                 .peek(archive -> LOG.trace("Relevant bean archive: {}", archive.getClasspathEntry().getURL()))
                 .collect(toSet());
@@ -69,7 +70,7 @@ public class BeanArchiveDiscovery {
         load(QualifyingAnnotationExtension.class)
                 .iterator()
                 .forEachRemaining(it -> ret.addAll(it.getQualifyingAnnotations()));
-        return ret ;
+        return ret;
     }
 
     public Set<EjbDescriptor<?>> getSessionBeans() {
