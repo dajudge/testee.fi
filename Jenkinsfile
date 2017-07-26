@@ -1,4 +1,5 @@
 node() {
+
     stage("Checkout source code") {
         git url: "https://github.com/dajudge/testee.fi.git"
     }
@@ -28,21 +29,25 @@ node() {
                 docker.build("testeefi-usage-$imageVersion")
             }
 
+            def versionToTest = readFile("version.txt")
             dir("usageTests/maven/") {
                 dockerImage.inside {
-                    try {
-                        withCredentials([
-                                    usernamePassword(
-                                    credentialsId: 'maven',
-                                    usernameVariable: 'MAVEN_USER',
-                                    passwordVariable: 'MAVEN_PASSWORD'
-                                    )
-                                ]) {
-                            sh "chmod 755 build.sh && ./build.sh"
+                    withCredentials([
+                                usernamePassword(
+                                credentialsId: 'maven',
+                                usernameVariable: 'MAVEN_USER',
+                                passwordVariable: 'MAVEN_PASSWORD'
+                    )]) {
+                        sh "chmod 755 build.sh"
+                        def status = sh(
+                            script: "./build.sh $versionToTest",
+                            returnStatus: true
+                        )
+                        println status
+                        if(status != 0) {
+                            println "Script returned nonzero status, build is unstable"
+                            currentBuild.result == 'UNSTABLE'
                         }
-                    }   catch(Throwable t) {
-                        currentBuild.result == 'UNSTABLE'
-                        println t.message
                     }
                 }
             }

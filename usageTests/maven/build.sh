@@ -1,5 +1,7 @@
 #! /bin/sh
 
+TESTEEFI_VERSION=$1
+
 USER_HOME_DIR="/root"
 MAVEN_VERSION=3.5.0
 BASE_URL=https://apache.osuosl.org/maven/maven-3/${MAVEN_VERSION}/binaries
@@ -13,5 +15,7 @@ rm -f /tmp/apache-maven.tar.gz
 MAVEN_HOME=$BASE_DIR
 MAVEN_CONFIG="$USER_HOME_DIR/.m2"
 
-$BASE_DIR/bin/mvn clean install
+echo "Building with $TESTEEFI_VERSION"
+
+$BASE_DIR/bin/mvn clean install -Dtesteefi.version=$TESTEEFI_VERSION
 exit $?

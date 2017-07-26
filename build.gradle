@@ -25,7 +25,7 @@ allprojects {
     repositories.addAll(rootProject.buildscript.repositories)
 
     group "fi.testee"
-    version "0.0.1-SNAPSHOT"
+    version file("${rootProject.projectDir}/version.txt").text
 
     apply plugin: 'jacoco'
 }
@@ -76,7 +76,8 @@ subprojects {
             uploadArchives {
                 repositories {
                     mavenDeployer {
-                        repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+                        // "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+                        repository(url: "https://maven.it-stockinger.de/nexus/content/repositories/releases/") {
                             authentication(userName: System.getenv("MAVEN_USER"), password: System.getenv("MAVEN_PASSWORD"))
                         }
 
@@ -88,12 +89,12 @@ subprojects {
                             artifactId "testeefi-${project.name}"
                             packaging 'jar'
                             description 'Functional testing for Java-EE.'
-                            url 'https://github.com/dajudge/testee.fi'
+                            url 'http://testee.fi'
 
                             scm {
                                 connection 'scm:git:https://github.com/dajudge/testee.fi.git'
                                 developerConnection 'scm:git:https://github.com/dajudge/testee.fi.git'
-                                url 'https://github.com/dajudge/testee.fi.git'
+                                url 'https://github.com/dajudge/testee.fi'
                             }
 
                             licenses {
@@ -106,8 +107,10 @@ subprojects {
                             developers {
                                 developer {
                                     id 'alexs'
-                                    name 'Alex Stockinger'
-                                    email 'alex@it-stockinger.de'
+                                    name = 'Alex Stockinger'
+                                    email = 'alex@it-stockinger.de'
+                                    organization = 'IT Stockinger'
+                                    organizationUrl = 'http://www.it-stockinger.de'
                                 }
                             }
                         }
