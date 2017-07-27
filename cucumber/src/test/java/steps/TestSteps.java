@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.cucumber.steps;
+package steps;
 
 import cucumber.api.java.en.Then;
 import fi.testee.cucumber.beans.ManagedBean;
