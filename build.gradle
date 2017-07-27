@@ -25,7 +25,7 @@ allprojects {
     repositories.addAll(rootProject.buildscript.repositories)
 
     group "fi.testee"
-    version file("${rootProject.projectDir}/version.txt").text
+    version file("${rootProject.projectDir}/version.txt").text.trim()
 
     apply plugin: 'jacoco'
 }

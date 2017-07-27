@@ -29,7 +29,7 @@ node() {
                 docker.build("testeefi-usage-$imageVersion")
             }
 
-            def versionToTest = readFile("version.txt")
+            def versionToTest = readFile("version.txt").trim()
             dir("usageTests/maven/") {
                 dockerImage.inside {
                     withCredentials([
@@ -43,7 +43,6 @@ node() {
                             script: "./build.sh $versionToTest",
                             returnStatus: true
                         )
-                        println status
                         if(status != 0) {
                             println "Script returned nonzero status, build is unstable"
                             currentBuild.result == 'UNSTABLE'
