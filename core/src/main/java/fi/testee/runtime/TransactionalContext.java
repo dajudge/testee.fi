@@ -144,8 +144,8 @@ public class TransactionalContext {
         return new JpaInjectionServicesImpl(persistenceUnitDiscovery);
     }
 
-    public void run(final TransactionRunnable runnable) {
-        runnable.run(testSetupClass, realm);
+    public <T> T run(final TransactionRunnable<T> runnable) {
+        return runnable.run(testSetupClass, realm);
     }
 
     public void rollback() {
@@ -162,8 +162,8 @@ public class TransactionalContext {
         realm.shutdown();
     }
 
-    public interface TransactionRunnable {
-        void run(
+    public interface TransactionRunnable<T> {
+        T run(
                 Class<?> testSetupClass,
                 DependencyInjectionRealm realm
         );

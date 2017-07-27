@@ -1,0 +1,10 @@
+apply plugin: 'java'
+
+dependencies {
+    compile libSlf4j
+    compile libCucumberJava
+    compile project(":core")
+
+    testCompile libLogback
+    testCompile libHamcrest
+}

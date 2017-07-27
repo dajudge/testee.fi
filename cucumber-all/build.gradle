@@ -1,0 +1,14 @@
+apply plugin: 'java'
+
+dependencies {
+    compile project(":core")
+    compile project(":cucumber")
+    compile project(":h2")
+    compile project(":postgres")
+    compile project(":mockito")
+    compile project(":flyway")
+    compile project(":liquibase")
+    compile project(":eclipselink")
+
+    testCompile libLogback
+}

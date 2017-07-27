@@ -68,7 +68,7 @@ public class EasyMockTest {
         final TestBean testClassInstance = new TestBean();
 
         // When
-        final Runnable cleanup = testSetup.prepareTestInstance("myInstance", testClassInstance);
+        final TestSetup.TestContext context = testSetup.prepareTestInstance("myInstance", testClassInstance);
         if (cdiMockCount > 0) {
             expect(testClassInstance.cdiMock.doIt()).andReturn("lolcats").times(cdiMockCount);
         }
@@ -82,7 +82,7 @@ public class EasyMockTest {
             test.accept(testClassInstance);
             verify(testClassInstance.cdiMock, testClassInstance.ejbMock);
         } finally {
-            cleanup.run();
+            context.shutdown();
         }
     }
 

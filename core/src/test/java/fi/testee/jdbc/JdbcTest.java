@@ -61,7 +61,7 @@ public class JdbcTest {
         BaseClass.subClass = false;
         PlaygroundConnectionFactory.shutdown = false;
         testSetup = new TestSetup(SubClass.class, TestRuntime.instance());
-        testSetup.prepareTestInstance(UUID.randomUUID().toString(), testClassInstance).run();
+        testSetup.prepareTestInstance(UUID.randomUUID().toString(), testClassInstance).shutdown();
     }
 
     @Test

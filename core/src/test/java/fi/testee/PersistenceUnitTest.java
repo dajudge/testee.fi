@@ -34,7 +34,7 @@ public class PersistenceUnitTest {
         testSetup.prepareTestInstance(
                 "myInstance",
                 testClassInstance
-        ).run();
+        ).shutdown();
 
         // Then
         assertNotNull(testClassInstance.entityManager); // Injection works

@@ -34,18 +34,18 @@ import static org.junit.Assert.assertNotNull;
 
 public class DependencyInjectionTest {
     private TestBean root;
-    private Runnable shutdown;
+    private TestSetup.TestContext context;
 
     @Before
     public void setup() {
         final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
         root = new TestBean();
-        shutdown = testSetup.prepareTestInstance("myInstance", root);
+        context = testSetup.prepareTestInstance("myInstance", root);
     }
 
     @After
     public void shutdown() {
-        shutdown.run();
+        context.shutdown();
     }
 
     @Test

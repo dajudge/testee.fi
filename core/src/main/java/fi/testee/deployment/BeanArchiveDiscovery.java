@@ -23,6 +23,7 @@ import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.enterprise.inject.spi.Bean;
 import java.lang.annotation.Annotation;
 import java.util.Collection;
 import java.util.HashSet;
@@ -75,5 +76,12 @@ public class BeanArchiveDiscovery {
 
     public Set<EjbDescriptor<?>> getSessionBeans() {
         return beanArchives.stream().map(BeanArchive::getEjbs).flatMap(Collection::stream).collect(toSet());
+    }
+
+    public Collection<Class<?>> getClassesWith(final Class<? extends Annotation> annotation) {
+        return beanArchives.stream()
+                .map(it -> it.getClassesWith(annotation))
+                .flatMap(Collection::stream)
+                .collect(toSet());
     }
 }

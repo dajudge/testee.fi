@@ -34,7 +34,7 @@ import java.util.Map;
  */
 public class TestEEfi extends BlockJUnit4ClassRunner {
     private final TestSetup testSetup;
-    private final Map<FrameworkMethod, Runnable> instances = new HashMap<>();
+    private final Map<FrameworkMethod, TestSetup.TestContext> instances = new HashMap<>();
 
     /**
      * Creates a TestEE.fi test runner to run {@code klass}.
@@ -63,14 +63,14 @@ public class TestEEfi extends BlockJUnit4ClassRunner {
                 + method.getMethod().toString()
                 + ":"
                 + System.identityHashCode(target);
-        final Runnable testShutdown = testSetup.prepareTestInstance(instanceId, target);
-        instances.put(method, testShutdown);
+        final TestSetup.TestContext context = testSetup.prepareTestInstance(instanceId, target);
+        instances.put(method, context);
 
     }
 
     private synchronized void shutdownInstanceFor(final FrameworkMethod method) {
         if (instances.containsKey(method)) {
-            instances.get(method).run();
+            instances.get(method).shutdown();
         }
     }
 

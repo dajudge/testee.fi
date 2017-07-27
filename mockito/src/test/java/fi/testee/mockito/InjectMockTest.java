@@ -63,7 +63,7 @@ public class InjectMockTest {
         final TestBean testClassInstance = new TestBean();
 
         // When
-        final Runnable cleanup = testSetup.prepareTestInstance("myInstance", testClassInstance);
+        final TestSetup.TestContext context = testSetup.prepareTestInstance("myInstance", testClassInstance);
         when(testClassInstance.cdiMock.doIt()).thenReturn("lolcats");
         when(testClassInstance.ejbMock.doIt()).thenReturn("lolcats");
 
@@ -71,7 +71,7 @@ public class InjectMockTest {
             // Then
             test.accept(testClassInstance);
         } finally {
-            cleanup.run();
+            context.shutdown();
         }
     }
 

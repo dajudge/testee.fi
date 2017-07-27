@@ -9,6 +9,8 @@ include 'junit4'        // JUnit 4 integration
 include 'junit4-all'    // Standard distribution for JUnit 4
 include 'junit5'        // JUnit 5 integration
 include 'junit5-all'    // Standard distribution for JUnit 5
+include 'cucumber'      // Cucumber-JVM integration
+include 'cucumber-all'  // Standard distribution for Cucumber-JVM
 include 'h2'            // H2 in memory database support
 include 'postgres'      // PSQL database support
 include 'flyway'        // Flyway integration

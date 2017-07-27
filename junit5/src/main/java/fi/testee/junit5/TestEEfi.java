@@ -51,9 +51,11 @@ public class TestEEfi implements
 
     @Override
     public void afterEach(final ExtensionContext context) throws Exception {
-        final Runnable shutdown = (Runnable) context.getStore(NS).get("Shutdown");
-        if (shutdown != null) {
-            shutdown.run();
+        final TestSetup.TestContext testContext = (TestSetup.TestContext) context
+                .getStore(NS)
+                .get(TestSetup.TestContext.class);
+        if (testContext != null) {
+            testContext.shutdown();
         }
     }
 
@@ -67,8 +69,8 @@ public class TestEEfi implements
     @Override
     public void postProcessTestInstance(final Object testInstance, final ExtensionContext context) throws Exception {
         final TestSetup testSetup = (TestSetup) context.getStore(NS).get(TestSetup.class);
-        Runnable shutdown = testSetup.prepareTestInstance(randomUUID().toString(), testInstance);
-        context.getStore(NS).put("Shutdown", shutdown);
+        final TestSetup.TestContext testContext = testSetup.prepareTestInstance(randomUUID().toString(), testInstance);
+        context.getStore(NS).put(TestSetup.TestContext.class, testContext);
     }
 
     private static Class<?> testClassOf(final ExtensionContext context) {

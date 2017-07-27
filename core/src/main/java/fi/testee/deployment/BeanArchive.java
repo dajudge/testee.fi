@@ -88,4 +88,8 @@ public class BeanArchive {
                 "classpathEntry=" + classpathEntry +
                 '}';
     }
+
+    public Collection<Class<?>> getClassesWith(final Class<? extends Annotation> annotation) {
+        return classpathEntry.annotatedWith(annotation);
+    }
 }

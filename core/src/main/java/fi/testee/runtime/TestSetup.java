@@ -52,6 +52,12 @@ public class TestSetup {
     private final DependencyInjectionRealm realm;
     private final Map<Class<? extends ConnectionFactory>, ConnectionFactory> connectionFactories = new HashMap<>();
 
+    public interface TestContext {
+        <T> T create(Class<T> clazz);
+
+        void shutdown();
+    }
+
     public TestSetup(
             final Class<?> setupClass,
             final TestRuntime runtime
@@ -72,6 +78,7 @@ public class TestSetup {
                 final Set<DataSourceMigrator> migrators = testDataSetupRealm.getInstancesOf(DataSourceMigrator.class);
                 DatabaseMigration.migrateDataSources(clazz, migrators, testDataSetupRealm.getServiceRegistry());
                 setupTestData(clazz, testDataSetupRealm.getServiceRegistry());
+                return null;
             });
             txContext.commit();
         } catch (final RuntimeException e) {
@@ -94,7 +101,8 @@ public class TestSetup {
         return connectionFactories.get(testDataSource.factory());
     }
 
-    public Runnable prepareTestInstance(final String name, final Object testInstance) {
+
+    public TestContext prepareTestInstance(final String name, final Object testInstance) {
         LOG.debug("Instantiating test run '{}' for class {}", name, testInstance.getClass().getName());
         final Set<BeanModifier> beanModifiers = realm.getInstancesOf(BeanModifierFactory.class).stream()
                 .map(it -> it.createBeanModifier(testInstance))
@@ -104,8 +112,22 @@ public class TestSetup {
         txContext.run((clazz, testInstanceRealm) -> {
             testInstanceRealm.getAllBeans().forEach(modifyCdiBeans(beanModifiers));
             testInstanceRealm.inject(testInstance);
+            return null;
         });
-        return txContext::rollback;
+        return new TestContext() {
+
+            @Override
+            public <T> T create(final Class<T> clazz) {
+                return txContext.run((testSetupClass, realm) -> {
+                    return realm.getInstanceOf(clazz);
+                });
+            }
+
+            @Override
+            public void shutdown() {
+                txContext.rollback();
+            }
+        };
     }
 
     private Consumer<Bean<?>> modifyCdiBeans(final Collection<BeanModifier> beanModifiers) {
