@@ -1,7 +1,7 @@
 node() {
 
     stage("Checkout source code") {
-        git url: "https://github.com/dajudge/testee.fi.git"
+	checkout([$class: 'GitSCM', branches: [[name: COMMITID]], userRemoteConfigs: [[url: 'https://github.com/dajudge/testee.fi.git']]])
     }
 
     withBuildEnv() {

@@ -23,7 +23,7 @@
         </repository>
         <repository>
             <id>nexus-releases</id>
-            <url>https://maven.it-stockinger.de/nexus/content/repositories/releases/</url>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
