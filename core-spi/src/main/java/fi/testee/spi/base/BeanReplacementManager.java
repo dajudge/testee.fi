@@ -17,6 +17,7 @@ package fi.testee.spi.base;
 
 import fi.testee.spi.SessionBeanFactory;
 import org.jboss.weld.bean.AbstractClassBean;
+import org.jboss.weld.bean.AbstractProducerBean;
 import org.jboss.weld.bean.builtin.AbstractBuiltInBean;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceReference;
@@ -28,6 +29,7 @@ import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.InjectionTarget;
+import javax.enterprise.inject.spi.Producer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -65,6 +67,8 @@ class BeanReplacementManager {
     <T> void instrumentCdiBean(final Bean<T> bean) {
         if (bean instanceof AbstractClassBean) {
             ((AbstractClassBean) bean).setProducer(wrap(bean, ((AbstractClassBean) bean).getProducer()));
+        } else if (bean instanceof AbstractProducerBean) {
+            ((AbstractProducerBean) bean).setProducer(wrap(bean, ((AbstractProducerBean) bean).getProducer()));
         } else if (bean instanceof AbstractBuiltInBean) {
             // Not replacing those
         } else {
@@ -72,8 +76,52 @@ class BeanReplacementManager {
         }
     }
 
+    private <T> Producer wrap(Bean<T> bean, Producer<T> delegate) {
+        return new Producer<T>() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public T produce(final CreationalContext<T> ctx) {
+                Class<T> clazz = (Class<T>) bean.getBeanClass();
+                Supplier<T> producer = () -> delegate.produce(ctx);
+                final T replacement = findReplacementFor(clazz);
+                if (replacement != null) {
+                    LOG.debug("Injecting replacement for {}", clazz);
+                    return replacement;
+                }
+                return producer.get();
+            }
+
+            @Override
+            public void dispose(final T instance) {
+                delegate.dispose(instance);
+            }
+
+
+            @Override
+            public Set<InjectionPoint> getInjectionPoints() {
+                return delegate.getInjectionPoints();
+            }
+        };
+    }
+
     private <T> InjectionTarget wrap(Bean<T> bean, InjectionTarget<T> delegate) {
+        final Producer<T> producer = wrap(bean, (Producer<T>) delegate);
         return new InjectionTarget<T>() {
+            @Override
+            public T produce(CreationalContext<T> ctx) {
+                return producer.produce(ctx);
+            }
+
+            @Override
+            public void dispose(T instance) {
+                producer.dispose(instance);
+            }
+
+            @Override
+            public Set<InjectionPoint> getInjectionPoints() {
+                return producer.getInjectionPoints();
+            }
+
             @Override
             public void inject(final T instance, final CreationalContext<T> ctx) {
                 if (!isReplaced(instance)) {
@@ -89,30 +137,6 @@ class BeanReplacementManager {
             @Override
             public void preDestroy(final T instance) {
                 delegate.preDestroy(instance);
-            }
-
-            @Override
-            @SuppressWarnings("unchecked")
-            public T produce(final CreationalContext<T> ctx) {
-                Class<T> clazz = (Class<T>) bean.getBeanClass();
-                Supplier<T> producer = () -> delegate.produce(ctx);
-                final T replacement = findReplacementFor(clazz);
-                if (replacement != null) {
-                    LOG.debug("Injecting replacement for {}", clazz);
-                    return replacement;
-                }
-                return producer.get();
-            }
-
-
-            @Override
-            public void dispose(final T instance) {
-                delegate.dispose(instance);
-            }
-
-            @Override
-            public Set<InjectionPoint> getInjectionPoints() {
-                return delegate.getInjectionPoints();
             }
         };
     }

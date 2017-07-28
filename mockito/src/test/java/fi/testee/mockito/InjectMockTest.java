@@ -22,12 +22,12 @@ import org.mockito.Mock;
 
 import javax.ejb.EJB;
 import javax.ejb.Singleton;
+import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
-
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class InjectMockTest {
@@ -36,22 +36,27 @@ public class InjectMockTest {
     public void cdiMock_in_cdiBean_via_inject() {
         test(it -> assertEquals("lolcats", it.getCdiBean().getCdiMockInCdiViaInject().doIt()));
     }
+
     @Test
     public void ejbMock_in_cdiBean_via_ejb() {
         test(it -> assertEquals("lolcats", it.getCdiBean().getEjbMockInCdiViaEjb().doIt()));
     }
+
     @Test
     public void ejbMock_in_cdiBean_via_inject() {
         test(it -> assertEquals("lolcats", it.getCdiBean().getEjbMockInCdiViaInject().doIt()));
     }
+
     @Test
     public void cdiMock_in_ejb_via_inject() {
         test(it -> assertEquals("lolcats", it.getEjb().getCdiMockInEjbViaInject().doIt()));
     }
+
     @Test
     public void ejbMock_in_ejb_via_ejb() {
         test(it -> assertEquals("lolcats", it.getEjb().getEjbMockInEjbViaEjb().doIt()));
     }
+
     @Test
     public void ejbMock_in_ejb_via_inject() {
         test(it -> assertEquals("lolcats", it.getEjb().getEjbMockInEjbViaInject().doIt()));
@@ -75,14 +80,27 @@ public class InjectMockTest {
         }
     }
 
+    public interface SomeProduct {
+
+    }
+
+    public static class ProducerBean {
+        @Produces
+        public SomeProduct produce() {
+            return mock(SomeProduct.class);
+        }
+    }
+
     @Singleton
     public static class ExampleSessionBean1 {
         @Inject
-        public ExampleBean2 cdiMockInEjbViaInject;
+        private ExampleBean2 cdiMockInEjbViaInject;
         @EJB
-        public ExampleSessionBean2 ejbMockInEjbViaEjb;
+        private ExampleSessionBean2 ejbMockInEjbViaEjb;
         @Inject
-        public ExampleSessionBean2 ejbMockInEjbViaInject;
+        private ExampleSessionBean2 ejbMockInEjbViaInject;
+        @Inject
+        private SomeProduct someProduct;
 
         public ExampleBean2 getCdiMockInEjbViaInject() {
             return cdiMockInEjbViaInject;
@@ -112,11 +130,11 @@ public class InjectMockTest {
 
     public static class ExampleBean1 {
         @Inject
-        public ExampleBean2 cdiMockInCdiViaInject;
+        private ExampleBean2 cdiMockInCdiViaInject;
         @EJB
-        public ExampleSessionBean2 ejbMockInCdiViaEjb;
+        private ExampleSessionBean2 ejbMockInCdiViaEjb;
         @Inject
-        public ExampleSessionBean2 ejbMockInCdiViaInject;
+        private ExampleSessionBean2 ejbMockInCdiViaInject;
 
         public ExampleBean2 getCdiMockInCdiViaInject() {
             return cdiMockInCdiViaInject;
@@ -133,13 +151,13 @@ public class InjectMockTest {
 
     public static class TestBean {
         @Inject
-        public ExampleBean1 cdiBean;
+        private ExampleBean1 cdiBean;
         @EJB
-        public ExampleSessionBean1 ejb;
+        private ExampleSessionBean1 ejb;
         @Mock
-        public ExampleBean2 cdiMock;
+        private ExampleBean2 cdiMock;
         @Mock
-        public ExampleSessionBean2 ejbMock;
+        private ExampleSessionBean2 ejbMock;
 
         public ExampleBean1 getCdiBean() {
             return cdiBean;

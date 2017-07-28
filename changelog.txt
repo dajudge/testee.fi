@@ -1,0 +1,8 @@
+Version 0.2.0
+- Interceptor support
+- Groovy for expressions now optional
+- Cucumber JVM integration
+- Fixed issue with mocking and @Produces methods
+
+Version 0.1.0
+- initial release
