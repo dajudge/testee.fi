@@ -3,6 +3,7 @@ Version 0.2.0
 - Groovy for expressions now optional
 - Cucumber JVM integration
 - Fixed issue with mocking and @Produces methods
+- Now invoking @PostConstruct methods of EJBs
 
 Version 0.1.0
 - initial release

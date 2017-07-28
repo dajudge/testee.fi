@@ -42,11 +42,12 @@ import static org.junit.Assert.assertTrue;
 public class DependencyInjectionTest {
     private TestBean root;
     private TestSetup.TestContext context;
+    private TestSetup testSetup;
 
     @Before
     public void setup() {
         TestInterceptor.INVOCATIONS.clear();
-        final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
+        testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
         root = new TestBean();
         context = testSetup.prepareTestInstance("myInstance", root);
     }
@@ -56,6 +57,7 @@ public class DependencyInjectionTest {
         if(context != null) {
             context.shutdown();
         }
+        testSetup.shutdown();
     }
 
     @Test
