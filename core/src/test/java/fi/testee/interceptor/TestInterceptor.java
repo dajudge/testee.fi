@@ -15,6 +15,8 @@
  */
 package fi.testee.interceptor;
 
+import javax.annotation.Resource;
+import javax.ejb.EJBContext;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
@@ -22,9 +24,14 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.Assert.assertNotNull;
+
 @UseInterceptor
 @Interceptor
 public class TestInterceptor {
+    @Resource
+    private EJBContext ejbContext;
+
     public static class Invocation {
         public final Object target;
         public final Method method;
@@ -39,6 +46,7 @@ public class TestInterceptor {
 
     @AroundInvoke
     public Object logMethodEntry(final InvocationContext invocationContext) throws Exception {
+        assertNotNull(ejbContext);
         INVOCATIONS.add(new Invocation(invocationContext.getTarget(), invocationContext.getMethod()));
         return invocationContext.proceed();
     }

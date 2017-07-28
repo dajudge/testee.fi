@@ -22,6 +22,7 @@ import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
 
 import javax.enterprise.inject.spi.InjectionPoint;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -70,6 +71,7 @@ public class ResourceInjectionServicesImpl implements ResourceInjectionServices 
     ) {
         final Set<Object> candidates = providers.stream()
                 .map(resolver)
+                .filter(Objects::nonNull)
                 .collect(toSet());
         if (candidates.isEmpty()) {
             throw new IllegalStateException("Failed to resolve resource specification " + resolver);
