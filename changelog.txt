@@ -6,6 +6,7 @@ Version 0.2.0
 - Now invoking @PostConstruct methods of EJBs
 - Injecting dummy instance for @Resource EJBContext
 - Injection of @PersistenceContext into EJBs
+- Upgraded to org.mockito:mockito-core:2.8.47
 
 Version 0.1.0
 - initial release
