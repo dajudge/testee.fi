@@ -15,7 +15,6 @@ dependencies {
         exclude group: 'javassist'
     }
 
-    testCompile libEclipseLink
     testCompile libJUnit4
     testCompile libMockito
     testCompile libLogback

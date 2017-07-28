@@ -81,7 +81,7 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
     @Override
     public String getEjbName() {
         // TODO do something sane here?
-        return getBeanClass().getSimpleName();
+        return getBeanClass().getName();
     }
 
     @Override

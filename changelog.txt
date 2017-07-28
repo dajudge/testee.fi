@@ -4,7 +4,8 @@ Version 0.2.0
 - Cucumber JVM integration
 - Fixed issue with mocking and @Produces methods
 - Now invoking @PostConstruct methods of EJBs
-- Injecting dummy instances for @Resource EJBContext
+- Injecting dummy instance for @Resource EJBContext
+- Injection of @PersistenceContext into EJBs
 
 Version 0.1.0
 - initial release

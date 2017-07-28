@@ -47,6 +47,7 @@ import javax.annotation.Resource;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
+import javax.persistence.PersistenceContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
@@ -79,6 +80,7 @@ public class TransactionalContext {
                 sessionBeans,
                 this::cdiInjection,
                 this::resourceInjection,
+                this::jpaInjection,
                 sessionBeanModifier
         );
         realm = new DependencyInjectionRealm(
@@ -91,6 +93,12 @@ public class TransactionalContext {
                 beanArchiveDiscovery,
                 Environments.EE_INJECT
         );
+    }
+
+    private Object jpaInjection(final PersistenceContext persistenceContext) {
+        return realm.getServiceRegistry()
+                .get(JpaInjectionServicesImpl.class)
+                .resolvePersistenceContext(persistenceContext);
     }
 
     private Object resourceInjection(final Resource resource) {

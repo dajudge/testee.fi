@@ -51,7 +51,9 @@ public class PostConstructTest {
         if (context != null) {
             context.shutdown();
         }
-        testSetup.shutdown();
+        if (testSetup != null) {
+            testSetup.shutdown();
+        }
     }
 
     @Singleton

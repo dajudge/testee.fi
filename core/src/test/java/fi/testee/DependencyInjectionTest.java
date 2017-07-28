@@ -35,8 +35,6 @@ import javax.sql.DataSource;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class DependencyInjectionTest {
@@ -54,10 +52,12 @@ public class DependencyInjectionTest {
 
     @After
     public void shutdown() {
-        if(context != null) {
+        if (context != null) {
             context.shutdown();
         }
-        testSetup.shutdown();
+        if (testSetup != null) {
+            testSetup.shutdown();
+        }
     }
 
     @Test

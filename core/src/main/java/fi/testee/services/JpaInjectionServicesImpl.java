@@ -154,4 +154,8 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
             }
         });
     }
+
+    public EntityManager resolvePersistenceContext(PersistenceContext persistenceContext) {
+        return registerPersistenceContextInjectionPoint(persistenceContext.unitName()).createResource().getInstance();
+    }
 }

@@ -19,6 +19,8 @@ import fi.testee.runtime.TestRuntime;
 import fi.testee.runtime.TestSetup;
 import org.junit.Test;
 
+import javax.ejb.Singleton;
+import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
@@ -29,19 +31,69 @@ public class PersistenceUnitTest {
     private final TestBean testClassInstance = new TestBean();
 
     @Test
-    public void injects_well() {
-        // When
-        testSetup.prepareTestInstance(
-                "myInstance",
-                testClassInstance
-        ).shutdown();
-
-        // Then
-        assertNotNull(testClassInstance.entityManager); // Injection works
+    public void injects_in_root() {
+        check(() -> assertNotNull(testClassInstance.getEntityManager()));
     }
 
-    static class TestBean {
+    @Test
+    public void injects_in_cdi() {
+        check(() -> assertNotNull(testClassInstance.getManagedBean().getEntityManager()));
+    }
+
+    @Test
+    public void injects_in_ejb() {
+        check(() -> assertNotNull(testClassInstance.getSessionBean().getEntityManager()));
+    }
+
+    private void check(Runnable r) {
+        TestSetup.TestContext context = testSetup.prepareTestInstance(
+                "myInstance",
+                testClassInstance
+        );
+        try {
+            r.run();
+        } finally {
+            context.shutdown();
+        }
+    }
+
+    @Singleton
+    public static class SessionBean {
         @PersistenceContext(unitName = "testUnit")
         private EntityManager entityManager;
+
+        public EntityManager getEntityManager() {
+            return entityManager;
+        }
+    }
+
+    public static class ManagedBean {
+        @PersistenceContext(unitName = "testUnit")
+        private EntityManager entityManager;
+
+        public EntityManager getEntityManager() {
+            return entityManager;
+        }
+    }
+
+    public static class TestBean {
+        @PersistenceContext(unitName = "testUnit")
+        private EntityManager entityManager;
+        @Inject
+        private ManagedBean managedBean;
+        @Inject
+        private SessionBean sessionBean;
+
+        public EntityManager getEntityManager() {
+            return entityManager;
+        }
+
+        public ManagedBean getManagedBean() {
+            return managedBean;
+        }
+
+        public SessionBean getSessionBean() {
+            return sessionBean;
+        }
     }
 }

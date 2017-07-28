@@ -79,7 +79,7 @@ public class JpaInjectionServicesTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void not_supports_resolvePersistenceContext() {
-        subject.resolvePersistenceContext(null);
+        subject.resolvePersistenceContext((InjectionPoint)null);
     }
 
     @Test(expected = UnsupportedOperationException.class)

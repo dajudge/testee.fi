@@ -24,6 +24,7 @@ import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
 import javax.annotation.Resource;
 import javax.ejb.EJB;
+import javax.persistence.PersistenceContext;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
@@ -49,11 +50,13 @@ public class EjbBridge {
             final Set<EjbDescriptorImpl<?>> ejbDescriptors,
             final Consumer<Object> cdiInjection,
             final Function<Resource, Object> resourceInjection,
+            final Function<PersistenceContext, Object> jpaInjection,
             final SessionBeanModifier modifier
     ) {
         final Consumer<Object> injection = cdiInjection
                 .andThen(ejbInjection(EJB.class, this::injectEjb))
-                .andThen(ejbInjection(Resource.class, injectResources(resourceInjection)));
+                .andThen(ejbInjection(Resource.class, injectResources(Resource.class, resourceInjection)))
+                .andThen(ejbInjection(PersistenceContext.class, injectResources(PersistenceContext.class, jpaInjection)));
 
         this.ejbDescriptors = ejbDescriptors.stream().collect(toMap(
                 EjbDescriptor::getBeanClass,
@@ -66,8 +69,11 @@ public class EjbBridge {
         ));
     }
 
-    private BiConsumer<Object, Field> injectResources(final Function<Resource, Object> resourceInjection) {
-        return (o, f) -> inject(o, f, resourceInjection.apply(f.getAnnotation(Resource.class)));
+    private <T extends Annotation> BiConsumer<Object, Field> injectResources(
+            final Class<T> clazz,
+            final Function<T, Object> resourceInjection
+    ) {
+        return (o, f) -> inject(o, f, resourceInjection.apply(f.getAnnotation(clazz)));
     }
 
     private Consumer<Object> ejbInjection(
