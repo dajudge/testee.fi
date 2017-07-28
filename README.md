@@ -1,5 +1,5 @@
 # TestEE.fi
-TestEE.fi is a lightweight functional testing framework for Java-EE applications. By conveniently integrating a fully blown CDI implentation (TestEE.fi internally uses Weld, the CDI reference implementation) with much loved mocking frameworks like Mockito and EasyMock and proven database setup tools like Flyway and Liquibase it offers a natural way to write tests for your Java-EE application the same way you write your unit tests. And by integrating with test-runtimes like JUnit 4 & 5 or Cucumber JVM it allows you to run your tests directly from your preferred IDE and build tool - at speeds very close to unit-level testing.
+TestEE.fi (as in "testify") is a lightweight functional testing framework for Java-EE applications. By conveniently integrating a fully blown CDI implentation (TestEE.fi internally uses Weld, the CDI reference implementation) with much loved mocking frameworks like Mockito and EasyMock and proven database setup tools like Flyway and Liquibase it offers a natural way to write tests for your Java-EE application the same way you write your unit tests. And by integrating with test-runtimes like JUnit 4 & 5 or Cucumber JVM it allows you to run your tests directly from your preferred IDE and build tool - at speeds very close to unit-level testing.
 
 ## Getting started
 
