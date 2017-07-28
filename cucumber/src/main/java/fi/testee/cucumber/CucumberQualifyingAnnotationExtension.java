@@ -21,7 +21,7 @@ import fi.testee.spi.QualifyingAnnotationExtension;
 import java.lang.annotation.Annotation;
 import java.util.Collection;
 
-import static org.codehaus.groovy.runtime.InvokerHelper.asList;
+import static java.util.Arrays.asList;
 
 public class CucumberQualifyingAnnotationExtension implements QualifyingAnnotationExtension {
     @Override

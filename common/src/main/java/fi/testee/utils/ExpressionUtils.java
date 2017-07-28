@@ -15,7 +15,12 @@
  */
 package fi.testee.utils;
 
-import groovy.util.Eval;
+import fi.testee.exceptions.TestEEfiException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * Utilities for expressions.
@@ -23,11 +28,31 @@ import groovy.util.Eval;
  * @author Alex Stockinger, IT-Stockinger
  */
 public final class ExpressionUtils {
+    private static final Logger LOG = LoggerFactory.getLogger(ExpressionUtils.class);
+    private static final Method evalMe = findEvalMe();
+
+    private static Method findEvalMe() {
+        try {
+            final Class<?> eval = Class.forName("groovy.util.Eval");
+            return eval.getMethod("me", String.class);
+        } catch (final ClassNotFoundException | NoSuchMethodException e) {
+            LOG.trace("Groovy not found in classpath, expression evaluation disabled.");
+            return null;
+        }
+    }
+
     private ExpressionUtils() {
     }
 
     public static String evalExpression(final String expression) {
-        final Object result = Eval.me('"' + expression + '"');
-        return result == null ? null : result.toString();
+        if (evalMe == null) {
+            return expression;
+        }
+        try {
+            final Object result = evalMe.invoke(null, '"' + expression + '"');
+            return result == null ? null : result.toString();
+        } catch (final IllegalAccessException | InvocationTargetException e) {
+            throw new TestEEfiException("Failed to evaluate expression with groovy", e);
+        }
     }
 }
