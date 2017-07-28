@@ -15,6 +15,7 @@
  */
 package fi.testee.ejb;
 
+import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.spi.SessionBeanFactory;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -41,11 +42,11 @@ import static java.util.stream.Collectors.toMap;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class EjbBridge {
-    private final Map<Type, EjbDescriptor<?>> ejbDescriptors;
+    private final Map<Type, EjbDescriptorImpl<?>> ejbDescriptors;
     private final Map<EjbDescriptor<?>, ResourceReferenceFactory<?>> containers;
 
     public EjbBridge(
-            final Set<EjbDescriptor<?>> ejbDescriptors,
+            final Set<EjbDescriptorImpl<?>> ejbDescriptors,
             final Consumer<Object> cdiInjection,
             final Function<Resource, Object> resourceInjection,
             final SessionBeanModifier modifier
@@ -82,7 +83,7 @@ public class EjbBridge {
         inject(o, field, createInstance(lookupDescriptor(field.getType())).createResource().getInstance());
     }
 
-    private void inject(Object o, Field field, Object instanceToInject) {
+    private void inject(final Object o, final Field field, final Object instanceToInject) {
         try {
             field.setAccessible(true);
             field.set(o, instanceToInject);
@@ -92,10 +93,14 @@ public class EjbBridge {
     }
 
     private <T> ResourceReferenceFactory<T> toBeanContainer(
-            final EjbDescriptor<T> desc,
+            final EjbDescriptorImpl<T> desc,
             final Consumer<? super T> injection,
-            SessionBeanModifier modifier) {
-        final RootSessionBeanFactory<T> root = new RootSessionBeanFactory<>(injection, desc);
+            final SessionBeanModifier modifier
+    ) {
+        final RootSessionBeanFactory<T> root = new RootSessionBeanFactory<T>(
+                injection,
+                desc
+        );
         return modifier.modify(root).getResourceReferenceFactory();
     }
 

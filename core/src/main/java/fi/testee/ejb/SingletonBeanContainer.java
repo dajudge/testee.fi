@@ -15,6 +15,7 @@
  */
 package fi.testee.ejb;
 
+import fi.testee.deployment.InterceptorChain;
 import fi.testee.exceptions.TestEEfiException;
 import javassist.util.proxy.MethodHandler;
 import javassist.util.proxy.ProxyFactory;
@@ -24,6 +25,7 @@ import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
 import javax.inject.Provider;
 import java.lang.reflect.InvocationTargetException;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
@@ -33,16 +35,18 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
 
     public SingletonBeanContainer(
             final Class<T> clazz,
-            final Provider<T> factory
+            final Provider<T> factory,
+            final InterceptorChain chain
     ) {
         this.factory = factory;
-        proxyInstance = createProxy(clazz, this::instance);
+        proxyInstance = createProxy(clazz, this::instance, chain);
     }
 
     @SuppressWarnings("unchecked")
     private static <T> T createProxy(
             final Class<T> clazz,
-            final Supplier<T> producer
+            final Supplier<T> producer,
+            final InterceptorChain chain
     ) {
         try {
             final ProxyFactory proxyFactory = new ProxyFactory();
@@ -50,20 +54,28 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
             proxyFactory.setFilter(m -> m.getDeclaringClass() != Object.class);
             final Class<T> proxyClass = proxyFactory.createClass();
             final Object instance = proxyClass.newInstance();
-            ((ProxyObject) instance).setHandler(methodHandler(producer));
+            ((ProxyObject) instance).setHandler(methodHandler(producer, chain));
             return (T) instance;
         } catch (final IllegalAccessException | InstantiationException e) {
             throw new TestEEfiException("Failed to create proxy instance of" + clazz, e);
         }
     }
 
-    private static <T> MethodHandler methodHandler(final Supplier<T> producer) {
+    private static <T> MethodHandler methodHandler(
+            final Supplier<T> producer,
+            final InterceptorChain interceptorChain
+    ) {
         return (self, thisMethod, proceed, args) -> {
-            try {
-                return thisMethod.invoke(producer.get(), args);
-            } catch (final InvocationTargetException e) {
-                throw e.getTargetException();
-            }
+            final T target = producer.get();
+            return interceptorChain.invoke(target, thisMethod, args,
+                    () -> {
+                        try {
+                            return thisMethod.invoke(target, args);
+                        } catch (final InvocationTargetException e) {
+                            throw e.getTargetException();
+                        }
+                    });
+
         };
     }
 

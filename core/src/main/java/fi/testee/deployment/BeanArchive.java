@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class BeanArchive {
     private final JavaArchive classpathEntry;
     private final Collection<Class<? extends Annotation>> qualifyingAnnotations;
-    private Collection<EjbDescriptor<?>> ejbs;
+    private Collection<EjbDescriptorImpl<?>> ejbs;
 
     @SuppressWarnings("unchecked")
     public BeanArchive(
@@ -40,7 +40,7 @@ public class BeanArchive {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> EjbDescriptor<T> toEjbDescriptor(final Class<T> clazz) {
+    private <T> EjbDescriptorImpl<T> toEjbDescriptor(final Class<T> clazz) {
         return new EjbDescriptorImpl<>(clazz);
     }
 
@@ -48,7 +48,7 @@ public class BeanArchive {
         return classpathEntry.getClasses();
     }
 
-    public synchronized Collection<EjbDescriptor<?>> getEjbs() {
+    public synchronized Collection<EjbDescriptorImpl<?>> getEjbs() {
         if (ejbs == null) {
             ejbs = classpathEntry.annotatedWith(Singleton.class, Stateless.class, Stateful.class).stream()
                     .map(this::toEjbDescriptor)

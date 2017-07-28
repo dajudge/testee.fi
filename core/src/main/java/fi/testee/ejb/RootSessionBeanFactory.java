@@ -15,20 +15,22 @@
  */
 package fi.testee.ejb;
 
+import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.spi.SessionBeanFactory;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
     private final Consumer<? super T> injection;
-    private final EjbDescriptor<T> descriptor;
+    private final EjbDescriptorImpl<T> descriptor;
 
     public RootSessionBeanFactory(
             final Consumer<? super T> injection,
-            final EjbDescriptor<T> descriptor
+            final EjbDescriptorImpl<T> descriptor
     ) {
         this.injection = injection;
         this.descriptor = descriptor;
@@ -49,6 +51,6 @@ public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
             } catch (final InstantiationException | IllegalAccessException e) {
                 throw new TestEEfiException("Failed to instantiate session bean", e);
             }
-        });
+        }, descriptor.getInterceptorChain());
     }
 }

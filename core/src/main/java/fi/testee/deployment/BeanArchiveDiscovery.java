@@ -74,7 +74,7 @@ public class BeanArchiveDiscovery {
         return ret;
     }
 
-    public Set<EjbDescriptor<?>> getSessionBeans() {
+    public Set<EjbDescriptorImpl<?>> getSessionBeans() {
         return beanArchives.stream().map(BeanArchive::getEjbs).flatMap(Collection::stream).collect(toSet());
     }
 

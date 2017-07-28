@@ -16,6 +16,7 @@
 package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchiveDiscovery;
+import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.ejb.EjbBridge;
 import fi.testee.jpa.PersistenceUnitDiscovery;
 import fi.testee.services.EjbInjectionServicesImpl;
@@ -73,7 +74,7 @@ public class TransactionalContext {
         LOG.trace("Creating new transactional context for {}", testSetupClass);
         resourceProviders = new ArrayList<>();
         resourceProviderInstances.forEach(resourceProviders::add);
-        final Set<EjbDescriptor<?>> sessionBeans = beanArchiveDiscovery.getSessionBeans();
+        final Set<EjbDescriptorImpl<?>> sessionBeans = beanArchiveDiscovery.getSessionBeans();
         final EjbBridge ejbBridge = new EjbBridge(
                 sessionBeans,
                 this::cdiInjection,

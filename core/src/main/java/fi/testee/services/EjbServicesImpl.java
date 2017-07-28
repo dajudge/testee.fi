@@ -15,14 +15,20 @@
  */
 package fi.testee.services;
 
+import fi.testee.deployment.EjbDescriptorImpl;
+import fi.testee.exceptions.TestEEfiException;
 import fi.testee.utils.MutableContainer;
 import org.jboss.weld.ejb.api.SessionObjectReference;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.ejb.spi.InterceptorBindings;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EjbServicesImpl implements EjbServices {
+
+    private static final Logger LOG = LoggerFactory.getLogger(EjbServicesImpl.class);
 
     private final EjbInjectionServicesImpl.EjbFactory beanFactory;
 
@@ -55,8 +61,19 @@ public class EjbServicesImpl implements EjbServices {
     }
 
     @Override
-    public void registerInterceptors(final EjbDescriptor<?> ejbDescriptor, final InterceptorBindings interceptorBindings) {
-        throw new UnsupportedOperationException("Not implemented");
+    public void registerInterceptors(
+            final EjbDescriptor<?> ejbDescriptor,
+            final InterceptorBindings interceptorBindings
+    ) {
+        LOG.info(
+                "Registering interceptors {} on {}",
+                interceptorBindings.getAllInterceptors(),
+                ejbDescriptor.getBeanClass()
+        );
+        if (!(ejbDescriptor instanceof EjbDescriptorImpl)) {
+            throw new TestEEfiException("Expected " + EjbDescriptorImpl.class.getName() + ", but got " + ejbDescriptor);
+        }
+        ((EjbDescriptorImpl)ejbDescriptor).setInterceptorBindings(interceptorBindings);
     }
 
     @Override

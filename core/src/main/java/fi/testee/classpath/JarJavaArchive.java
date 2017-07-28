@@ -48,7 +48,7 @@ public class JarJavaArchive extends AbstractBaseJavaArchive {
         try (final ZipInputStream zis = new ZipInputStream(new FileInputStream(file))) {
             ZipEntry entry = zis.getNextEntry();
             while (entry != null) {
-                final T ret = cb.item(() -> zis, entry.getName());
+                final T ret = cb.item(streamProvider(entry), entry.getName());
                 if (ret != null) {
                     return ret;
                 }
@@ -58,6 +58,15 @@ public class JarJavaArchive extends AbstractBaseJavaArchive {
         } catch (final IOException e) {
             throw new TestEEfiException("Could not read JAR file " + file.getAbsolutePath(), e);
         }
+    }
+
+    private InputStreamSupplier streamProvider(final ZipEntry needle) {
+        return () -> {
+            final ZipInputStream zis = new ZipInputStream(new FileInputStream(file));
+            while (!zis.getNextEntry().getName().equals(needle.getName())) {
+            }
+            return zis;
+        };
     }
 
     @Override

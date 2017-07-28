@@ -85,9 +85,15 @@ public class DependencyInjectionRealm {
 
     public <T> Collection<Bean<T>> resolve(final Class<T> clazz) {
         return container().beanDeploymentArchives().values().stream()
-                .map(archive -> archive.getBeans(clazz).stream().map(bean -> (Bean<T>) bean).collect(toSet()))
+                .map(archive -> beansOf(clazz, archive))
                 .flatMap(Collection::stream)
                 .collect(toSet());
+    }
+
+    private <T> Set<Bean<T>> beansOf(Class<T> clazz, BeanManagerImpl archive) {
+        Set<Bean<T>> collect = archive.getBeans(clazz).stream().map(bean -> (Bean<T>) bean).collect(toSet());
+        LOG.info("{} {} -> {}", clazz, archive, collect);
+        return collect;
     }
 
     private Container container() {

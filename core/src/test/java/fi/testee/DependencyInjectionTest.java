@@ -16,6 +16,8 @@
 package fi.testee;
 
 import fi.testee.deployment.BeanArchiveDiscovery;
+import fi.testee.interceptor.TestInterceptor;
+import fi.testee.interceptor.UseInterceptor;
 import fi.testee.jdbc.PlaygroundConnectionFactory;
 import fi.testee.jdbc.TestDataSource;
 import fi.testee.runtime.TestRuntime;
@@ -30,7 +32,12 @@ import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.sql.DataSource;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class DependencyInjectionTest {
     private TestBean root;
@@ -38,6 +45,7 @@ public class DependencyInjectionTest {
 
     @Before
     public void setup() {
+        TestInterceptor.INVOCATIONS.clear();
         final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
         root = new TestBean();
         context = testSetup.prepareTestInstance("myInstance", root);
@@ -45,7 +53,9 @@ public class DependencyInjectionTest {
 
     @After
     public void shutdown() {
-        context.shutdown();
+        if(context != null) {
+            context.shutdown();
+        }
     }
 
     @Test
@@ -61,21 +71,25 @@ public class DependencyInjectionTest {
     @Test
     public void ejb_in_cdi_via_inject() {
         assertNotNull(root.getCdiInRootViaInject().getEjbInCdiViaInject());
+        ensureInterception(ExampleBean1.class, "getEjbInCdiViaInject");
     }
 
     @Test
     public void ejb_in_ejb_via_inject() {
         assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaInject());
+        ensureInterception(SessionBean1.class, "getEjbInEjbViaInject");
     }
 
     @Test
     public void ejb_in_ejb_via_ejb() {
         assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaEjb());
+        ensureInterception(SessionBean1.class, "getEjbInEjbViaEjb");
     }
 
     @Test
     public void resource_in_ejb() {
         assertNotNull(root.getEjbInRootViaEjb().getResourceInEjb());
+        ensureInterception(SessionBean1.class, "getResourceInEjb");
     }
 
     @Test
@@ -85,12 +99,15 @@ public class DependencyInjectionTest {
 
     @Test
     public void resource_in_cdi() {
-        assertNotNull(root.getEjbInRootViaEjb().getResourceInEjb());
+        assertNotNull(root.getCdiInRootViaInject().getResourceInCdi());
+        ensureInterception(ExampleBean1.class, "getResourceInCdi");
     }
 
     @Test
     public void circular_ejb_reference() {
         assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaEjb().getCircular());
+        ensureInterception(SessionBean1.class, "getEjbInEjbViaEjb");
+        ensureInterception(SessionBean2.class, "getCircular");
     }
 
     @Test
@@ -98,8 +115,15 @@ public class DependencyInjectionTest {
         assertNotNull(root.getBeanFromDifferentArchive());
     }
 
+    private void ensureInterception(final Class<?> target, final String methodName) {
+        assertFalse(TestInterceptor.INVOCATIONS.isEmpty());
+        final TestInterceptor.Invocation invocation = TestInterceptor.INVOCATIONS.remove(0);
+        assertTrue(target.isAssignableFrom(invocation.target.getClass()));
+        assertEquals(methodName, invocation.method.getName());
+    }
 
     @Stateless
+    @UseInterceptor
     public static class SessionBean2 {
         @EJB
         private SessionBean2 circular;
@@ -110,6 +134,7 @@ public class DependencyInjectionTest {
     }
 
     @Stateless
+    @UseInterceptor
     public static class SessionBean1 {
         @Inject
         private SessionBean2 ejbInEjbViaInject;
@@ -131,6 +156,7 @@ public class DependencyInjectionTest {
         }
     }
 
+    @UseInterceptor
     public static class ExampleBean1 {
         @Inject
         private SessionBean1 ejbInCdiViaInject;
@@ -146,6 +172,7 @@ public class DependencyInjectionTest {
         }
     }
 
+    @UseInterceptor
     public static abstract class BaseTestBean {
         @EJB
         private SessionBean1 ejbInRootViaEjb;
