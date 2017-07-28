@@ -65,7 +65,7 @@ public class EjbServicesImpl implements EjbServices {
             final EjbDescriptor<?> ejbDescriptor,
             final InterceptorBindings interceptorBindings
     ) {
-        LOG.info(
+        LOG.debug(
                 "Registering interceptors {} on {}",
                 interceptorBindings.getAllInterceptors(),
                 ejbDescriptor.getBeanClass()
