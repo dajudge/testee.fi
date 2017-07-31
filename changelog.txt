@@ -1,3 +1,6 @@
+Version 0.2.1
+- Fixed issue where JARs with only entities would not be recognized as EJB archives
+
 Version 0.2.0
 - Interceptor support
 - Groovy for expressions now optional

@@ -21,6 +21,7 @@ import org.jboss.weld.ejb.spi.EjbDescriptor;
 import javax.ejb.Singleton;
 import javax.ejb.Stateful;
 import javax.ejb.Stateless;
+import javax.persistence.Entity;
 import java.lang.annotation.Annotation;
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -50,7 +51,7 @@ public class BeanArchive {
 
     public synchronized Collection<EjbDescriptorImpl<?>> getEjbs() {
         if (ejbs == null) {
-            ejbs = classpathEntry.annotatedWith(Singleton.class, Stateless.class, Stateful.class).stream()
+            ejbs = classpathEntry.annotatedWith(Singleton.class, Stateless.class, Stateful.class, Entity.class).stream()
                     .map(this::toEjbDescriptor)
                     .collect(Collectors.toSet());
         }
