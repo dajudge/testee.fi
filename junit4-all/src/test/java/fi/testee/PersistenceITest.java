@@ -36,10 +36,10 @@ import static org.junit.Assert.fail;
 public class PersistenceITest extends AbstractBaseDatabaseTest {
     @TestData
     public static void setupTestData(
-            final TestDataSources dataSource,
+            final TestDataSources dataSources,
             final TestPersistenceUnits persistenceUnits
     ) throws SQLException {
-        DATASOURCES.forEach(ds -> insertJdbc(dataSource.get(ds), 1, "value1"));
+        DATASOURCES.forEach(ds -> insertJdbc(dataSources.get(ds), 1, "value1"));
         UNITS.forEach(unit -> persistenceUnits.get(unit).persist(new TestEntity(2, "value2")));
     }
 
