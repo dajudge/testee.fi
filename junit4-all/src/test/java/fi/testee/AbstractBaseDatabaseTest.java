@@ -36,7 +36,7 @@ import static java.util.Arrays.asList;
 
 @TestDataSource(name = AbstractBaseDatabaseTest.H2_DATASOURCE, factory = H2PostgresConnectionFactory.class)
 @TestDataSource(name = AbstractBaseDatabaseTest.PSQL_DATASOURCE, factory = PostgresConnectionFactory.class)
-@Liquibase(dataSource = AbstractBaseDatabaseTest.H2_DATASOURCE)
+@Liquibase(dataSource = AbstractBaseDatabaseTest.H2_DATASOURCE, changeLogFile = "liquibase/h2.xml")
 @Flyway(dataSource = AbstractBaseDatabaseTest.PSQL_DATASOURCE)
 @PostgresConfiguration(
         hostname = "${System.getenv('TESTEEFI_PSQL_HOSTNAME') ?: 'localhost'}",

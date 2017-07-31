@@ -50,7 +50,7 @@ public class LiquibaseDataSourceMigrator implements DataSourceMigrator {
         try (final Connection c = dataSourceProvider.apply(annotation.dataSource()).getConnection()) {
             final String contexts = isBlank(annotation.contexts()) ? null : annotation.contexts();
             final ResourceAccessor resourceAccessor = annotation.resourceAccessorFactory().newInstance().create();
-            applyChangelog(c, contexts, resourceAccessor);
+            applyChangelog(c, contexts, resourceAccessor, annotation.changeLogFile());
         } catch (final LiquibaseException | SQLException e) {
             throw new TestEEfiException("Failed to apply Liquibase changelog", e);
         } catch (final IllegalAccessException | InstantiationException e) {
@@ -61,12 +61,13 @@ public class LiquibaseDataSourceMigrator implements DataSourceMigrator {
     private void applyChangelog(
             final Connection c,
             final String contexts,
-            final ResourceAccessor resourceAccessor
+            final ResourceAccessor resourceAccessor,
+            final String changelogFile
     ) throws LiquibaseException {
         liquibase.Liquibase liquibase = null;
         final Database database = DatabaseFactory.getInstance()
                 .findCorrectDatabaseImplementation(new JdbcConnection(c));
-        liquibase = new liquibase.Liquibase("liquibase/h2.xml", resourceAccessor, database);
+        liquibase = new liquibase.Liquibase(changelogFile, resourceAccessor, database);
         liquibase.update(contexts);
     }
 }
