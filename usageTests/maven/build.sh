@@ -17,5 +17,5 @@ MAVEN_CONFIG="$USER_HOME_DIR/.m2"
 
 echo "Building with $TESTEEFI_VERSION"
 
-$BASE_DIR/bin/mvn -gs settings.xml clean install -Dnexus.username=$MAVEN_USER -Dnexus.password=$MAVEN_PASSWORD -Dtesteefi.version=$TESTEEFI_VERSION
+$BASE_DIR/bin/mvn -gs settings.xml clean install -Dnexus.username=$MAVEN_USER -Dnexus.password=$MAVEN_PASSWORD -Dtesteefi.version=$TESTEEFI_VERSION -X
 exit $?
