@@ -52,7 +52,14 @@ public @interface Liquibase {
      * pass to liquibase. A new instance of the factory will be instantiated, it thus needs a default or parameterless
      * constructor.
      *
-     * @return the  {@link ResourceAccessorFactory} type.
+     * @return the {@link ResourceAccessorFactory} type.
      */
     Class<? extends ResourceAccessorFactory> resourceAccessorFactory() default ClassLoaderResourceAccessorFactory.class;
+
+    /**
+     * Specifies the changelog file to use.
+     * @return the changelog file to use.
+     */
+    String changeLogFile();
+
 }
