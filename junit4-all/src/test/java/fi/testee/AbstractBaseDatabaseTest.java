@@ -39,7 +39,7 @@ import static java.util.Arrays.asList;
 @Liquibase(dataSource = AbstractBaseDatabaseTest.H2_DATASOURCE)
 @Flyway(dataSource = AbstractBaseDatabaseTest.PSQL_DATASOURCE)
 @PostgresConfiguration(
-        hostname = "${System.getenv()['TESTEEFI_PSQL_HOSTNAME'] ?: 'localhost'}",
+        hostname = "${System.getenv('TESTEEFI_PSQL_HOSTNAME') ?: 'localhost'}",
         port = "${System.getenv('TESTEEFI_PSQL_PORT') ?: '5432'}",
         username = "${System.getenv('TESTEEFI_PSQL_USER') ?: 'postgres'}",
         password = "${System.getenv('TESTEEFI_PSQL_PASSWORD') ?: 'postgres'}"
