@@ -22,6 +22,8 @@ import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Set;
@@ -53,31 +55,32 @@ public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
             try {
                 final T t = descriptor.getBeanClass().newInstance();
                 injection.accept(t);
-                postConstruct(t);
+                invoke(t, PostConstruct.class);
                 return t;
             } catch (final InstantiationException | IllegalAccessException e) {
                 throw new TestEEfiException("Failed to instantiate session bean", e);
             }
-        }, descriptor.getInterceptorChain());
+        }, descriptor.getInterceptorChain(), it -> invoke(it, PreDestroy.class));
     }
 
-    private void postConstruct(final T t) {
+
+    private void invoke(final T t, final Class<? extends Annotation> annotation) {
         Class<?> c = t.getClass();
         while (c != null && c != Object.class) {
-            postConstruct(t, c);
+            invoke(t, c, annotation);
             c = c.getSuperclass();
         }
     }
 
-    private void postConstruct(final T t, final Class<?> c) {
+    private void invoke(final T t, final Class<?> c, final Class<? extends Annotation> annotation) {
         final Set<Method> candidates = stream(c.getDeclaredMethods())
-                .filter(it -> it.getAnnotation(PostConstruct.class) != null)
+                .filter(it -> it.getAnnotation(annotation) != null)
                 .collect(toSet());
         if (candidates.isEmpty()) {
             return;
         }
         if (candidates.size() > 1) {
-            throw new TestEEfiException("Only one @PostConstruct method is allowed per class");
+            throw new TestEEfiException("Only one @" + annotation.getSimpleName() + " method is allowed per class");
         }
         // TODO check for correct modifiers etc.
         final Method method = candidates.iterator().next();
@@ -85,7 +88,7 @@ public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
         try {
             method.invoke(t);
         } catch (final IllegalAccessException | InvocationTargetException e) {
-            throw new TestEEfiException("Failed to invoke @PostConstruct method " + method, e);
+            throw new TestEEfiException("Failed to invoke @" + annotation.getSimpleName() + " method " + method, e);
         }
     }
 }

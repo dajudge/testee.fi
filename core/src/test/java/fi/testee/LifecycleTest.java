@@ -15,38 +15,55 @@
  */
 package fi.testee;
 
-import fi.testee.interceptor.TestInterceptor;
 import fi.testee.runtime.TestRuntime;
 import fi.testee.runtime.TestSetup;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
 import javax.ejb.Singleton;
+import javax.inject.Inject;
+import java.util.function.Supplier;
 
 import static org.junit.Assert.assertTrue;
 
-public class PostConstructTest {
+public class LifecycleTest {
     private TestSetup.TestContext context;
     private TestSetup testSetup;
     private TestBean root;
 
-    @Before
     public void setup() {
-        TestInterceptor.INVOCATIONS.clear();
         testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
         root = new TestBean();
         context = testSetup.prepareTestInstance("myInstance", root);
     }
 
     @Test
-    public void postConstruct_is_invoked() {
-        assertTrue(root.getSessionBean().isPostConstructed());
+    public void lifecycle_works_with_ejb() {
+        assertLifecycle(() -> root.getSessionBean());
     }
 
-    @After
+    @Test
+    public void lifecycle_works_with_cdi() {
+        assertLifecycle(() -> root.getManagedBean());
+    }
+
+    @Test
+    public void lifecycle_works_with_testInstance() {
+        assertLifecycle(() -> root);
+    }
+
+    private void assertLifecycle(final Supplier<AbstractBaseBean> beanSupplier) {
+        setup();
+        try {
+            assertTrue(beanSupplier.get().isPostConstructed());
+        } finally {
+            shutdown();
+        }
+        assertTrue(beanSupplier.get().isPreDestroyed());
+    }
+
     public void shutdown() {
         if (context != null) {
             context.shutdown();
@@ -56,23 +73,47 @@ public class PostConstructTest {
         }
     }
 
-    @Singleton
-    public static class SessionBean {
+    public static abstract class AbstractBaseBean {
         private boolean postConstructed;
+        private boolean preDestroyed;
 
         @PostConstruct
         private void postConstruct() {
             postConstructed = true;
         }
 
+        @PreDestroy
+        public void preDestroy() {
+            preDestroyed = true;
+        }
+
         public boolean isPostConstructed() {
             return postConstructed;
         }
+
+        public boolean isPreDestroyed() {
+            return preDestroyed;
+        }
     }
 
-    public static class TestBean {
+    @Singleton
+    public static class SessionBean extends AbstractBaseBean {
+
+    }
+
+    public static class ManagedBean extends AbstractBaseBean {
+
+    }
+
+    public static class TestBean extends AbstractBaseBean {
         @EJB
         private SessionBean sessionBean;
+        @Inject
+        private ManagedBean managedBean;
+
+        public ManagedBean getManagedBean() {
+            return managedBean;
+        }
 
         public SessionBean getSessionBean() {
             return sessionBean;

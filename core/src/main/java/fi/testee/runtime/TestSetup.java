@@ -15,19 +15,21 @@
  */
 package fi.testee.runtime;
 
-import fi.testee.deployment.BeanArchive;
 import fi.testee.ejb.EjbBridge;
 import fi.testee.jdbc.ConnectionFactoryManager;
 import fi.testee.jdbc.TestDataSource;
+import fi.testee.services.ResourceInjectionServicesImpl;
+import fi.testee.spi.AnnotationScanner;
 import fi.testee.spi.BeanModifier;
 import fi.testee.spi.BeanModifierFactory;
 import fi.testee.spi.ConnectionFactory;
 import fi.testee.spi.DataSourceMigrator;
+import fi.testee.spi.DependencyInjection;
+import fi.testee.spi.Releasable;
 import fi.testee.spi.SessionBeanFactory;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
-import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import static fi.testee.runtime.TestDataSetup.setupTestData;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -51,6 +55,7 @@ public class TestSetup {
     private static final Logger LOG = LoggerFactory.getLogger(TestSetup.class);
     private final DependencyInjectionRealm realm;
     private final Map<Class<? extends ConnectionFactory>, ConnectionFactory> connectionFactories = new HashMap<>();
+    private final Map<String, Object> setupResources;
 
     public interface TestContext {
         <T> T create(Class<T> clazz);
@@ -63,17 +68,14 @@ public class TestSetup {
             final TestRuntime runtime
     ) {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
-        final Map<String, Object> params = new HashMap<>();
-        params.put("testeefi/testSetupClass", setupClass);
-        params.put("testeefi/beanArchiveDiscovery", runtime.getBeanArchiveDiscorvery());
-        params.put("testeefi/connectionFactoryManager", (ConnectionFactoryManager) this::connectionFactoryManager);
-        params.put("testeefi/ejbDescriptors", getEjbDescriptors(runtime));
-        serviceRegistry.add(ResourceInjectionServices.class, new TestSetupResourceInjectionServices(params));
+        setupResources = createSetupResources(setupClass, runtime);
+        final SimpleResourceProvider resourceProvider = new SimpleResourceProvider(setupResources);
+        serviceRegistry.add(ResourceInjectionServices.class, new ResourceInjectionServicesImpl(asList(resourceProvider)));
         realm = new DependencyInjectionRealm(serviceRegistry, runtime.getBeanArchiveDiscorvery(), Environments.SE);
 
         try {
             final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
-            txContext.initialize(EjbBridge.IDENTITY_SESSION_BEAN_MODIFIER);
+            txContext.initialize(EjbBridge.IDENTITY_SESSION_BEAN_MODIFIER, emptyMap());
             txContext.run((clazz, testDataSetupRealm) -> {
                 final Set<DataSourceMigrator> migrators = testDataSetupRealm.getInstancesOf(DataSourceMigrator.class);
                 DatabaseMigration.migrateDataSources(clazz, migrators, testDataSetupRealm.getServiceRegistry());
@@ -87,11 +89,18 @@ public class TestSetup {
         }
     }
 
-    private Set<EjbDescriptor<?>> getEjbDescriptors(final TestRuntime runtime) {
-        return runtime.getBeanArchiveDiscorvery().getBeanArchives().stream()
-                .map(BeanArchive::getEjbs)
-                .flatMap(Collection::stream)
-                .collect(toSet());
+    private Map<String, Object> createSetupResources(final Class<?> setupClass, final TestRuntime runtime) {
+        final Map<String, Object> ret = new HashMap<>();
+        ret.put("testeefi/setup/class", setupClass);
+        ret.put("testeefi/setup/beanArchiveDiscovery", runtime.getBeanArchiveDiscorvery());
+        ret.put("testeefi/setup/connectionFactoryManager", (ConnectionFactoryManager) this::connectionFactoryManager);
+        ret.put("testeefi/setup/dependencyInjection", testSetupDependencyInjection());
+        ret.put("testeefi/setup/annotationScanner", (AnnotationScanner) runtime.getBeanArchiveDiscorvery()::getClassesWith);
+        return ret;
+    }
+
+    private DependencyInjection testSetupDependencyInjection() {
+        return new DeferredDependencyInjection(() -> realm);
     }
 
     private synchronized ConnectionFactory connectionFactoryManager(TestDataSource testDataSource) {
@@ -108,23 +117,26 @@ public class TestSetup {
                 .map(it -> it.createBeanModifier(testInstance))
                 .collect(toSet());
         final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
-        txContext.initialize(new SessionBeanModifierImpl(beanModifiers));
-        txContext.run((clazz, testInstanceRealm) -> {
+        txContext.initialize(new SessionBeanModifierImpl(beanModifiers), setupResources);
+        final Releasable releasable = txContext.run((clazz, testInstanceRealm) -> {
             testInstanceRealm.getAllBeans().forEach(modifyCdiBeans(beanModifiers));
-            testInstanceRealm.inject(testInstance);
-            return null;
+            final Releasable ret = testInstanceRealm.inject(testInstance);
+            testInstanceRealm.postConstruct(testInstance);
+            return ret;
         });
         return new TestContext() {
-
             @Override
             public <T> T create(final Class<T> clazz) {
-                return txContext.run((testSetupClass, realm) -> {
-                    return realm.getInstanceOf(clazz);
-                });
+                return txContext.run((testSetupClass, realm) -> realm.getInstanceOf(clazz));
             }
 
             @Override
             public void shutdown() {
+                txContext.run((clazz, testInstanceRealm) -> {
+                    testInstanceRealm.preDestroy(testInstance);
+                    return null;
+                });
+                releasable.release();
                 txContext.rollback();
             }
         };
@@ -161,4 +173,5 @@ public class TestSetup {
             return factory;
         }
     }
+
 }

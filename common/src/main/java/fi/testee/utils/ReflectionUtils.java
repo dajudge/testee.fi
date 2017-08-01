@@ -50,4 +50,12 @@ public final class ReflectionUtils {
                 .collect(toSet());
         return valuesOf(o, fields);
     }
+
+    public static <T> T create(final Class<T> clazz) {
+        try {
+            return clazz.newInstance();
+        } catch (final InstantiationException | IllegalAccessException e) {
+            throw new TestEEfiException("Failed to instantiate " + clazz);
+        }
+    }
 }

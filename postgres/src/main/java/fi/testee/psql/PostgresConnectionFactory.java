@@ -43,7 +43,7 @@ public class PostgresConnectionFactory implements ConnectionFactory {
     private static final Logger LOG = LoggerFactory.getLogger(PostgresConnectionFactory.class);
     private final ConcurrentHashMap<String, String> databases = new ConcurrentHashMap<>();
 
-    @Resource(mappedName = "testeefi/testSetupClass")
+    @Resource(mappedName = "testeefi/setup/class")
     private Class<?> testSetupClass;
     private PostgresConfiguration config;
 

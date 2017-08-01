@@ -33,9 +33,9 @@ import java.util.function.Supplier;
 import static java.util.stream.Collectors.toMap;
 
 public class JdbcResourceProvider implements ResourceProvider {
-    @Resource(mappedName = "testeefi/testSetupClass")
+    @Resource(mappedName = "testeefi/setup/class")
     private Class<?> testSetupClass;
-    @Resource(mappedName = "testeefi/connectionFactoryManager")
+    @Resource(mappedName = "testeefi/setup/connectionFactoryManager")
     private ConnectionFactoryManager connectionFactoryManager;
 
     private final Map<String, TesteeDataSource> dataSources = new HashMap<>();

@@ -27,11 +27,11 @@ import fi.testee.services.ProxyServicesImpl;
 import fi.testee.services.ResourceInjectionServicesImpl;
 import fi.testee.services.SecurityServicesImpl;
 import fi.testee.services.TransactionServicesImpl;
+import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ResourceProvider;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
-import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
@@ -50,6 +50,8 @@ import javax.inject.Inject;
 import javax.persistence.PersistenceContext;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -60,9 +62,9 @@ import java.util.Set;
 public class TransactionalContext {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionalContext.class);
 
-    @Resource(mappedName = "testeefi/testSetupClass")
+    @Resource(mappedName = "testeefi/setup/class")
     private Class<?> testSetupClass;
-    @Resource(mappedName = "testeefi/beanArchiveDiscovery")
+    @Resource(mappedName = "testeefi/setup/beanArchiveDiscovery")
     private BeanArchiveDiscovery beanArchiveDiscovery;
     @Inject
     @Any
@@ -71,10 +73,14 @@ public class TransactionalContext {
     private DependencyInjectionRealm realm;
     private Collection<ResourceProvider> resourceProviders;
 
-    public void initialize(final EjbBridge.SessionBeanModifier sessionBeanModifier) {
+    public void initialize(
+            final EjbBridge.SessionBeanModifier sessionBeanModifier,
+            final Map<String, Object> additionalResources
+    ) {
         LOG.trace("Creating new transactional context for {}", testSetupClass);
         resourceProviders = new ArrayList<>();
         resourceProviderInstances.forEach(resourceProviders::add);
+        resourceProviders.add(createLocationResourceProvider(additionalResources));
         final Set<EjbDescriptorImpl<?>> sessionBeans = beanArchiveDiscovery.getSessionBeans();
         final EjbBridge ejbBridge = new EjbBridge(
                 sessionBeans,
@@ -93,6 +99,17 @@ public class TransactionalContext {
                 beanArchiveDiscovery,
                 Environments.EE_INJECT
         );
+    }
+
+    private SimpleResourceProvider createLocationResourceProvider(final Map<String, Object> additionalResources) {
+        final Map<String, Object> localResources = new HashMap<>();
+        localResources.putAll(additionalResources);
+        localResources.put("testeefi/instance/dependencyInjection", dependencyInjection());
+        return new SimpleResourceProvider(localResources);
+    }
+
+    public DependencyInjection dependencyInjection() {
+        return new DeferredDependencyInjection(() -> realm);
     }
 
     private Object jpaInjection(final PersistenceContext persistenceContext) {
@@ -177,4 +194,5 @@ public class TransactionalContext {
                 DependencyInjectionRealm realm
         );
     }
+
 }

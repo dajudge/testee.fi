@@ -25,20 +25,23 @@ import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
 import javax.inject.Provider;
 import java.lang.reflect.InvocationTargetException;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
     private final Provider<T> factory;
+    private final Consumer<T> preDestroy;
     private final T proxyInstance;
     private T instance;
 
     public SingletonBeanContainer(
             final Class<T> clazz,
             final Provider<T> factory,
-            final InterceptorChain chain
+            final InterceptorChain chain,
+            final Consumer<T> preDestroy
     ) {
         this.factory = factory;
+        this.preDestroy = preDestroy;
         proxyInstance = createProxy(clazz, this::instance, chain);
     }
 
@@ -89,7 +92,9 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
 
             @Override
             public void release() {
-                // TODO implement this
+                if (instance != null) {
+                    preDestroy.accept(instance);
+                }
             }
         };
     }
