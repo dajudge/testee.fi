@@ -1,0 +1,14 @@
+apply plugin: 'java'
+
+dependencies {
+    compile project(":core-spi")
+
+    compile 'org.glassfish.jersey.containers:jersey-container-servlet-core:2.24.1'
+    compile 'org.glassfish.jersey.containers:jersey-container-servlet:2.24.1'
+    compile 'org.glassfish.jersey.media:jersey-media-moxy:2.24.1'
+    compile libJettyServlet
+
+    testCompile project(":junit4")
+    testCompile libLogback
+    testCompile libOkhttp3
+}

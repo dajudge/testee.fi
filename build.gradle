@@ -162,6 +162,9 @@ ext {
     libLiquibaseSlf4j = 'com.mattbertolini:liquibase-slf4j:1.2.1'
     libScannotation = 'org.scannotation:scannotation:1.0.3'
     libJavassist = 'org.javassist:javassist:3.21.0-GA'
+    libJettyServlet = 'org.eclipse.jetty:jetty-servlet:9.4.6.v20170531'
+    libJerseyServlet = 'com.sun.jersey:jersey-servlet:1.19.4'
+    libOkhttp3 = 'com.squareup.okhttp3:okhttp:3.8.1'
 }
 
 task wrapper(type: Wrapper) {
