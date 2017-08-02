@@ -20,17 +20,20 @@ import fi.testee.cucumber.annotation.CucumberSetup;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.runtime.TestRuntime;
 import fi.testee.runtime.TestSetup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.UUID;
+
+import static java.util.UUID.randomUUID;
 
 public class TestEEfiObjectFactory implements ObjectFactory {
+    private static final Logger LOG = LoggerFactory.getLogger(TestEEfiObjectFactory.class);
+
     private final TestSetup testSetup;
 
-    private final Collection<Class<?>> glueClasses = new HashSet<>();
     private final Class<?> testSetupClass;
 
     private Map<Class<?>, Object> instances;
@@ -53,6 +56,8 @@ public class TestEEfiObjectFactory implements ObjectFactory {
 
     @Override
     public void start() {
+        final String id = randomUUID().toString();
+        LOG.debug("Starting test instance {}", id);
         if (instances != null || context != null || setupInstance != null) {
             throw new TestEEfiException(
                     "Failed to start cucumber test",
@@ -65,11 +70,12 @@ public class TestEEfiObjectFactory implements ObjectFactory {
         } catch (final InstantiationException | IllegalAccessException e) {
             throw new TestEEfiException("Failed to instantiate cucumber test setup class", e);
         }
-        context = testSetup.prepareTestInstance(UUID.randomUUID().toString(), setupInstance);
+        context = testSetup.prepareTestInstance(id, setupInstance);
     }
 
     @Override
     public void stop() {
+        LOG.debug("Stopping test instance {}", context.getId());
         instances = null;
         setupInstance = null;
         context.shutdown();
@@ -78,7 +84,6 @@ public class TestEEfiObjectFactory implements ObjectFactory {
 
     @Override
     public boolean addClass(final Class<?> glueClass) {
-        glueClasses.add(glueClass);
         return true;
     }
 

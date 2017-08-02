@@ -60,6 +60,8 @@ public class TestSetup {
         <T> T create(Class<T> clazz);
 
         void shutdown();
+
+        String getId();
     }
 
     public TestSetup(
@@ -111,8 +113,8 @@ public class TestSetup {
     }
 
 
-    public TestContext prepareTestInstance(final String name, final Object testInstance) {
-        LOG.debug("Instantiating test run '{}' for class {}", name, testInstance.getClass().getName());
+    public TestContext prepareTestInstance(final String id, final Object testInstance) {
+        LOG.debug("Instantiating test run '{}' for class {}", id, testInstance.getClass().getName());
         final Set<BeanModifier> beanModifiers = realm.getInstancesOf(BeanModifierFactory.class).stream()
                 .map(it -> it.createBeanModifier(testInstance))
                 .collect(toSet());
@@ -137,6 +139,11 @@ public class TestSetup {
                     return null;
                 });
                 txContext.rollback();
+            }
+
+            @Override
+            public String getId() {
+                return id;
             }
         };
     }
