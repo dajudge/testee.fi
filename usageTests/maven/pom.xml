@@ -5,10 +5,17 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>fi.testee</groupId>
+    <groupId>fi.testee.examples</groupId>
     <artifactId>maven-usage-test</artifactId>
-    <version>42.42.42-SNAPSHOT</version>
+    <version>42.42.43-SNAPSHOT</version>
     <name>Maven usage test</name>
+
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>junit4</module>
+        <module>cucumber</module>
+    </modules>
 
     <repositories>
         <repository>
@@ -33,18 +40,26 @@
         </repository>
     </repositories>
 
-    <dependencies>
-        <dependency>
-            <groupId>fi.testee</groupId>
-            <artifactId>testeefi-junit4-all</artifactId>
-            <version>${testeefi.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.1.7</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>fi.testee</groupId>
+                <artifactId>testeefi-junit4-all</artifactId>
+                <version>${testeefi.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>fi.testee</groupId>
+                <artifactId>testeefi-cucumber-all</artifactId>
+                <version>${testeefi.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>1.1.7</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
