@@ -18,6 +18,7 @@ package fi.testee.ejb;
 import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.spi.SessionBeanFactory;
+import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
@@ -28,6 +29,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toSet;
@@ -35,13 +37,16 @@ import static java.util.stream.Collectors.toSet;
 public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
     private final Consumer<? super T> injection;
     private final EjbDescriptorImpl<T> descriptor;
+    private final EjbBridge.ContextFactory contextFactory;
 
     public RootSessionBeanFactory(
             final Consumer<? super T> injection,
-            final EjbDescriptorImpl<T> descriptor
+            final EjbDescriptorImpl<T> descriptor,
+            final EjbBridge.ContextFactory contextFactory
     ) {
         this.injection = injection;
         this.descriptor = descriptor;
+        this.contextFactory = contextFactory;
     }
 
     @Override
@@ -60,7 +65,7 @@ public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
             } catch (final InstantiationException | IllegalAccessException e) {
                 throw new TestEEfiException("Failed to instantiate session bean", e);
             }
-        }, descriptor.getInterceptorChain(), it -> invoke(it, PreDestroy.class));
+        }, descriptor.getInterceptorChain(contextFactory), it -> invoke(it, PreDestroy.class));
     }
 
 

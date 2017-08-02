@@ -19,11 +19,13 @@ import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.spi.SessionBeanFactory;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
 import javax.annotation.Resource;
 import javax.ejb.EJB;
+import javax.enterprise.context.spi.Contextual;
 import javax.persistence.PersistenceContext;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -33,6 +35,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toMap;
@@ -46,13 +49,18 @@ public class EjbBridge {
     private final Map<Type, EjbDescriptorImpl<?>> ejbDescriptors;
     private final Map<EjbDescriptor<?>, ResourceReferenceFactory<?>> containers;
 
+    public interface ContextFactory {
+        <T> CreationalContextImpl<T> create(Contextual<T> ctx);
+    }
+
     public EjbBridge(
             final Set<EjbDescriptorImpl<?>> ejbDescriptors,
             final Consumer<Object> cdiInjection,
             final Function<Resource, Object> resourceInjection,
             final Function<PersistenceContext, Object> jpaInjection,
-            final SessionBeanModifier modifier
-    ) {
+            final SessionBeanModifier modifier,
+            final ContextFactory contextFactory
+            ) {
         final Consumer<Object> injection = cdiInjection
                 .andThen(ejbInjection(EJB.class, this::injectEjb))
                 .andThen(ejbInjection(Resource.class, injectResources(Resource.class, resourceInjection)))
@@ -65,7 +73,7 @@ public class EjbBridge {
 
         this.containers = ejbDescriptors.stream().collect(toMap(
                 it -> it,
-                it -> toBeanContainer(it, injection, modifier)
+                it -> toBeanContainer(it, injection, modifier, contextFactory)
         ));
     }
 
@@ -101,11 +109,13 @@ public class EjbBridge {
     private <T> ResourceReferenceFactory<T> toBeanContainer(
             final EjbDescriptorImpl<T> desc,
             final Consumer<? super T> injection,
-            final SessionBeanModifier modifier
+            final SessionBeanModifier modifier,
+            final ContextFactory contextFactory
     ) {
         final RootSessionBeanFactory<T> root = new RootSessionBeanFactory<T>(
                 injection,
-                desc
+                desc,
+                contextFactory
         );
         return modifier.modify(root).getResourceReferenceFactory();
     }

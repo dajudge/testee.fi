@@ -17,6 +17,7 @@ package fi.testee.jdbc;
 
 import fi.testee.spi.ConnectionFactory;
 
+import javax.annotation.PreDestroy;
 import java.sql.Connection;
 
 import static org.mockito.Mockito.mock;
@@ -33,7 +34,7 @@ public class PlaygroundConnectionFactory implements ConnectionFactory {
         return c;
     }
 
-    @Override
+    @PreDestroy
     public void release() {
         shutdown = true;
     }

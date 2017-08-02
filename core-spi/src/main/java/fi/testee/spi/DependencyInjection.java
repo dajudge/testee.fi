@@ -27,5 +27,5 @@ public interface DependencyInjection {
 
     <T> T getInstanceOf(Class<T> clazz);
 
-    Releasable inject(Object o);
+    void inject(Object o);
 }

@@ -32,6 +32,7 @@ import fi.testee.spi.ResourceProvider;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
+import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
@@ -44,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Resource;
+import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
@@ -87,7 +89,8 @@ public class TransactionalContext {
                 this::cdiInjection,
                 this::resourceInjection,
                 this::jpaInjection,
-                sessionBeanModifier
+                sessionBeanModifier,
+                this::contextFor
         );
         realm = new DependencyInjectionRealm(
                 createInstanceServiceRegistry(
@@ -99,6 +102,10 @@ public class TransactionalContext {
                 beanArchiveDiscovery,
                 Environments.EE_INJECT
         );
+    }
+
+    private <T> CreationalContextImpl<T> contextFor(final Contextual<T> ctx) {
+        return realm.contextFor(ctx);
     }
 
     private SimpleResourceProvider createLocationResourceProvider(final Map<String, Object> additionalResources) {

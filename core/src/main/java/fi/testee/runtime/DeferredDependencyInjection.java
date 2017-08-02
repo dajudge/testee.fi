@@ -16,7 +16,6 @@
 package fi.testee.runtime;
 
 import fi.testee.spi.DependencyInjection;
-import fi.testee.spi.Releasable;
 
 import java.util.Set;
 import java.util.function.Supplier;
@@ -39,8 +38,7 @@ class DeferredDependencyInjection implements DependencyInjection {
     }
 
     @Override
-    public Releasable inject(final Object o) {
+    public void inject(final Object o) {
         di.get().inject(o);
-        return null;
     }
 }

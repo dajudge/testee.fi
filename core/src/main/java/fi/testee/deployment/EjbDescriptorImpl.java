@@ -15,6 +15,7 @@
  */
 package fi.testee.deployment;
 
+import fi.testee.ejb.EjbBridge;
 import fi.testee.exceptions.TestEEfiException;
 import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.BusinessInterfaceDescriptor;
@@ -26,9 +27,12 @@ import javax.ejb.Remove;
 import javax.ejb.Singleton;
 import javax.ejb.Stateful;
 import javax.ejb.Stateless;
+import javax.enterprise.context.spi.Contextual;
+import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.inject.spi.InterceptionType;
 import javax.enterprise.inject.spi.Interceptor;
 import javax.interceptor.InvocationContext;
+import javax.naming.Context;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -38,7 +42,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static java.util.Arrays.stream;
 
@@ -124,7 +128,7 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
         Object run() throws Throwable;
     }
 
-    public InterceptorChain getInterceptorChain() {
+    public InterceptorChain getInterceptorChain(final EjbBridge.ContextFactory contextFactory) {
         return new InterceptorChain() {
             @Override
             public <T> Object invoke(
@@ -141,6 +145,7 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
                         target,
                         method,
                         args,
+                        contextFactory,
                         next
                 );
             }
@@ -153,6 +158,7 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
             final Object target,
             final Method method,
             final Object[] args,
+            final EjbBridge.ContextFactory contextFactory,
             final InterceptorChain.ChainEnd<T> next
     ) throws Throwable {
         if (chain.isEmpty()) {
@@ -161,11 +167,11 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
         final Interceptor<Object> it = (Interceptor<Object>) chain.remove(0);
         return intercept(
                 it,
-                it.create(new CreationalContextImpl<>(null)),
+                it.create(contextFactory.create(it)),
                 target,
                 method,
                 args,
-                () -> processInterceptorChain(chain, target, method, args, next)
+                () -> processInterceptorChain(chain, target, method, args, contextFactory, next)
         );
     }
 

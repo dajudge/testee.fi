@@ -25,7 +25,6 @@ import fi.testee.spi.BeanModifierFactory;
 import fi.testee.spi.ConnectionFactory;
 import fi.testee.spi.DataSourceMigrator;
 import fi.testee.spi.DependencyInjection;
-import fi.testee.spi.Releasable;
 import fi.testee.spi.SessionBeanFactory;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
@@ -118,11 +117,11 @@ public class TestSetup {
                 .collect(toSet());
         final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
         txContext.initialize(new SessionBeanModifierImpl(beanModifiers), setupResources);
-        final Releasable releasable = txContext.run((clazz, testInstanceRealm) -> {
+        txContext.run((clazz, testInstanceRealm) -> {
             testInstanceRealm.getAllBeans().forEach(modifyCdiBeans(beanModifiers));
-            final Releasable ret = testInstanceRealm.inject(testInstance);
+            testInstanceRealm.inject(testInstance);
             testInstanceRealm.postConstruct(testInstance);
-            return ret;
+            return null;
         });
         return new TestContext() {
             @Override
@@ -136,7 +135,6 @@ public class TestSetup {
                     testInstanceRealm.preDestroy(testInstance);
                     return null;
                 });
-                releasable.release();
                 txContext.rollback();
             }
         };
@@ -147,14 +145,6 @@ public class TestSetup {
     }
 
     public void shutdown() {
-        connectionFactories.values().forEach(factory -> {
-            try {
-                factory.release();
-            } catch (final RuntimeException e) {
-                // Continue releasing connection factories on error
-                LOG.error("Failed to release connection factory " + factory, e);
-            }
-        });
         realm.shutdown();
     }
 

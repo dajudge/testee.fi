@@ -19,6 +19,7 @@ import fi.testee.spi.ConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PreDestroy;
 import javax.inject.Singleton;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -57,7 +58,7 @@ public class H2PostgresConnectionFactory implements ConnectionFactory {
         return "jdbc:h2:mem:" + dbName + ";MODE=PostgreSQL;DB_CLOSE_DELAY=" + closeDelay;
     }
 
-    @Override
+    @PreDestroy
     public void release() {
         dbNames.forEach(dbName -> execute(
                 () -> {

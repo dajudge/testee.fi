@@ -31,6 +31,4 @@ public interface ConnectionFactory {
      * @return a {@link Connection} to the database.
      */
     Connection createConnection(String dbName);
-
-    void release();
 }

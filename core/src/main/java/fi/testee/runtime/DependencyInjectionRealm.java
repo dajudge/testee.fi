@@ -21,7 +21,8 @@ import fi.testee.deployment.DeploymentImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.services.TransactionServicesImpl;
 import fi.testee.spi.DependencyInjection;
-import fi.testee.spi.Releasable;
+import javassist.util.proxy.Proxy;
+import javassist.util.proxy.ProxyFactory;
 import org.jboss.weld.Container;
 import org.jboss.weld.bean.AbstractClassBean;
 import org.jboss.weld.bootstrap.WeldBootstrap;
@@ -29,18 +30,22 @@ import org.jboss.weld.bootstrap.api.Bootstrap;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.context.CreationalContextImpl;
+import org.jboss.weld.context.api.ContextualInstance;
 import org.jboss.weld.manager.BeanManagerImpl;
-import org.jboss.weld.manager.api.WeldManager;
 import org.jboss.weld.transaction.spi.TransactionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.enterprise.context.spi.Contextual;
+import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.InjectionTarget;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toSet;
@@ -55,8 +60,9 @@ public class DependencyInjectionRealm implements DependencyInjection {
     private final String contextId = UUID.randomUUID().toString();
     private final Bootstrap bootstrap;
     private final DeploymentImpl deployment;
+    private final CreationalContextImpl<Object> rootContext = new CreationalContextImpl<>(null);
 
-    public DependencyInjectionRealm(
+    DependencyInjectionRealm(
             final ServiceRegistry serviceRegistry,
             final BeanArchiveDiscovery beanArchiveDiscovery,
             final Environments environment
@@ -76,7 +82,7 @@ public class DependencyInjectionRealm implements DependencyInjection {
                 .endInitialization();
     }
 
-    private void ensureTransactionServices(ServiceRegistry serviceRegistry) {
+    private void ensureTransactionServices(final ServiceRegistry serviceRegistry) {
         // Odd workaround for the message WELD-000101 that happens when you don't have transactional services
         if (serviceRegistry.get(TransactionServices.class) == null) {
             serviceRegistry.add(TransactionServices.class, new TransactionServicesImpl());
@@ -85,12 +91,14 @@ public class DependencyInjectionRealm implements DependencyInjection {
 
     void shutdown() {
         LOG.trace("Shutting down dependency injection realm {}", contextId);
+        contexts.forEach(CreationalContext::release);
+        rootContext.release();
         bootstrap.shutdown();
     }
 
-    public <T> Collection<Bean<T>> resolve(final Class<T> clazz) {
+    private <T> Collection<Bean<T>> resolve(final Class<T> clazz) {
         return deployment.getBeanDeploymentArchives().stream().map(bootstrap::getManager)
-                .map(archive -> beansOf(clazz, archive))
+                .map(archive -> beansOf(clazz, (BeanManagerImpl) archive))
                 .flatMap(Collection::stream)
                 .collect(toSet());
     }
@@ -98,9 +106,11 @@ public class DependencyInjectionRealm implements DependencyInjection {
     @SuppressWarnings("unchecked")
     private <T> Set<Bean<T>> beansOf(
             final Class<T> clazz,
-            final WeldManager beanManager
+            final BeanManagerImpl beanManager
     ) {
-        return beanManager.getBeans(clazz).stream().map(bean -> (Bean<T>) bean).collect(toSet());
+        return beanManager.getBeans(clazz).stream()
+                .map(bean -> (Bean<T>) bean)
+                .collect(toSet());
     }
 
     private Container container() {
@@ -115,11 +125,25 @@ public class DependencyInjectionRealm implements DependencyInjection {
     }
 
     private <T> T newInstance(final Bean<T> bean) {
-        return bean.create(emptyContext());
-    }
+        final CreationalContextImpl<T> ctx = contextFor(bean);
+        final T instance = bean.create(ctx);
+        ctx.addDependentInstance(new ContextualInstance<T>() {
+            @Override
+            public T getInstance() {
+                return instance;
+            }
 
-    private <T> CreationalContextImpl<T> emptyContext() {
-        return new CreationalContextImpl<>(null);
+            @Override
+            public CreationalContext<T> getCreationalContext() {
+                return ctx;
+            }
+
+            @Override
+            public Contextual<T> getContextual() {
+                return bean;
+            }
+        });
+        return instance;
     }
 
     @Override
@@ -145,52 +169,84 @@ public class DependencyInjectionRealm implements DependencyInjection {
         }
     }
 
-    public ServiceRegistry getServiceRegistry() {
+    ServiceRegistry getServiceRegistry() {
         return container().services();
     }
 
-    public Collection<Bean<?>> getAllBeans() {
+    Collection<Bean<?>> getAllBeans() {
         return container().beanDeploymentArchives().values().stream()
                 .map(BeanManagerImpl::getBeans)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
     }
 
-    public <T> Bean<T> resolveUnique(Class<T> clazz) {
+    private <T> Bean<T> resolveUnique(Class<T> clazz) {
         return unique(clazz, resolve(clazz));
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public Releasable inject(final Object o) {
-        final CreationalContextImpl ctx = withProducer(o, (b, p) -> {
-            final CreationalContextImpl context = new CreationalContextImpl<>(b);
-            p.inject(o, context);
-            return context;
-        });
-        return () -> ctx.release();
-    }
-
-    public void postConstruct(final Object o) {
+    public void inject(final Object o) {
         withProducer(o, (b, p) -> {
-            p.postConstruct(o);
-            return null;
+            p.inject(o, contextFor(b));
         });
     }
 
-    public void preDestroy(final Object o) {
-        withProducer(o, (b, p) -> {
-            p.preDestroy(o);
-            return null;
-        });
+    private static CreationalContextImpl wrap(CreationalContextImpl creationalContext) {
+        try {
+            final ProxyFactory factory = new ProxyFactory();
+            factory.setSuperclass(CreationalContextImpl.class);
+            factory.setFilter(m -> m.getDeclaringClass() != Object.class);
+            final CreationalContextImpl proxy = (CreationalContextImpl) factory.create(new Class[]{Contextual.class}, new Object[]{null});
+            ((Proxy) proxy).setHandler((self, thisMethod, proceed, args) -> {
+                try {
+                    LOG.info("{} {}", thisMethod, args);
+                    if (thisMethod.getName().equals("release")) {
+                        LOG.info("RELEASE");
+                    }
+                    Object ret = thisMethod.invoke(creationalContext, args);
+                    if (ret instanceof CreationalContextImpl) {
+                        return wrap((CreationalContextImpl) ret);
+                    }
+                    return ret;
+                } catch (final InvocationTargetException e) {
+                    throw e.getTargetException();
+                }
+            });
+            return proxy;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    private <T> T withProducer(Object o, BiFunction<Bean, InjectionTarget, T> consumer) {
+    @SuppressWarnings("unchecked")
+    void postConstruct(final Object o) {
+        withProducer(o, (b, p) -> p.postConstruct(o));
+    }
+
+    @SuppressWarnings("unchecked")
+    void preDestroy(final Object o) {
+        withProducer(o, (b, p) -> p.preDestroy(o));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void withProducer(final Object o, final BiConsumer<Bean, InjectionTarget> consumer) {
         final Bean<Object> bean = resolveUnique((Class<Object>) o.getClass());
         if (!(bean instanceof AbstractClassBean)) {
             throw new TestEEfiException("Injection of " + bean + " is not supported");
         }
-        return consumer.apply(bean, ((AbstractClassBean) bean).getProducer());
+        consumer.accept(bean, ((AbstractClassBean) bean).getProducer());
     }
 
+    <T> CreationalContextImpl<T> contextFor(final Contextual<T> ctx) {
+        return remember(rootContext.getCreationalContext(ctx));
+    }
+
+    private final Collection<CreationalContext<?>> contexts = new ArrayList<>();
+
+    private <T> CreationalContextImpl<T> remember(final CreationalContextImpl<T> creationalContext) {
+        // TODO this seems a bit hacky - do we really have to remember all creational contexts ourselves?
+        contexts.add(creationalContext);
+        return creationalContext;
+    }
 }
