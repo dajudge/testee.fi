@@ -13,21 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.cucumber;
+package fi.testee.cucumber.beans;
 
-import fi.testee.cucumber.annotation.CucumberSetup;
-import fi.testee.cucumber.beans.MockBean;
-import org.mockito.Mock;
+import javax.ejb.Singleton;
 
-import javax.annotation.PostConstruct;
-
-@CucumberSetup
-public class Setup {
-    @Mock
-    private MockBean mockBean;
-
-    @PostConstruct
+@Singleton
+public class MockBean {
     public void postConstruct() {
-        mockBean.postConstruct();
     }
 }

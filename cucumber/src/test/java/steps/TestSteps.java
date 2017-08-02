@@ -17,6 +17,7 @@ package steps;
 
 import cucumber.api.java.en.Then;
 import fi.testee.cucumber.beans.ManagedBean;
+import fi.testee.cucumber.beans.MockBean;
 import fi.testee.cucumber.beans.SessionBean;
 
 import javax.ejb.EJB;
@@ -24,12 +25,15 @@ import javax.inject.Inject;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNull.notNullValue;
+import static org.mockito.Mockito.verify;
 
 public class TestSteps {
     @Inject
     private ManagedBean managedBean;
     @EJB
     private SessionBean sessionBean;
+    @EJB
+    private MockBean mockBean;
 
     @Then("^Managed bean got injected$")
     public void assertManagedBean() {
@@ -39,6 +43,11 @@ public class TestSteps {
     @Then("^Session bean got injected$")
     public void assertSessionBean() {
         assertThat(sessionBean, notNullValue());
+    }
+
+    @Then("^CucumberSetup was post constructed")
+    public void postconstructed() {
+        verify(mockBean).postConstruct();
     }
 
 }
