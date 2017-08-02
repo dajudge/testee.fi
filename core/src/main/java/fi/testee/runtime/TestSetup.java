@@ -72,8 +72,8 @@ public class TestSetup {
         serviceRegistry.add(ResourceInjectionServices.class, new ResourceInjectionServicesImpl(asList(resourceProvider)));
         realm = new DependencyInjectionRealm(serviceRegistry, runtime.getBeanArchiveDiscorvery(), Environments.SE);
 
+        final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
         try {
-            final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
             txContext.initialize(EjbBridge.IDENTITY_SESSION_BEAN_MODIFIER, emptyMap());
             txContext.run((clazz, testDataSetupRealm) -> {
                 final Set<DataSourceMigrator> migrators = testDataSetupRealm.getInstancesOf(DataSourceMigrator.class);
@@ -83,6 +83,7 @@ public class TestSetup {
             });
             txContext.commit();
         } catch (final RuntimeException e) {
+            txContext.rollback();
             shutdown();
             throw e;
         }
