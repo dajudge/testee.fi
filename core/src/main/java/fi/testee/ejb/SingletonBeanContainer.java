@@ -23,25 +23,30 @@ import javassist.util.proxy.ProxyObject;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.inject.Provider;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toSet;
+
 public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
     private final Provider<T> factory;
-    private final Consumer<T> preDestroy;
     private final T proxyInstance;
     private T instance;
 
     public SingletonBeanContainer(
             final Class<T> clazz,
             final Provider<T> factory,
-            final InterceptorChain chain,
-            final Consumer<T> preDestroy
+            final InterceptorChain chain
     ) {
         this.factory = factory;
-        this.preDestroy = preDestroy;
         proxyInstance = createProxy(clazz, this::instance, chain);
     }
 
@@ -78,7 +83,6 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
                             throw e.getTargetException();
                         }
                     });
-
         };
     }
 
@@ -93,7 +97,7 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
             @Override
             public void release() {
                 if (instance != null) {
-                    preDestroy.accept(instance);
+                    invoke(instance, PreDestroy.class);
                 }
             }
         };
@@ -102,7 +106,36 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
     private synchronized T instance() {
         if (null == instance) {
             instance = factory.get();
+            invoke(instance, PostConstruct.class);
         }
         return instance;
+    }
+
+    private void invoke(final T t, final Class<? extends Annotation> annotation) {
+        Class<?> c = t.getClass();
+        while (c != null && c != Object.class) {
+            invoke(t, c, annotation);
+            c = c.getSuperclass();
+        }
+    }
+
+    private void invoke(final T t, final Class<?> c, final Class<? extends Annotation> annotation) {
+        final Set<Method> candidates = stream(c.getDeclaredMethods())
+                .filter(it -> it.getAnnotation(annotation) != null)
+                .collect(toSet());
+        if (candidates.isEmpty()) {
+            return;
+        }
+        if (candidates.size() > 1) {
+            throw new TestEEfiException("Only one @" + annotation.getSimpleName() + " method is allowed per class");
+        }
+        // TODO check for correct modifiers etc.
+        final Method method = candidates.iterator().next();
+        method.setAccessible(true);
+        try {
+            method.invoke(t);
+        } catch (final IllegalAccessException | InvocationTargetException e) {
+            throw new TestEEfiException("Failed to invoke @" + annotation.getSimpleName() + " method " + method, e);
+        }
     }
 }
