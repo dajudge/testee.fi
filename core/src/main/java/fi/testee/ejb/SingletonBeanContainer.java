@@ -30,8 +30,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toSet;
@@ -40,6 +38,7 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
     private final Provider<T> factory;
     private final T proxyInstance;
     private T instance;
+    private InterceptorChain chain;
 
     public SingletonBeanContainer(
             final Class<T> clazz,
@@ -47,43 +46,41 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
             final InterceptorChain chain
     ) {
         this.factory = factory;
-        proxyInstance = createProxy(clazz, this::instance, chain);
+        proxyInstance = createProxy(clazz, chain);
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> T createProxy(
+    private T createProxy(
             final Class<T> clazz,
-            final Supplier<T> producer,
             final InterceptorChain chain
     ) {
+        this.chain = chain;
         try {
             final ProxyFactory proxyFactory = new ProxyFactory();
             proxyFactory.setSuperclass(clazz);
             proxyFactory.setFilter(m -> m.getDeclaringClass() != Object.class);
             final Class<T> proxyClass = proxyFactory.createClass();
             final Object instance = proxyClass.newInstance();
-            ((ProxyObject) instance).setHandler(methodHandler(producer, chain));
+            ((ProxyObject) instance).setHandler(methodHandler());
             return (T) instance;
         } catch (final IllegalAccessException | InstantiationException e) {
             throw new TestEEfiException("Failed to create proxy instance of " + clazz, e);
         }
     }
 
-    private static <T> MethodHandler methodHandler(
-            final Supplier<T> producer,
-            final InterceptorChain interceptorChain
-    ) {
-        return (self, thisMethod, proceed, args) -> {
-            final T target = producer.get();
-            return interceptorChain.invoke(target, thisMethod, args,
-                    () -> {
-                        try {
-                            return thisMethod.invoke(target, args);
-                        } catch (final InvocationTargetException e) {
-                            throw e.getTargetException();
-                        }
-                    });
-        };
+    private MethodHandler methodHandler() {
+        return (self, thisMethod, proceed, args) -> invokeIntercepted(args, instance(), thisMethod);
+    }
+
+    private Object invokeIntercepted(final Object[] args, T target, Method method) throws Throwable {
+        return chain.invoke(target, method, args,
+                () -> {
+                    try {
+                        return method.invoke(target, args);
+                    } catch (final InvocationTargetException e) {
+                        throw e.getTargetException();
+                    }
+                });
     }
 
     @Override
@@ -114,12 +111,12 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
     private void invoke(final T t, final Class<? extends Annotation> annotation) {
         Class<?> c = t.getClass();
         while (c != null && c != Object.class) {
-            invoke(t, c, annotation);
+            invoke(t, c, annotation, chain);
             c = c.getSuperclass();
         }
     }
 
-    private void invoke(final T t, final Class<?> c, final Class<? extends Annotation> annotation) {
+    private void invoke(final T t, final Class<?> c, final Class<? extends Annotation> annotation, final InterceptorChain chain) {
         final Set<Method> candidates = stream(c.getDeclaredMethods())
                 .filter(it -> it.getAnnotation(annotation) != null)
                 .collect(toSet());
@@ -133,8 +130,8 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
         final Method method = candidates.iterator().next();
         method.setAccessible(true);
         try {
-            method.invoke(t);
-        } catch (final IllegalAccessException | InvocationTargetException e) {
+            invokeIntercepted(new Object[]{}, t, method);
+        } catch (final Throwable e) {
             throw new TestEEfiException("Failed to invoke @" + annotation.getSimpleName() + " method " + method, e);
         }
     }
