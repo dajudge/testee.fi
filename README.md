@@ -48,3 +48,17 @@ public class MyTest {
 	}
 }
 ```
+
+## Introduction and tutorials
+The series of blog articles "Functional testing Java-EE applications with TestEE.fi" serves the purpose of introductory tutorials
+very well:
+* [Part 1: Introduction](https://blog.it-stockinger.de/2017/07/28/functional-testing-java-ee-applications-with-testeefi-part-1-introduction/)
+* Part 2: Mocking with Mockito and EasyMock (coming soon)
+* Part 3: JDBC and JPA (coming soon)
+* Part 4: Cucumber JVM (coming soon)
+* Part 5: JAX-RS and REST resources (coming soon)
+* Part 6: JUnit 5 (coming soon)
+
+## Example projects
+There's also a number of example projects based on a Gradle build that
+demonstrate the usage of TestEE.fi. You can find them in a [separate repository](https://github.com/dajudge/testee.fi-examples). 
