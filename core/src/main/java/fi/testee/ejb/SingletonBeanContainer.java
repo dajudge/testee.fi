@@ -65,7 +65,7 @@ public class SingletonBeanContainer<T> implements ResourceReferenceFactory<T> {
             ((ProxyObject) instance).setHandler(methodHandler(producer, chain));
             return (T) instance;
         } catch (final IllegalAccessException | InstantiationException e) {
-            throw new TestEEfiException("Failed to create proxy instance of" + clazz, e);
+            throw new TestEEfiException("Failed to create proxy instance of " + clazz, e);
         }
     }
 
