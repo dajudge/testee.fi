@@ -24,6 +24,10 @@ import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static fi.testee.deployment.DeploymentImpl.UNMODIFIED;
+import static java.util.Collections.emptySet;
+import static org.jboss.weld.bootstrap.api.Environments.SE;
+
 /**
  * The holder of the static test runtime context. The class is thread safe.
  *
@@ -51,7 +55,7 @@ public class TestRuntime {
 
     private TestRuntime() {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
-        realm = new DependencyInjectionRealm(serviceRegistry, beanArchiveDiscovery, Environments.SE);
+        realm = new DependencyInjectionRealm(serviceRegistry, beanArchiveDiscovery, SE, emptySet(), UNMODIFIED);
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {

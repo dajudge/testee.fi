@@ -13,57 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee;
+package fi.testee.util.nopostconstruct;
 
 import fi.testee.runtime.TestRuntime;
 import fi.testee.runtime.TestSetup;
+import fi.testee.util.nopostconstruct.annotation.NoPostConstructFor;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
-import java.util.function.Supplier;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
-public class LifecycleTest {
-    private TestSetup.TestContext context;
+public class NoPostConstructTest {
+
     private TestSetup testSetup;
     private TestBean root;
+    private TestSetup.TestContext context;
 
-    public void setup() {
+    @Before
+    public void setup() throws NoSuchMethodException {
         testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
         root = new TestBean();
-        context = testSetup.prepareTestInstance("myInstance", root, null);
+        context = testSetup.prepareTestInstance("myInstance", root, getClass().getMethod("annotatedMethod"));
     }
 
-    @Test
-    public void lifecycle_works_with_ejb() {
-        assertLifecycle(() -> root.getSessionBean());
+    @NoPostConstructFor({SessionBean.class, ManagedBean.class})
+    public void annotatedMethod() {
     }
 
-    @Test
-    public void lifecycle_works_with_cdi() {
-        assertLifecycle(() -> root.getManagedBean());
-    }
-
-    @Test
-    public void lifecycle_works_with_testInstance() {
-        assertLifecycle(() -> root);
-    }
-
-    private void assertLifecycle(final Supplier<AbstractBaseBean> beanSupplier) {
-        setup();
-        try {
-            assertTrue(beanSupplier.get().isPostConstructed());
-        } finally {
-            shutdown();
-        }
-        assertTrue(beanSupplier.get().isPreDestroyed());
-    }
-
+    @After
     public void shutdown() {
         if (context != null) {
             context.shutdown();
@@ -73,50 +56,50 @@ public class LifecycleTest {
         }
     }
 
-    public static abstract class AbstractBaseBean {
+    @Test
+    public void works_for_ejbs() {
+        assertFalse(root.getSessionBean().isPostConstructed());
+    }
+
+    @Test
+    public void works_for_cdi() {
+        assertFalse(root.getManagedBean().isPostConstructed());
+    }
+
+    public abstract static class BaseBean {
         private boolean postConstructed;
-        private boolean preDestroyed;
 
         @PostConstruct
-        private void postConstruct() {
+        public void postConstruct() {
             postConstructed = true;
-        }
-
-        @PreDestroy
-        public void preDestroy() {
-            preDestroyed = true;
         }
 
         public boolean isPostConstructed() {
             return postConstructed;
         }
-
-        public boolean isPreDestroyed() {
-            return preDestroyed;
-        }
     }
 
     @Singleton
-    public static class SessionBean extends AbstractBaseBean {
+    public static class SessionBean extends BaseBean {
 
     }
 
-    public static class ManagedBean extends AbstractBaseBean {
+    public static class ManagedBean extends BaseBean {
 
     }
 
-    public static class TestBean extends AbstractBaseBean {
+    public static class TestBean {
         @EJB
         private SessionBean sessionBean;
         @Inject
         private ManagedBean managedBean;
 
-        public ManagedBean getManagedBean() {
-            return managedBean;
-        }
-
         public SessionBean getSessionBean() {
             return sessionBean;
+        }
+
+        public ManagedBean getManagedBean() {
+            return managedBean;
         }
     }
 }

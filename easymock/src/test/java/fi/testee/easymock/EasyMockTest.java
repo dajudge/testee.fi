@@ -68,7 +68,7 @@ public class EasyMockTest {
         final TestBean testClassInstance = new TestBean();
 
         // When
-        final TestSetup.TestContext context = testSetup.prepareTestInstance("myInstance", testClassInstance);
+        final TestSetup.TestContext context = testSetup.prepareTestInstance("myInstance", testClassInstance, null);
         if (cdiMockCount > 0) {
             expect(testClassInstance.cdiMock.doIt()).andReturn("lolcats").times(cdiMockCount);
         }

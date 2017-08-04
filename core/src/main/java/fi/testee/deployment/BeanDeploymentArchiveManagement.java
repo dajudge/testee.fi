@@ -52,13 +52,4 @@ public class BeanDeploymentArchiveManagement {
         }
         return archives;
     }
-
-    public BeanDeploymentArchive findByClass(final Class<?> aClass) {
-        for (final BeanDeploymentArchive archive : archives) {
-            if (archive.getBeanClasses().contains(aClass.getName())) {
-                return archive;
-            }
-        }
-        return null;
-    }
 }

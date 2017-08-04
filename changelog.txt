@@ -2,6 +2,7 @@ Version 0.4.0
 - Vastly improved bean lifecycle management
 - Interceptors for @PostConstruct and @PreDestroy
 - Using bytebuddy for proxying
+- Support for @NoPostConstructFor method annotation for JUnit 4 & 5
 
 Version 0.3.0
 - Improved bean lifecycle management

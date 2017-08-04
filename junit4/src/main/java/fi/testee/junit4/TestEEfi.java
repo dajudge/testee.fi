@@ -63,7 +63,7 @@ public class TestEEfi extends BlockJUnit4ClassRunner {
                 + method.getMethod().toString()
                 + ":"
                 + System.identityHashCode(target);
-        final TestSetup.TestContext context = testSetup.prepareTestInstance(instanceId, target);
+        final TestSetup.TestContext context = testSetup.prepareTestInstance(instanceId, target, method.getMethod());
         instances.put(method, context);
 
     }

@@ -1,0 +1,12 @@
+apply plugin: 'java'
+
+dependencies {
+    compile libWeld
+    compile libSlf4j
+    compile project(":common")
+    compile project(":core-spi")
+
+    testCompile libJUnit4
+    testCompile libLogback
+    testCompile project(":core")
+}

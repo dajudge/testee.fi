@@ -69,7 +69,11 @@ public class TestEEfi implements
     @Override
     public void postProcessTestInstance(final Object testInstance, final ExtensionContext context) throws Exception {
         final TestSetup testSetup = (TestSetup) context.getStore(NS).get(TestSetup.class);
-        final TestSetup.TestContext testContext = testSetup.prepareTestInstance(randomUUID().toString(), testInstance);
+        final TestSetup.TestContext testContext = testSetup.prepareTestInstance(
+                randomUUID().toString(),
+                testInstance,
+                context.getTestMethod().orElse(null)
+        );
         context.getStore(NS).put(TestSetup.TestContext.class, testContext);
     }
 

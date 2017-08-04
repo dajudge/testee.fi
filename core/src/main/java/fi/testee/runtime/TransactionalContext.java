@@ -16,7 +16,6 @@
 package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchiveDiscovery;
-import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.ejb.EjbContainer;
 import fi.testee.jpa.PersistenceUnitDiscovery;
 import fi.testee.services.EjbInjectionServicesImpl;
@@ -27,6 +26,7 @@ import fi.testee.services.ProxyServicesImpl;
 import fi.testee.services.ResourceInjectionServicesImpl;
 import fi.testee.services.SecurityServicesImpl;
 import fi.testee.services.TransactionServicesImpl;
+import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
@@ -34,6 +34,7 @@ import fi.testee.spi.ResourceProvider;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
+import org.jboss.weld.bootstrap.spi.Metadata;
 import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
@@ -51,13 +52,13 @@ import javax.annotation.Resource;
 import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.spi.Extension;
 import javax.inject.Inject;
 import javax.persistence.PersistenceContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import static java.util.Arrays.asList;
 
@@ -83,7 +84,9 @@ public class TransactionalContext {
 
     public void initialize(
             final EjbContainer.SessionBeanModifier sessionBeanModifier,
-            final Map<String, Object> additionalResources
+            final Map<String, Object> additionalResources,
+            final Collection<Metadata<Extension>> extensions,
+            final BeansXmlModifier beansXmlModifier
     ) {
         LOG.trace("Creating new transactional context for {}", testSetupClass);
         resourceProviders = new ArrayList<>();
@@ -105,7 +108,9 @@ public class TransactionalContext {
                         ejbContainer::createInstance
                 ),
                 beanArchiveDiscovery,
-                Environments.EE_INJECT
+                Environments.EE_INJECT,
+                extensions,
+                beansXmlModifier
         );
     }
 
@@ -207,14 +212,14 @@ public class TransactionalContext {
     }
 
     private void shutdown(final boolean rollback) {
-        if(realm != null) {
+        if (realm != null) {
             realm.getServiceRegistry().get(JpaInjectionServicesImpl.class).flush();
         }
-        if(ejbContainer != null) {
+        if (ejbContainer != null) {
             ejbContainer.shutdown();
         }
         resourceProviders.forEach(it -> it.shutdown(rollback));
-        if(realm != null) {
+        if (realm != null) {
             realm.shutdown();
         }
     }

@@ -9,6 +9,7 @@ dependencies {
     compile project(":flyway")
     compile project(":liquibase")
     compile project(":eclipselink")
+    compile project(":util-nopostconstruct")
 
     testCompile libLogback
     testCompile libGroovy

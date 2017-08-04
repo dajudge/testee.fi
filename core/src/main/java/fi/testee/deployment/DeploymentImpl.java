@@ -15,6 +15,7 @@
  */
 package fi.testee.deployment;
 
+import fi.testee.spi.BeansXmlModifier;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
 import org.jboss.weld.bootstrap.spi.CDI11Deployment;
@@ -22,7 +23,9 @@ import org.jboss.weld.bootstrap.spi.Metadata;
 
 import javax.enterprise.inject.spi.Extension;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Map;
+
+import static java.util.stream.Collectors.toMap;
 
 /**
  * Implementation of the {@link CDI11Deployment}, which is basically tying together the service
@@ -32,8 +35,10 @@ import java.util.Collections;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class DeploymentImpl implements CDI11Deployment {
+    public static BeansXmlModifier UNMODIFIED = it -> it;
     private final ServiceRegistry serviceRegistry;
-    private final BeanDeploymentArchiveManagement bdaManagement;
+    private final Collection<Metadata<Extension>> extensions;
+    private final Map<BeanDeploymentArchive, BeanDeploymentArchive> archives;
 
     /**
      * Constructor.
@@ -43,25 +48,41 @@ public class DeploymentImpl implements CDI11Deployment {
      */
     public DeploymentImpl(
             final BeanDeploymentArchiveManagement bdaManagement,
-            final ServiceRegistry serviceRegistry
+            final ServiceRegistry serviceRegistry,
+            final Collection<Metadata<Extension>> extensions,
+            final BeansXmlModifier modifier
     ) {
-        this.bdaManagement = bdaManagement;
+        archives = bdaManagement.getArchives().stream()
+                .collect(toMap(
+                        it -> it,
+                        it -> new WrappedBeanDeploymentArchive(it, modifier, this::mapper)
+                ));
         this.serviceRegistry = serviceRegistry;
+        this.extensions = extensions;
+    }
+
+    private BeanDeploymentArchive mapper(final BeanDeploymentArchive bda) {
+        return archives.get(bda);
     }
 
     @Override
-    public BeanDeploymentArchive getBeanDeploymentArchive(Class<?> aClass) {
+    public BeanDeploymentArchive getBeanDeploymentArchive(final Class<?> aClass) {
         return null;
     }
 
     @Override
     public Collection<BeanDeploymentArchive> getBeanDeploymentArchives() {
-        return bdaManagement.getArchives();
+        return archives.values();
     }
 
     @Override
     public BeanDeploymentArchive loadBeanDeploymentArchive(final Class<?> aClass) {
-        return bdaManagement.findByClass(aClass);
+        for (final BeanDeploymentArchive archive : getBeanDeploymentArchives()) {
+            if (archive.getBeanClasses().contains(aClass.getName())) {
+                return archive;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -71,6 +92,6 @@ public class DeploymentImpl implements CDI11Deployment {
 
     @Override
     public Iterable<Metadata<Extension>> getExtensions() {
-        return Collections.emptyList();
+        return extensions;
     }
 }

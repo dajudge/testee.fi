@@ -68,7 +68,7 @@ public class InjectMockTest {
         final TestBean testClassInstance = new TestBean();
 
         // When
-        final TestSetup.TestContext context = testSetup.prepareTestInstance("myInstance", testClassInstance);
+        final TestSetup.TestContext context = testSetup.prepareTestInstance("myInstance", testClassInstance, null);
         when(testClassInstance.cdiMock.doIt()).thenReturn("lolcats");
         when(testClassInstance.ejbMock.doIt()).thenReturn("lolcats");
 

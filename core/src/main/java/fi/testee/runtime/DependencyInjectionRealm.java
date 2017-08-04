@@ -20,8 +20,8 @@ import fi.testee.deployment.BeanDeploymentArchiveManagement;
 import fi.testee.deployment.DeploymentImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.services.TransactionServicesImpl;
+import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.DependencyInjection;
-import fi.testee.spi.ReleaseCallback;
 import fi.testee.spi.ReleaseCallbackHandler;
 import org.jboss.weld.Container;
 import org.jboss.weld.bean.AbstractClassBean;
@@ -29,6 +29,7 @@ import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.bootstrap.api.Bootstrap;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
+import org.jboss.weld.bootstrap.spi.Metadata;
 import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.context.api.ContextualInstance;
 import org.jboss.weld.manager.BeanManagerImpl;
@@ -39,9 +40,9 @@ import org.slf4j.LoggerFactory;
 import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.InjectionTarget;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -64,7 +65,9 @@ public class DependencyInjectionRealm implements DependencyInjection {
     DependencyInjectionRealm(
             final ServiceRegistry serviceRegistry,
             final BeanArchiveDiscovery beanArchiveDiscovery,
-            final Environments environment
+            final Environments environment,
+            final Collection<Metadata<Extension>> extensions,
+            final BeansXmlModifier beansXmlModifier
     ) {
         LOG.trace("Starting dependency injection realm {}", contextId);
         ensureTransactionServices(serviceRegistry);
@@ -72,7 +75,7 @@ public class DependencyInjectionRealm implements DependencyInjection {
                 beanArchiveDiscovery,
                 serviceRegistry
         );
-        deployment = new DeploymentImpl(bdaManagement, serviceRegistry);
+        deployment = new DeploymentImpl(bdaManagement, serviceRegistry, extensions, beansXmlModifier);
         bootstrap = new WeldBootstrap()
                 .startContainer(contextId, environment, deployment)
                 .startInitialization()

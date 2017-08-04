@@ -21,6 +21,7 @@ import fi.testee.runtime.TestRuntime;
 import fi.testee.runtime.TestSetup;
 import org.junit.Before;
 
+import java.lang.reflect.Method;
 import java.util.Iterator;
 
 import static java.util.Collections.emptyList;
@@ -46,12 +47,12 @@ public abstract class BaseDependencyInjectionTest<T> {
     }
 
     @Before
-    public void setup() {
+    public void setup() throws NoSuchMethodException {
         reset();
         TestInterceptor.INVOCATIONS.clear();
         testSetup = new TestSetup(clazz, TestRuntime.instance());
         root = instance();
-        context = testSetup.prepareTestInstance("myInstance", root);
+        context = testSetup.prepareTestInstance("myInstance", root, null);
     }
 
     public void shutdown() {

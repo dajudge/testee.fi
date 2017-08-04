@@ -48,7 +48,8 @@ public class PersistenceUnitTest {
     private void check(Runnable r) {
         TestSetup.TestContext context = testSetup.prepareTestInstance(
                 "myInstance",
-                testClassInstance
+                testClassInstance,
+                null
         );
         try {
             r.run();

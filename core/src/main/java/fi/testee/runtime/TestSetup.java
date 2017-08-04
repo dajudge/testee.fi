@@ -22,6 +22,8 @@ import fi.testee.services.ResourceInjectionServicesImpl;
 import fi.testee.spi.AnnotationScanner;
 import fi.testee.spi.BeanModifier;
 import fi.testee.spi.BeanModifierFactory;
+import fi.testee.spi.BeansXmlModifier;
+import fi.testee.spi.CdiExtensionFactory;
 import fi.testee.spi.ConnectionFactory;
 import fi.testee.spi.DataSourceMigrator;
 import fi.testee.spi.DependencyInjection;
@@ -31,20 +33,27 @@ import fi.testee.spi.SessionBeanFactory;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
+import org.jboss.weld.bootstrap.spi.BeansXml;
+import org.jboss.weld.bootstrap.spi.Metadata;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.Extension;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import static fi.testee.deployment.DeploymentImpl.UNMODIFIED;
 import static fi.testee.runtime.TestDataSetup.setupTestData;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -75,11 +84,16 @@ public class TestSetup {
         setupResources = createSetupResources(setupClass, runtime);
         final SimpleResourceProvider resourceProvider = new SimpleResourceProvider(setupResources);
         serviceRegistry.add(ResourceInjectionServices.class, new ResourceInjectionServicesImpl(asList(resourceProvider)));
-        realm = new DependencyInjectionRealm(serviceRegistry, runtime.getBeanArchiveDiscorvery(), Environments.SE);
+        realm = new DependencyInjectionRealm(
+                serviceRegistry,
+                runtime.getBeanArchiveDiscorvery(),
+                Environments.SE,
+                emptySet(),
+                UNMODIFIED);
         final Releaser releaser = new Releaser();
         final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class, releaser);
         try {
-            txContext.initialize(EjbContainer.IDENTITY_SESSION_BEAN_MODIFIER, emptyMap());
+            txContext.initialize(EjbContainer.IDENTITY_SESSION_BEAN_MODIFIER, emptyMap(), emptySet(), UNMODIFIED);
             txContext.run((clazz, testDataSetupRealm) -> {
                 final Set<DataSourceMigrator> migrators = testDataSetupRealm.getInstancesOf(DataSourceMigrator.class, releaser);
                 DatabaseMigration.migrateDataSources(clazz, migrators, testDataSetupRealm.getServiceRegistry());
@@ -118,14 +132,14 @@ public class TestSetup {
     }
 
 
-    public TestContext prepareTestInstance(final String id, final Object testInstance) {
+    public TestContext prepareTestInstance(final String id, final Object testInstance, final Method method) {
         LOG.debug("Instantiating test run '{}' for class {}", id, testInstance.getClass().getName());
         final Releaser instanceReleaser = new Releaser();
-        final Set<BeanModifier> beanModifiers = realm.getInstancesOf(BeanModifierFactory.class, instanceReleaser).stream()
-                .map(it -> it.createBeanModifier(testInstance))
-                .collect(toSet());
+        final Set<BeanModifier> beanModifiers = beanModifiers(testInstance, instanceReleaser);
         final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class, instanceReleaser);
-        txContext.initialize(new SessionBeanModifierImpl(beanModifiers), setupResources);
+        final Collection<Metadata<Extension>> extensions = instanceExtensions(method, instanceReleaser);
+        final BeansXmlModifier beansXmlModifier = beansXmlModifiers(realm, instanceReleaser);
+        txContext.initialize(new SessionBeanModifierImpl(beanModifiers), setupResources, extensions, beansXmlModifier);
         txContext.run((clazz, testInstanceRealm) -> {
             testInstanceRealm.getAllBeans().forEach(modifyCdiBeans(beanModifiers));
             testInstanceRealm.inject(testInstance, instanceReleaser);
@@ -151,6 +165,45 @@ public class TestSetup {
             @Override
             public String getId() {
                 return id;
+            }
+        };
+    }
+
+    private BeansXmlModifier beansXmlModifiers(final DependencyInjectionRealm realm, final Releaser releaser) {
+        final Set<BeansXmlModifier> modifiers = realm.getInstancesOf(BeansXmlModifier.class, releaser);
+        return beansXml -> {
+            BeansXml ret = beansXml;
+            for (final BeansXmlModifier modifier : modifiers) {
+                ret = modifier.apply(ret);
+            }
+            return ret;
+        };
+    }
+
+    private Set<BeanModifier> beanModifiers(final Object testInstance, final Releaser releaser) {
+        return realm.getInstancesOf(BeanModifierFactory.class, releaser).stream()
+                .map(it -> it.createBeanModifier(testInstance))
+                .collect(toSet());
+    }
+
+    private Collection<Metadata<Extension>> instanceExtensions(final Method method, final Releaser releaser) {
+        return realm.getInstancesOf(CdiExtensionFactory.class, releaser).stream()
+                .map(factory -> factory.create(method))
+                .filter(Objects::nonNull)
+                .map(this::testExtension)
+                .collect(toSet());
+    }
+
+    private Metadata<Extension> testExtension(final Extension instance) {
+        return new Metadata<Extension>() {
+            @Override
+            public Extension getValue() {
+                return instance;
+            }
+
+            @Override
+            public String getLocation() {
+                return "TestEE.fi-extension:" + instance.getClass().getName();
             }
         };
     }
