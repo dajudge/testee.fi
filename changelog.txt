@@ -1,3 +1,8 @@
+Version 0.4.0
+- Vastly improved bean lifecycle management
+- Interceptors for @PostConstruct and @PreDestroy
+- Using bytebuddy for proxying
+
 Version 0.3.0
 - Improved bean lifecycle management
 - Switched to using @PreDestroy for connection factory cleanup
