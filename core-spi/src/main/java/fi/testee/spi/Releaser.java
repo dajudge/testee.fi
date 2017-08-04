@@ -15,19 +15,26 @@
  */
 package fi.testee.spi;
 
-import org.jboss.weld.context.CreationalContextImpl;
+import java.util.Collection;
+import java.util.HashSet;
 
-import java.util.Set;
+public class Releaser implements ReleaseCallbackHandler {
+    private final Collection<ReleaseCallback> releaseCallbacks = new HashSet<>();
 
-/**
- * Access to dependency injection.
- *
- * @author Alex Stockinger, IT-Stockinger
- */
-public interface DependencyInjection {
-    <T> Set<T> getInstancesOf(Class<T> clazz, ReleaseCallbackHandler handler);
+    @Override
+    public void add(final ReleaseCallback r) {
+        synchronized (this) {
+            releaseCallbacks.add(r);
+        }
+    }
 
-    <T> T getInstanceOf(Class<T> clazz, ReleaseCallbackHandler handler);
+    public void release() {
+        copy().forEach(ReleaseCallback::release);
+    }
 
-    <T> void inject(T o, ReleaseCallbackHandler handler);
+    private HashSet<ReleaseCallback> copy() {
+        synchronized (this) {
+            return new HashSet<>(releaseCallbacks);
+        }
+    }
 }

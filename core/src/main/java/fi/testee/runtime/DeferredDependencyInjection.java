@@ -16,6 +16,7 @@
 package fi.testee.runtime;
 
 import fi.testee.spi.DependencyInjection;
+import fi.testee.spi.ReleaseCallbackHandler;
 
 import java.util.Set;
 import java.util.function.Supplier;
@@ -28,17 +29,17 @@ class DeferredDependencyInjection implements DependencyInjection {
     }
 
     @Override
-    public <T> Set<T> getInstancesOf(final Class<T> clazz) {
-        return di.get().getInstancesOf(clazz);
+    public <T> Set<T> getInstancesOf(final Class<T> clazz, final ReleaseCallbackHandler releaser) {
+        return di.get().getInstancesOf(clazz, releaser);
     }
 
     @Override
-    public <T> T getInstanceOf(final Class<T> clazz) {
-        return di.get().getInstanceOf(clazz);
+    public <T> T getInstanceOf(final Class<T> clazz, final ReleaseCallbackHandler releaser) {
+        return di.get().getInstanceOf(clazz, releaser);
     }
 
     @Override
-    public void inject(final Object o) {
-        di.get().inject(o);
+    public <T> void inject(final T o, final ReleaseCallbackHandler releaser) {
+        di.get().inject(o, releaser);
     }
 }

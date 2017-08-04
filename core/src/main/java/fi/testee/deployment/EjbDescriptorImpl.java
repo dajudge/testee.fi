@@ -15,9 +15,9 @@
  */
 package fi.testee.deployment;
 
-import fi.testee.ejb.EjbBridge;
+import fi.testee.ejb.EjbContainer;
 import fi.testee.exceptions.TestEEfiException;
-import org.jboss.weld.context.CreationalContextImpl;
+import fi.testee.spi.Releaser;
 import org.jboss.weld.ejb.spi.BusinessInterfaceDescriptor;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.ejb.spi.InterceptorBindings;
@@ -27,23 +27,19 @@ import javax.ejb.Remove;
 import javax.ejb.Singleton;
 import javax.ejb.Stateful;
 import javax.ejb.Stateless;
-import javax.enterprise.context.spi.Contextual;
-import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.inject.spi.InterceptionType;
 import javax.enterprise.inject.spi.Interceptor;
 import javax.interceptor.InvocationContext;
-import javax.naming.Context;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
+import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 
 public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
@@ -91,7 +87,11 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
     @Override
     public Collection<Method> getRemoveMethods() {
         // TODO implement this
-        return Collections.emptySet();
+        try {
+            return asList(getClass().getMethod("getRemoveMethods"));
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -128,14 +128,17 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
         Object run() throws Throwable;
     }
 
-    public InterceptorChain getInterceptorChain(final EjbBridge.ContextFactory contextFactory) {
+    public InterceptorChain getInterceptorChain(
+            final EjbContainer.ContextFactory contextFactory
+    ) {
         return new InterceptorChain() {
             @Override
             public <T> Object invoke(
                     final Object target,
                     final Method method,
                     final Object[] args,
-                    final ChainEnd<T> next
+                    final ChainEnd<T> next,
+                    final InterceptionType interceptionType
             ) throws Throwable {
                 if (interceptorBindings == null) {
                     return next.invoke();
@@ -146,7 +149,8 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
                         method,
                         args,
                         contextFactory,
-                        next
+                        next,
+                        interceptionType
                 );
             }
         };
@@ -158,21 +162,28 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
             final Object target,
             final Method method,
             final Object[] args,
-            final EjbBridge.ContextFactory contextFactory,
-            final InterceptorChain.ChainEnd<T> next
+            final EjbContainer.ContextFactory contextFactory,
+            final InterceptorChain.ChainEnd<T> next,
+            final InterceptionType interceptionType
     ) throws Throwable {
         if (chain.isEmpty()) {
             return next.invoke();
         }
         final Interceptor<Object> it = (Interceptor<Object>) chain.remove(0);
-        return intercept(
-                it,
-                it.create(contextFactory.create(it)),
-                target,
-                method,
-                args,
-                () -> processInterceptorChain(chain, target, method, args, contextFactory, next)
-        );
+        final Releaser releaser = new Releaser();
+        try {
+            return intercept(
+                    it,
+                    it.create(contextFactory.create(it, releaser)),
+                    target,
+                    method,
+                    args,
+                    () -> processInterceptorChain(chain, target, method, args, contextFactory, next, interceptionType),
+                    interceptionType
+            );
+        } finally {
+            releaser.release();
+        }
     }
 
     private <T> Object intercept(
@@ -181,12 +192,13 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
             final Object target,
             final Method method,
             final Object[] args,
-            final Proceed proceed
+            final Proceed proceed,
+            final InterceptionType interceptionType
     ) throws Exception {
         return it.intercept(
-                InterceptionType.AROUND_INVOKE,
+                interceptionType,
                 instance,
-                context(target, method, args, proceed)
+                context(target, interceptionType == InterceptionType.AROUND_INVOKE ? method : null, args, proceed)
         );
     }
 
@@ -243,5 +255,10 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
                 }
             }
         };
+    }
+
+    @Override
+    public String toString() {
+        return "EjbDescriptorImpl for " + clazz;
     }
 }

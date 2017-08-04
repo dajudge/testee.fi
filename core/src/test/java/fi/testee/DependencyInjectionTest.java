@@ -16,122 +16,139 @@
 package fi.testee;
 
 import fi.testee.deployment.BeanArchiveDiscovery;
-import fi.testee.interceptor.TestInterceptor;
 import fi.testee.interceptor.UseInterceptor;
 import fi.testee.jdbc.PlaygroundConnectionFactory;
 import fi.testee.jdbc.TestDataSource;
-import fi.testee.runtime.TestRuntime;
-import fi.testee.runtime.TestSetup;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.sql.DataSource;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static fi.testee.interceptor.TestInterceptor.Type.AROUND_INVOKE;
+import static fi.testee.interceptor.TestInterceptor.Type.POST_CONSTRUCT;
+import static fi.testee.interceptor.TestInterceptor.Type.PRE_DESTROY;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
-public class DependencyInjectionTest {
-    private TestBean root;
-    private TestSetup.TestContext context;
-    private TestSetup testSetup;
-
-    @Before
-    public void setup() {
-        TestInterceptor.INVOCATIONS.clear();
-        testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
-        root = new TestBean();
-        context = testSetup.prepareTestInstance("myInstance", root);
-    }
-
-    @After
-    public void shutdown() {
-        if (context != null) {
-            context.shutdown();
-        }
-        if (testSetup != null) {
-            testSetup.shutdown();
-        }
+public class DependencyInjectionTest extends BaseDependencyInjectionTest<DependencyInjectionTest.TestBean> {
+    public DependencyInjectionTest() {
+        super(TestBean.class);
     }
 
     @Test
     public void cdi_in_root_via_inject() {
-        assertNotNull(root.getCdiInRootViaInject());
+        runTest(() -> {
+            assertNotNull(root.getCdiInRootViaInject());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT);
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
     }
 
     @Test
     public void ejb_in_root_via_ejb() {
-        assertNotNull(root.getEjbInRootViaEjb());
+        runTest(() -> {
+            assertNotNull(root.getEjbInRootViaEjb());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT);
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
     }
 
     @Test
     public void ejb_in_cdi_via_inject() {
-        assertNotNull(root.getCdiInRootViaInject().getEjbInCdiViaInject());
-        ensureInterception(ExampleBean1.class, "getEjbInCdiViaInject");
+        runTest(() -> {
+            assertNotNull(root.getCdiInRootViaInject().getEjbInCdiViaInject());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT);
+            ensureInterception(ExampleBean1.class, "getEjbInCdiViaInject", AROUND_INVOKE);
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
     }
 
     @Test
     public void ejb_in_ejb_via_inject() {
-        assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaInject());
-        ensureInterception(SessionBean1.class, "getEjbInEjbViaInject");
+        runTest(() -> {
+            assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaInject());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT); // TODO can't this happen lazily?
+            ensureInterception(SessionBean1.class, "getEjbInEjbViaInject", AROUND_INVOKE);
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
+
     }
 
     @Test
     public void ejb_in_ejb_via_ejb() {
-        assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaEjb());
-        ensureInterception(SessionBean1.class, "getEjbInEjbViaEjb");
+        runTest(() -> {
+            assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaEjb());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT); // TODO can't this happen lazily?
+            ensureInterception(SessionBean1.class, "getEjbInEjbViaEjb", AROUND_INVOKE);
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
     }
 
     @Test
     public void resource_in_ejb() {
-        assertNotNull(root.getEjbInRootViaEjb().getResourceInEjb());
-        ensureInterception(SessionBean1.class, "getResourceInEjb");
+        runTest(() -> {
+            assertNotNull(root.getEjbInRootViaEjb().getResourceInEjb());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT); // TODO can't this happen lazily?
+            ensureInterception(SessionBean1.class, "getResourceInEjb", AROUND_INVOKE);
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
     }
 
     @Test
     public void resource_in_root() {
-        assertNotNull(root.getResourceInRoot());
+        runTest(() -> {
+            assertNotNull(root.getResourceInRoot());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT); // TODO can't this happen lazily?
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
     }
 
     @Test
     public void resource_in_cdi() {
-        assertNotNull(root.getCdiInRootViaInject().getResourceInCdi());
-        ensureInterception(ExampleBean1.class, "getResourceInCdi");
-    }
-
-    @Test
-    public void circular_ejb_reference() {
-        assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaEjb().getCircular());
-        ensureInterception(SessionBean1.class, "getEjbInEjbViaEjb");
-        ensureInterception(SessionBean2.class, "getCircular");
+        runTest(() -> {
+            assertNotNull(root.getCdiInRootViaInject().getResourceInCdi());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT);
+            ensureInterception(ExampleBean1.class, "getResourceInCdi", AROUND_INVOKE);
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
     }
 
     @Test
     public void bean_from_different_archive() {
-        assertNotNull(root.getBeanFromDifferentArchive());
+        runTest(() -> {
+            assertNotNull(root.getBeanFromDifferentArchive());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT);
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
     }
 
-    private void ensureInterception(final Class<?> target, final String methodName) {
-        assertFalse(TestInterceptor.INVOCATIONS.isEmpty());
-        final TestInterceptor.Invocation invocation = TestInterceptor.INVOCATIONS.remove(0);
-        assertTrue(target.isAssignableFrom(invocation.target.getClass()));
-        assertEquals(methodName, invocation.method.getName());
+    @Override
+    TestBean instance() {
+        return new TestBean();
     }
 
     @Stateless
     @UseInterceptor
     public static class SessionBean2 {
-        @EJB
-        private SessionBean2 circular;
+        @PostConstruct
+        public void postConstruct() {
+        }
 
-        public SessionBean2 getCircular() {
-            return circular;
+        @PreDestroy
+        public void preDestroy() {
         }
     }
 
@@ -164,6 +181,14 @@ public class DependencyInjectionTest {
         private SessionBean1 ejbInCdiViaInject;
         @Resource(mappedName = "testds")
         private DataSource resourceInCdi;
+
+        @PostConstruct
+        public void postConstruct() {
+        }
+
+        @PreDestroy
+        public void preDestroy() {
+        }
 
         public SessionBean1 getEjbInCdiViaInject() {
             return ejbInCdiViaInject;

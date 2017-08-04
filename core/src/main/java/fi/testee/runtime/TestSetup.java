@@ -15,7 +15,7 @@
  */
 package fi.testee.runtime;
 
-import fi.testee.ejb.EjbBridge;
+import fi.testee.ejb.EjbContainer;
 import fi.testee.jdbc.ConnectionFactoryManager;
 import fi.testee.jdbc.TestDataSource;
 import fi.testee.services.ResourceInjectionServicesImpl;
@@ -25,6 +25,8 @@ import fi.testee.spi.BeanModifierFactory;
 import fi.testee.spi.ConnectionFactory;
 import fi.testee.spi.DataSourceMigrator;
 import fi.testee.spi.DependencyInjection;
+import fi.testee.spi.ReleaseCallbackHandler;
+import fi.testee.spi.Releaser;
 import fi.testee.spi.SessionBeanFactory;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
@@ -55,9 +57,10 @@ public class TestSetup {
     private final DependencyInjectionRealm realm;
     private final Map<Class<? extends ConnectionFactory>, ConnectionFactory> connectionFactories = new HashMap<>();
     private final Map<String, Object> setupResources;
+    private Releaser setupReleaser = new Releaser();
 
     public interface TestContext {
-        <T> T create(Class<T> clazz);
+        <T> T create(Class<T> clazz, ReleaseCallbackHandler releaser);
 
         void shutdown();
 
@@ -73,19 +76,21 @@ public class TestSetup {
         final SimpleResourceProvider resourceProvider = new SimpleResourceProvider(setupResources);
         serviceRegistry.add(ResourceInjectionServices.class, new ResourceInjectionServicesImpl(asList(resourceProvider)));
         realm = new DependencyInjectionRealm(serviceRegistry, runtime.getBeanArchiveDiscorvery(), Environments.SE);
-
-        final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
+        final Releaser releaser = new Releaser();
+        final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class, releaser);
         try {
-            txContext.initialize(EjbBridge.IDENTITY_SESSION_BEAN_MODIFIER, emptyMap());
+            txContext.initialize(EjbContainer.IDENTITY_SESSION_BEAN_MODIFIER, emptyMap());
             txContext.run((clazz, testDataSetupRealm) -> {
-                final Set<DataSourceMigrator> migrators = testDataSetupRealm.getInstancesOf(DataSourceMigrator.class);
+                final Set<DataSourceMigrator> migrators = testDataSetupRealm.getInstancesOf(DataSourceMigrator.class, releaser);
                 DatabaseMigration.migrateDataSources(clazz, migrators, testDataSetupRealm.getServiceRegistry());
                 setupTestData(clazz, testDataSetupRealm.getServiceRegistry());
                 return null;
             });
             txContext.commit();
+            releaser.release();
         } catch (final RuntimeException e) {
             txContext.rollback();
+            releaser.release();
             shutdown();
             throw e;
         }
@@ -107,7 +112,7 @@ public class TestSetup {
 
     private synchronized ConnectionFactory connectionFactoryManager(TestDataSource testDataSource) {
         if (!connectionFactories.containsKey(testDataSource.factory())) {
-            connectionFactories.put(testDataSource.factory(), realm.getInstanceOf(testDataSource.factory()));
+            connectionFactories.put(testDataSource.factory(), realm.getInstanceOf(testDataSource.factory(), setupReleaser));
         }
         return connectionFactories.get(testDataSource.factory());
     }
@@ -115,21 +120,22 @@ public class TestSetup {
 
     public TestContext prepareTestInstance(final String id, final Object testInstance) {
         LOG.debug("Instantiating test run '{}' for class {}", id, testInstance.getClass().getName());
-        final Set<BeanModifier> beanModifiers = realm.getInstancesOf(BeanModifierFactory.class).stream()
+        final Releaser instanceReleaser = new Releaser();
+        final Set<BeanModifier> beanModifiers = realm.getInstancesOf(BeanModifierFactory.class, instanceReleaser).stream()
                 .map(it -> it.createBeanModifier(testInstance))
                 .collect(toSet());
-        final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class);
+        final TransactionalContext txContext = realm.getInstanceOf(TransactionalContext.class, instanceReleaser);
         txContext.initialize(new SessionBeanModifierImpl(beanModifiers), setupResources);
         txContext.run((clazz, testInstanceRealm) -> {
             testInstanceRealm.getAllBeans().forEach(modifyCdiBeans(beanModifiers));
-            testInstanceRealm.inject(testInstance);
+            testInstanceRealm.inject(testInstance, instanceReleaser);
             testInstanceRealm.postConstruct(testInstance);
             return null;
         });
         return new TestContext() {
             @Override
-            public <T> T create(final Class<T> clazz) {
-                return txContext.run((testSetupClass, realm) -> realm.getInstanceOf(clazz));
+            public <T> T create(final Class<T> clazz, final ReleaseCallbackHandler releaser) {
+                return txContext.run((testSetupClass, realm) -> realm.getInstanceOf(clazz, releaser));
             }
 
             @Override
@@ -138,6 +144,7 @@ public class TestSetup {
                     testInstanceRealm.preDestroy(testInstance);
                     return null;
                 });
+                instanceReleaser.release();
                 txContext.rollback();
             }
 
@@ -153,10 +160,11 @@ public class TestSetup {
     }
 
     public void shutdown() {
+        setupReleaser.release();
         realm.shutdown();
     }
 
-    private static class SessionBeanModifierImpl implements EjbBridge.SessionBeanModifier {
+    private static class SessionBeanModifierImpl implements EjbContainer.SessionBeanModifier {
         private final Set<BeanModifier> beanModifiers;
 
         SessionBeanModifierImpl(final Set<BeanModifier> beanModifiers) {

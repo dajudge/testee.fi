@@ -16,6 +16,7 @@
 package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchiveDiscovery;
+import fi.testee.spi.Releaser;
 import fi.testee.spi.RuntimeLifecycleListener;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
@@ -34,6 +35,7 @@ public class TestRuntime {
 
     private final BeanArchiveDiscovery beanArchiveDiscovery = new BeanArchiveDiscovery();
     private final DependencyInjectionRealm realm;
+    private final Releaser releaser = new Releaser();
 
     /**
      * Access to the singleton plugin registry.
@@ -50,9 +52,15 @@ public class TestRuntime {
     private TestRuntime() {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
         realm = new DependencyInjectionRealm(serviceRegistry, beanArchiveDiscovery, Environments.SE);
-        Runtime.getRuntime().addShutdownHook(new Thread(realm::shutdown));
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                releaser.release();
+                realm.shutdown();
+            }
+        });
         LOG.trace("Notifying runtime lifecycle listeners about start");
-        realm.getInstancesOf(RuntimeLifecycleListener.class).forEach(RuntimeLifecycleListener::onRuntimeStarted);
+        realm.getInstancesOf(RuntimeLifecycleListener.class, releaser).forEach(RuntimeLifecycleListener::onRuntimeStarted);
     }
 
     public BeanArchiveDiscovery getBeanArchiveDiscorvery() {

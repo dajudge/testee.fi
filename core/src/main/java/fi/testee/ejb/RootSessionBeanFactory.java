@@ -18,24 +18,34 @@ package fi.testee.ejb;
 import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.spi.SessionBeanFactory;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
+import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.function.Consumer;
+import java.util.Collection;
+import java.util.function.Function;
 
 public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
-    private final Consumer<? super T> injection;
+    private static final Logger LOG = LoggerFactory.getLogger(RootSessionBeanFactory.class);
+    private final Function<? super T, Collection<ResourceReference<?>>> injection;
     private final EjbDescriptorImpl<T> descriptor;
-    private final EjbBridge.ContextFactory contextFactory;
+    private final EjbContainer.ContextFactory contextFactory;
+    private SessionBeanLifecycleListener lifecycleListener;
 
     public RootSessionBeanFactory(
-            final Consumer<? super T> injection,
+            final Function<? super T, Collection<ResourceReference<?>>> injection,
             final EjbDescriptorImpl<T> descriptor,
-            final EjbBridge.ContextFactory contextFactory
+            final EjbContainer.ContextFactory contextFactory,
+            final SessionBeanLifecycleListener lifecycleListener
     ) {
         this.injection = injection;
         this.descriptor = descriptor;
         this.contextFactory = contextFactory;
+        this.lifecycleListener = lifecycleListener;
     }
 
     @Override
@@ -45,15 +55,25 @@ public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
 
     @Override
     public ResourceReferenceFactory<T> getResourceReferenceFactory() {
-        return new SingletonBeanContainer<>(descriptor.getBeanClass(), () -> {
-            try {
-                final T t = descriptor.getBeanClass().newInstance();
-                injection.accept(t);
-                return t;
-            } catch (final InstantiationException | IllegalAccessException e) {
-                throw new TestEEfiException("Failed to instantiate session bean", e);
-            }
-        }, descriptor.getInterceptorChain(contextFactory));
+        LOG.debug("Creating session bean holder for {}", descriptor.getBeanClass());
+        final SingletonHolder<T> singletonHolder = new SingletonHolder<>(
+                descriptor.getBeanClass(),
+                this::createNewInstance,
+                descriptor.getInterceptorChain(contextFactory)
+        );
+        singletonHolder.addLifecycleListener(lifecycleListener);
+        return singletonHolder;
+    }
+
+    private Pair<T, Collection<ResourceReference<?>>> createNewInstance() {
+        LOG.debug("Creating new instance of {}", descriptor.getBeanClass());
+        try {
+            final T t = descriptor.getBeanClass().newInstance();
+            final Collection<ResourceReference<?>> references = injection.apply(t);
+            return new ImmutablePair<>(t, references);
+        } catch (final InstantiationException | IllegalAccessException e) {
+            throw new TestEEfiException("Failed to instantiate session bean", e);
+        }
     }
 
 }

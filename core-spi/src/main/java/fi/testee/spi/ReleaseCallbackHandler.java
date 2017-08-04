@@ -15,19 +15,6 @@
  */
 package fi.testee.spi;
 
-import org.jboss.weld.context.CreationalContextImpl;
-
-import java.util.Set;
-
-/**
- * Access to dependency injection.
- *
- * @author Alex Stockinger, IT-Stockinger
- */
-public interface DependencyInjection {
-    <T> Set<T> getInstancesOf(Class<T> clazz, ReleaseCallbackHandler handler);
-
-    <T> T getInstanceOf(Class<T> clazz, ReleaseCallbackHandler handler);
-
-    <T> void inject(T o, ReleaseCallbackHandler handler);
+public interface ReleaseCallbackHandler {
+    void add(ReleaseCallback r);
 }

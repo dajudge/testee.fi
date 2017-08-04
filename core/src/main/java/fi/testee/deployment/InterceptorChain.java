@@ -15,6 +15,7 @@
  */
 package fi.testee.deployment;
 
+import javax.enterprise.inject.spi.InterceptionType;
 import java.lang.reflect.Method;
 import java.util.function.Function;
 
@@ -27,6 +28,7 @@ public interface InterceptorChain {
             Object target,
             Method method,
             Object[] args,
-            ChainEnd<T> next
+            ChainEnd<T> next,
+            InterceptionType interceptionType
     ) throws Throwable;
 }

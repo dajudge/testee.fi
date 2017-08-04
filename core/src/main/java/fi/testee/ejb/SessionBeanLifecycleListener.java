@@ -13,21 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.spi;
+package fi.testee.ejb;
 
-import org.jboss.weld.context.CreationalContextImpl;
+public interface SessionBeanLifecycleListener {
+    void constructed(SessionBeanHolder<?> holder);
 
-import java.util.Set;
-
-/**
- * Access to dependency injection.
- *
- * @author Alex Stockinger, IT-Stockinger
- */
-public interface DependencyInjection {
-    <T> Set<T> getInstancesOf(Class<T> clazz, ReleaseCallbackHandler handler);
-
-    <T> T getInstanceOf(Class<T> clazz, ReleaseCallbackHandler handler);
-
-    <T> void inject(T o, ReleaseCallbackHandler handler);
+    void destroyed(SessionBeanHolder<?> holder);
 }

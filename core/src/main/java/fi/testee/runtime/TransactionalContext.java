@@ -17,7 +17,7 @@ package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.deployment.EjbDescriptorImpl;
-import fi.testee.ejb.EjbBridge;
+import fi.testee.ejb.EjbContainer;
 import fi.testee.jpa.PersistenceUnitDiscovery;
 import fi.testee.services.EjbInjectionServicesImpl;
 import fi.testee.services.EjbServicesImpl;
@@ -28,6 +28,8 @@ import fi.testee.services.ResourceInjectionServicesImpl;
 import fi.testee.services.SecurityServicesImpl;
 import fi.testee.services.TransactionServicesImpl;
 import fi.testee.spi.DependencyInjection;
+import fi.testee.spi.ReleaseCallbackHandler;
+import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
@@ -37,6 +39,7 @@ import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
+import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.manager.api.ExecutorServices;
 import org.jboss.weld.security.spi.SecurityServices;
 import org.jboss.weld.serialization.spi.ProxyServices;
@@ -56,6 +59,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Arrays.asList;
+
 /**
  * A transactional context.
  *
@@ -74,18 +79,18 @@ public class TransactionalContext {
 
     private DependencyInjectionRealm realm;
     private Collection<ResourceProvider> resourceProviders;
+    private EjbContainer ejbContainer;
 
     public void initialize(
-            final EjbBridge.SessionBeanModifier sessionBeanModifier,
+            final EjbContainer.SessionBeanModifier sessionBeanModifier,
             final Map<String, Object> additionalResources
     ) {
         LOG.trace("Creating new transactional context for {}", testSetupClass);
         resourceProviders = new ArrayList<>();
         resourceProviderInstances.forEach(resourceProviders::add);
         resourceProviders.add(createLocationResourceProvider(additionalResources));
-        final Set<EjbDescriptorImpl<?>> sessionBeans = beanArchiveDiscovery.getSessionBeans();
-        final EjbBridge ejbBridge = new EjbBridge(
-                sessionBeans,
+        ejbContainer = new EjbContainer(
+                beanArchiveDiscovery.getSessionBeans(),
                 this::cdiInjection,
                 this::resourceInjection,
                 this::jpaInjection,
@@ -96,16 +101,32 @@ public class TransactionalContext {
                 createInstanceServiceRegistry(
                         resourceProviders,
                         beanArchiveDiscovery,
-                        ejbBridge::lookupDescriptor,
-                        ejbBridge::createInstance
+                        ejbContainer::lookupDescriptor,
+                        ejbContainer::createInstance
                 ),
                 beanArchiveDiscovery,
                 Environments.EE_INJECT
         );
     }
 
-    private <T> CreationalContextImpl<T> contextFor(final Contextual<T> ctx) {
-        return realm.contextFor(ctx);
+    private Collection<ResourceReference<?>> cdiInjection(final Object o) {
+        final Releaser r = new Releaser();
+        realm.inject(o, r);
+        return asList(new ResourceReference<Object>() {
+            @Override
+            public Object getInstance() {
+                return o;
+            }
+
+            @Override
+            public void release() {
+                r.release();
+            }
+        });
+    }
+
+    private <T> CreationalContextImpl<T> contextFor(final Contextual<T> ctx, final ReleaseCallbackHandler releaser) {
+        return realm.contextFor(ctx, releaser);
     }
 
     private SimpleResourceProvider createLocationResourceProvider(final Map<String, Object> additionalResources) {
@@ -131,10 +152,6 @@ public class TransactionalContext {
                 .registerResourceInjectionPoint(null, resource.mappedName())
                 .createResource()
                 .getInstance();
-    }
-
-    private void cdiInjection(final Object o) {
-        realm.inject(o);
     }
 
     private static ServiceRegistry createInstanceServiceRegistry(
@@ -191,6 +208,7 @@ public class TransactionalContext {
 
     private void shutdown(final boolean rollback) {
         realm.getServiceRegistry().get(JpaInjectionServicesImpl.class).flush();
+        ejbContainer.shutdown();
         resourceProviders.forEach(it -> it.shutdown(rollback));
         realm.shutdown();
     }

@@ -21,8 +21,8 @@ import fi.testee.deployment.DeploymentImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.services.TransactionServicesImpl;
 import fi.testee.spi.DependencyInjection;
-import javassist.util.proxy.Proxy;
-import javassist.util.proxy.ProxyFactory;
+import fi.testee.spi.ReleaseCallback;
+import fi.testee.spi.ReleaseCallbackHandler;
 import org.jboss.weld.Container;
 import org.jboss.weld.bean.AbstractClassBean;
 import org.jboss.weld.bootstrap.WeldBootstrap;
@@ -40,9 +40,8 @@ import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.InjectionTarget;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -91,7 +90,6 @@ public class DependencyInjectionRealm implements DependencyInjection {
 
     void shutdown() {
         LOG.trace("Shutting down dependency injection realm {}", contextId);
-        contexts.forEach(CreationalContext::release);
         rootContext.release();
         bootstrap.shutdown();
     }
@@ -118,14 +116,14 @@ public class DependencyInjectionRealm implements DependencyInjection {
     }
 
     @Override
-    public <T> Set<T> getInstancesOf(final Class<T> clazz) {
+    public <T> Set<T> getInstancesOf(final Class<T> clazz, final ReleaseCallbackHandler handler) {
         return resolve(clazz).stream()
-                .map(this::newInstance)
+                .map(it -> newInstance(it, handler))
                 .collect(toSet());
     }
 
-    private <T> T newInstance(final Bean<T> bean) {
-        final CreationalContextImpl<T> ctx = contextFor(bean);
+    private <T> T newInstance(final Bean<T> bean, final ReleaseCallbackHandler handler) {
+        final CreationalContextImpl<T> ctx = contextFor(bean, handler);
         final T instance = bean.create(ctx);
         ctx.addDependentInstance(new ContextualInstance<T>() {
             @Override
@@ -147,8 +145,8 @@ public class DependencyInjectionRealm implements DependencyInjection {
     }
 
     @Override
-    public <T> T getInstanceOf(final Class<T> clazz) {
-        return unique(clazz, getInstancesOf(clazz));
+    public <T> T getInstanceOf(final Class<T> clazz, final ReleaseCallbackHandler handler) {
+        return unique(clazz, getInstancesOf(clazz, handler));
     }
 
     private <T> T unique(final Class clazz, final Collection<T> set) {
@@ -186,47 +184,24 @@ public class DependencyInjectionRealm implements DependencyInjection {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void inject(final Object o) {
+    public void inject(final Object o, final ReleaseCallbackHandler handler) {
         withProducer(o, (b, p) -> {
-            p.inject(o, contextFor(b));
+            p.inject(o, contextFor(b, handler));
         });
-    }
-
-    private static CreationalContextImpl wrap(CreationalContextImpl creationalContext) {
-        try {
-            final ProxyFactory factory = new ProxyFactory();
-            factory.setSuperclass(CreationalContextImpl.class);
-            factory.setFilter(m -> m.getDeclaringClass() != Object.class);
-            final CreationalContextImpl proxy = (CreationalContextImpl) factory.create(new Class[]{Contextual.class}, new Object[]{null});
-            ((Proxy) proxy).setHandler((self, thisMethod, proceed, args) -> {
-                try {
-                    LOG.info("{} {}", thisMethod, args);
-                    if (thisMethod.getName().equals("release")) {
-                        LOG.info("RELEASE");
-                    }
-                    Object ret = thisMethod.invoke(creationalContext, args);
-                    if (ret instanceof CreationalContextImpl) {
-                        return wrap((CreationalContextImpl) ret);
-                    }
-                    return ret;
-                } catch (final InvocationTargetException e) {
-                    throw e.getTargetException();
-                }
-            });
-            return proxy;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @SuppressWarnings("unchecked")
     void postConstruct(final Object o) {
-        withProducer(o, (b, p) -> p.postConstruct(o));
+        withProducer(o, (b, p) -> {
+            p.postConstruct(o);
+        });
     }
 
     @SuppressWarnings("unchecked")
     void preDestroy(final Object o) {
-        withProducer(o, (b, p) -> p.preDestroy(o));
+        withProducer(o, (b, p) -> {
+            p.preDestroy(o);
+        });
     }
 
     @SuppressWarnings("unchecked")
@@ -238,15 +213,9 @@ public class DependencyInjectionRealm implements DependencyInjection {
         consumer.accept(bean, ((AbstractClassBean) bean).getProducer());
     }
 
-    <T> CreationalContextImpl<T> contextFor(final Contextual<T> ctx) {
-        return remember(rootContext.getCreationalContext(ctx));
-    }
-
-    private final Collection<CreationalContext<?>> contexts = new ArrayList<>();
-
-    private <T> CreationalContextImpl<T> remember(final CreationalContextImpl<T> creationalContext) {
-        // TODO this seems a bit hacky - do we really have to remember all creational contexts ourselves?
-        contexts.add(creationalContext);
-        return creationalContext;
+    <T> CreationalContextImpl<T> contextFor(final Contextual<T> ctx, ReleaseCallbackHandler handler) {
+        final CreationalContextImpl<T> ret = rootContext.getCreationalContext(ctx);
+        handler.add(ret::release);
+        return ret;
     }
 }

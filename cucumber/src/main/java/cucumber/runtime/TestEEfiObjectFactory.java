@@ -20,6 +20,7 @@ import fi.testee.cucumber.annotation.CucumberSetup;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.runtime.TestRuntime;
 import fi.testee.runtime.TestSetup;
+import fi.testee.spi.Releaser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +40,7 @@ public class TestEEfiObjectFactory implements ObjectFactory {
     private Map<Class<?>, Object> instances;
     private Object setupInstance;
     private TestSetup.TestContext context;
+    private Releaser releaser;
 
     public TestEEfiObjectFactory() {
         final Collection<Class<?>> candidates = TestRuntime.instance()
@@ -57,11 +59,12 @@ public class TestEEfiObjectFactory implements ObjectFactory {
     @Override
     public void start() {
         final String id = randomUUID().toString();
+        releaser = new Releaser();
         LOG.debug("Starting test instance {}", id);
-        if (instances != null || context != null || setupInstance != null) {
+        if (instances != null || context != null || setupInstance != null || releaser != null) {
             throw new TestEEfiException(
                     "Failed to start cucumber test",
-                    new IllegalStateException("Cucumber runtime has invalid state: " + instances + ", " + context)
+                    new IllegalStateException("Cucumber runtime has invalid state")
             );
         }
         instances = new HashMap<>();
@@ -76,6 +79,8 @@ public class TestEEfiObjectFactory implements ObjectFactory {
     @Override
     public void stop() {
         LOG.debug("Stopping test instance {}", context.getId());
+        releaser.release();
+        releaser = null;
         instances = null;
         setupInstance = null;
         context.shutdown();
@@ -91,7 +96,7 @@ public class TestEEfiObjectFactory implements ObjectFactory {
     @SuppressWarnings("unchecked")
     public <T> T getInstance(final Class<T> glueClass) {
         if (!instances.containsKey(glueClass)) {
-            instances.put(glueClass, context.create(glueClass));
+            instances.put(glueClass, context.create(glueClass, releaser));
         }
         return (T) instances.get(glueClass);
     }
