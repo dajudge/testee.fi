@@ -17,9 +17,9 @@ package fi.testee.ejb;
 
 import fi.testee.deployment.InterceptorChain;
 import fi.testee.exceptions.TestEEfiException;
-import javassist.util.proxy.MethodHandler;
-import javassist.util.proxy.ProxyFactory;
-import javassist.util.proxy.ProxyObject;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.implementation.InvocationHandlerAdapter;
+import net.bytebuddy.implementation.SuperMethodCall;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.slf4j.Logger;
@@ -30,6 +30,7 @@ import javax.annotation.PreDestroy;
 import javax.enterprise.inject.spi.InterceptionType;
 import javax.inject.Provider;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
@@ -40,6 +41,8 @@ import static java.util.stream.Collectors.toSet;
 import static javax.enterprise.inject.spi.InterceptionType.AROUND_INVOKE;
 import static javax.enterprise.inject.spi.InterceptionType.POST_CONSTRUCT;
 import static javax.enterprise.inject.spi.InterceptionType.PRE_DESTROY;
+import static net.bytebuddy.implementation.MethodDelegation.to;
+import static net.bytebuddy.matcher.ElementMatchers.any;
 
 public class SingletonHolder<T> extends SessionBeanHolder<T> {
     private static final Logger LOG = LoggerFactory.getLogger(SingletonHolder.class);
@@ -69,20 +72,18 @@ public class SingletonHolder<T> extends SessionBeanHolder<T> {
     ) {
         this.chain = chain;
         try {
-            final ProxyFactory proxyFactory = new ProxyFactory();
-            proxyFactory.setSuperclass(clazz);
-            proxyFactory.setFilter(m -> m.getDeclaringClass() != Object.class);
-            final Class<T> proxyClass = proxyFactory.createClass();
-            final Object instance = proxyClass.newInstance();
-            ((ProxyObject) instance).setHandler(methodHandler());
-            return (T) instance;
+            final InvocationHandler invocationHandler = (proxy, method, args) ->
+                    invokeIntercepted(args, instance(), method, AROUND_INVOKE);
+            final Class<? extends T> dynamicType = new ByteBuddy()
+                    .subclass(clazz)
+                    .method(any()).intercept(InvocationHandlerAdapter.of(invocationHandler))
+                    .make()
+                    .load(getClass().getClassLoader())
+                    .getLoaded();
+            return (T) dynamicType.newInstance();
         } catch (final IllegalAccessException | InstantiationException e) {
             throw new TestEEfiException("Failed to create proxy instance of " + clazz, e);
         }
-    }
-
-    private MethodHandler methodHandler() {
-        return (self, thisMethod, proceed, args) -> invokeIntercepted(args, instance(), thisMethod, AROUND_INVOKE);
     }
 
     private Object invokeIntercepted(

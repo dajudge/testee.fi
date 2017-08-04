@@ -36,7 +36,6 @@ public class CircularReferenceTest extends BaseDependencyInjectionTest<CircularR
 
     @Override
     public void reset() {
-        Bean1.instanceCount = 0;
         super.reset();
     }
 
@@ -49,8 +48,6 @@ public class CircularReferenceTest extends BaseDependencyInjectionTest<CircularR
             assertNotNull(bean2);
             final Bean1 bean1again = bean2.getBean1();
             assertNotNull(bean1again);
-            //assertEquals(1, Bean1.instanceCount);
-            //assertEquals(1, Bean2.instanceCount);
             ensureInterception(Bean1.class, null, POST_CONSTRUCT);
             ensureInterception(Bean1.class, "getBean2", AROUND_INVOKE);
             ensureInterception(Bean2.class, null, POST_CONSTRUCT);
@@ -78,14 +75,8 @@ public class CircularReferenceTest extends BaseDependencyInjectionTest<CircularR
     @Singleton
     @UseInterceptor
     public static class Bean1 {
-        public static int instanceCount;
-
         @EJB
         private Bean2 bean2;
-
-        public Bean1() {
-            instanceCount++;
-        }
 
         @PostConstruct
         public void postConstruct() {
@@ -103,14 +94,8 @@ public class CircularReferenceTest extends BaseDependencyInjectionTest<CircularR
     @Singleton
     @UseInterceptor
     public static class Bean2 {
-        public static int instanceCount;
-
         @EJB
         private Bean1 bean1;
-
-        public Bean2() {
-            instanceCount++;
-        }
 
         @PostConstruct
         public void postConstruct() {

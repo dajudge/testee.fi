@@ -10,6 +10,10 @@ dependencies {
     compile libCommonsLang3
     compile libCommonsIO
     compile libCommonsLang3
+    compile libByteBuddy
+
+    // Old scannotation can't cope with Java 8 due to old version of Javassist, so
+    // we replace it with the newer dependency
     compile libJavassist
     compile(libScannotation) {
         exclude group: 'javassist'

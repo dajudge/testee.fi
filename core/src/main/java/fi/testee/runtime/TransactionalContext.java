@@ -207,10 +207,16 @@ public class TransactionalContext {
     }
 
     private void shutdown(final boolean rollback) {
-        realm.getServiceRegistry().get(JpaInjectionServicesImpl.class).flush();
-        ejbContainer.shutdown();
+        if(realm != null) {
+            realm.getServiceRegistry().get(JpaInjectionServicesImpl.class).flush();
+        }
+        if(ejbContainer != null) {
+            ejbContainer.shutdown();
+        }
         resourceProviders.forEach(it -> it.shutdown(rollback));
-        realm.shutdown();
+        if(realm != null) {
+            realm.shutdown();
+        }
     }
 
     public interface TransactionRunnable<T> {
