@@ -35,7 +35,7 @@ import static java.util.stream.Collectors.toMap;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class DeploymentImpl implements CDI11Deployment {
-    public static BeansXmlModifier UNMODIFIED = it -> it;
+    public static final BeansXmlModifier UNMODIFIED = it -> it;
     private final ServiceRegistry serviceRegistry;
     private final Collection<Metadata<Extension>> extensions;
     private final Map<BeanDeploymentArchive, BeanDeploymentArchive> archives;
