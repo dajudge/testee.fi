@@ -3,7 +3,7 @@ TestEE.fi (as in "testify") is a lightweight functional testing framework for Ja
 
 ## Getting started
 
-Getting started with TestEE.fi is really easy. First you need to add TestEE.fi to your project’s dependencies. In maven this looks like the following snippet:
+Getting started with TestEE.fi is really easy. First you need to add TestEE.fi to your project’s dependencies. In Maven this looks like the following snippet:
 ```
 <dependencies>
     <dependency>
@@ -20,7 +20,7 @@ Getting started with TestEE.fi is really easy. First you need to add TestEE.fi t
     </dependency>
 </dependencies>
 ```
-If you’re using gradle, the snippet would look like this:
+If you’re using Gradle, the snippet would look like this:
 
 ```
 repositories {
