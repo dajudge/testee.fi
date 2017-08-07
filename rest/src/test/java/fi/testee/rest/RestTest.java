@@ -24,7 +24,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import javax.annotation.Resource;
-import javax.inject.Inject;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
@@ -33,7 +32,7 @@ import static org.junit.Assert.assertEquals;
 public class RestTest {
     private final OkHttpClient client = new OkHttpClient();
 
-    @Inject
+    @Resource
     private RestServer restServer;
 
     @Test

@@ -154,4 +154,10 @@ class TesteeDataSource implements DataSource {
         }
     }
 
+    @Override
+    public String toString() {
+        return "TesteeDataSource{" +
+                "name='" + name + '\'' +
+                '}';
+    }
 }

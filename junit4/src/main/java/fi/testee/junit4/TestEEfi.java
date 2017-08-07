@@ -34,7 +34,7 @@ import java.util.Map;
  */
 public class TestEEfi extends BlockJUnit4ClassRunner {
     private final TestSetup testSetup;
-    private final Map<FrameworkMethod, TestSetup.TestContext> instances = new HashMap<>();
+    private final Map<FrameworkMethod, TestSetup.TestInstance> instances = new HashMap<>();
 
     /**
      * Creates a TestEE.fi test runner to run {@code klass}.
@@ -44,7 +44,7 @@ public class TestEEfi extends BlockJUnit4ClassRunner {
      */
     public TestEEfi(final Class<?> klass) throws InitializationError {
         super(klass);
-        testSetup = new TestSetup(klass, TestRuntime.instance());
+        testSetup = new TestSetup(klass, TestRuntime.instance()).init();
     }
 
     @Override
@@ -63,7 +63,7 @@ public class TestEEfi extends BlockJUnit4ClassRunner {
                 + method.getMethod().toString()
                 + ":"
                 + System.identityHashCode(target);
-        final TestSetup.TestContext context = testSetup.prepareTestInstance(instanceId, target, method.getMethod());
+        final TestSetup.TestInstance context = testSetup.prepareTestInstance(instanceId, target, method.getMethod());
         instances.put(method, context);
 
     }

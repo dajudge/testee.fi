@@ -48,6 +48,7 @@ import org.jboss.weld.transaction.spi.TransactionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.inject.Any;
@@ -55,10 +56,11 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.Extension;
 import javax.inject.Inject;
 import javax.persistence.PersistenceContext;
-import java.util.ArrayList;
+import java.lang.annotation.Annotation;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
 
@@ -76,22 +78,19 @@ public class TransactionalContext {
     private BeanArchiveDiscovery beanArchiveDiscovery;
     @Inject
     @Any
-    private Instance<ResourceProvider> resourceProviderInstances;
+    private Instance<ResourceProvider> resourceProvidersInstance;
 
     private DependencyInjectionRealm realm;
-    private Collection<ResourceProvider> resourceProviders;
     private EjbContainer ejbContainer;
 
     public void initialize(
             final EjbContainer.SessionBeanModifier sessionBeanModifier,
-            final Map<String, Object> additionalResources,
             final Collection<Metadata<Extension>> extensions,
-            final BeansXmlModifier beansXmlModifier
+            final BeansXmlModifier beansXmlModifier,
+            final Collection<ResourceProvider> setupResolvers,
+            final Annotation... scopes
     ) {
-        LOG.trace("Creating new transactional context for {}", testSetupClass);
-        resourceProviders = new ArrayList<>();
-        resourceProviderInstances.forEach(resourceProviders::add);
-        resourceProviders.add(createLocationResourceProvider(additionalResources));
+        LOG.debug("Initializing new transactional context for {}", testSetupClass);
         ejbContainer = new EjbContainer(
                 beanArchiveDiscovery.getSessionBeans(),
                 this::cdiInjection,
@@ -100,7 +99,11 @@ public class TransactionalContext {
                 sessionBeanModifier,
                 this::contextFor
         );
-        realm = new DependencyInjectionRealm(
+
+        final Set<ResourceProvider> resourceProviders = new HashSet<>(setupResolvers);
+        Arrays.stream(scopes).forEach(it -> resourceProvidersInstance.select(it).forEach(resourceProviders::add));
+        LOG.trace("Resource providers: {}", resourceProviders);
+        realm = new DependencyInjectionRealm().init(
                 createInstanceServiceRegistry(
                         resourceProviders,
                         beanArchiveDiscovery,
@@ -132,17 +135,6 @@ public class TransactionalContext {
 
     private <T> CreationalContextImpl<T> contextFor(final Contextual<T> ctx, final ReleaseCallbackHandler releaser) {
         return realm.contextFor(ctx, releaser);
-    }
-
-    private SimpleResourceProvider createLocationResourceProvider(final Map<String, Object> additionalResources) {
-        final Map<String, Object> localResources = new HashMap<>();
-        localResources.putAll(additionalResources);
-        localResources.put("testeefi/instance/dependencyInjection", dependencyInjection());
-        return new SimpleResourceProvider(localResources);
-    }
-
-    public DependencyInjection dependencyInjection() {
-        return new DeferredDependencyInjection(() -> realm);
     }
 
     private Object jpaInjection(final PersistenceContext persistenceContext) {
@@ -203,25 +195,23 @@ public class TransactionalContext {
         return runnable.run(testSetupClass, realm);
     }
 
-    public void rollback() {
-        shutdown(true);
-    }
-
-    public void commit() {
-        shutdown(false);
-    }
-
-    private void shutdown(final boolean rollback) {
-        if (realm != null) {
-            realm.getServiceRegistry().get(JpaInjectionServicesImpl.class).flush();
-        }
+    @PreDestroy
+    public void shutdown() {
+        LOG.debug("Shutting down transactional context for {}", testSetupClass);
         if (ejbContainer != null) {
             ejbContainer.shutdown();
         }
-        resourceProviders.forEach(it -> it.shutdown(rollback));
         if (realm != null) {
             realm.shutdown();
         }
+    }
+
+    public void flushEntityManagers() {
+        realm.getServiceRegistry().get(JpaInjectionServicesImpl.class).flush();
+    }
+
+    public DependencyInjection getDependencyInjection() {
+        return realm;
     }
 
     public interface TransactionRunnable<T> {

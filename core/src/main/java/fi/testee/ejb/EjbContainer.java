@@ -181,7 +181,7 @@ public class EjbContainer {
         }
     }
 
-    public static final SessionBeanModifier IDENTITY_SESSION_BEAN_MODIFIER = new IdentitySessionBeanModifier();
+    public static final SessionBeanModifier IDENTITY = new IdentitySessionBeanModifier();
 
     public void shutdown() {
         // This cleans up remaining beans that were part of reference cycles

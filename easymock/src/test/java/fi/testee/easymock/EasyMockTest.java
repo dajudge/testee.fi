@@ -64,11 +64,11 @@ public class EasyMockTest {
 
     private void test(final Consumer<TestBean> test, final int cdiMockCount, final int ejbMockCount) {
         // Given
-        final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
+        final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance()).init();
         final TestBean testClassInstance = new TestBean();
 
         // When
-        final TestSetup.TestContext context = testSetup.prepareTestInstance("myInstance", testClassInstance, null);
+        final TestSetup.TestInstance context = testSetup.prepareTestInstance("myInstance", testClassInstance, null);
         if (cdiMockCount > 0) {
             expect(testClassInstance.cdiMock.doIt()).andReturn("lolcats").times(cdiMockCount);
         }

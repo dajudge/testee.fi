@@ -29,12 +29,12 @@ import java.util.function.Supplier;
 import static org.junit.Assert.assertTrue;
 
 public class LifecycleTest {
-    private TestSetup.TestContext context;
+    private TestSetup.TestInstance context;
     private TestSetup testSetup;
     private TestBean root;
 
     public void setup() {
-        testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
+        testSetup = new TestSetup(TestBean.class, TestRuntime.instance()).init();
         root = new TestBean();
         context = testSetup.prepareTestInstance("myInstance", root, null);
     }

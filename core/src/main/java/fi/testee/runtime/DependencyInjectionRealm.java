@@ -58,11 +58,11 @@ import static java.util.stream.Collectors.toSet;
 public class DependencyInjectionRealm implements DependencyInjection {
     private static final Logger LOG = LoggerFactory.getLogger(DependencyInjectionRealm.class);
     private final String contextId = UUID.randomUUID().toString();
-    private final Bootstrap bootstrap;
-    private final DeploymentImpl deployment;
     private final CreationalContextImpl<Object> rootContext = new CreationalContextImpl<>(null);
+    private Bootstrap bootstrap;
+    private DeploymentImpl deployment;
 
-    DependencyInjectionRealm(
+    public DependencyInjectionRealm init(
             final ServiceRegistry serviceRegistry,
             final BeanArchiveDiscovery beanArchiveDiscovery,
             final Environments environment,
@@ -82,6 +82,7 @@ public class DependencyInjectionRealm implements DependencyInjection {
                 .deployBeans()
                 .validateBeans()
                 .endInitialization();
+        return this;
     }
 
     private void ensureTransactionServices(final ServiceRegistry serviceRegistry) {

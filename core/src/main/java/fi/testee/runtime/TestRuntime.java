@@ -55,7 +55,7 @@ public class TestRuntime {
 
     private TestRuntime() {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
-        realm = new DependencyInjectionRealm(serviceRegistry, beanArchiveDiscovery, SE, emptySet(), UNMODIFIED);
+        realm = new DependencyInjectionRealm().init(serviceRegistry, beanArchiveDiscovery, SE, emptySet(), UNMODIFIED);
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {

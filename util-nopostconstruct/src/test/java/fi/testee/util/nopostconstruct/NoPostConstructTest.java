@@ -33,11 +33,11 @@ public class NoPostConstructTest {
 
     private TestSetup testSetup;
     private TestBean root;
-    private TestSetup.TestContext context;
+    private TestSetup.TestInstance context;
 
     @Before
     public void setup() throws NoSuchMethodException {
-        testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
+        testSetup = new TestSetup(TestBean.class, TestRuntime.instance()).init();
         root = new TestBean();
         context = testSetup.prepareTestInstance("myInstance", root, getClass().getMethod("annotatedMethod"));
     }

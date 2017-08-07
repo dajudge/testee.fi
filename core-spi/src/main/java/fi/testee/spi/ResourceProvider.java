@@ -26,6 +26,4 @@ public interface ResourceProvider {
     Object resolve(InjectionPoint injectionPoint);
 
     Object resolve(String jndiName, String mappedName);
-
-    void shutdown(boolean rollback);
 }

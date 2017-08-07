@@ -51,30 +51,30 @@ public class TestEEfi implements
 
     @Override
     public void afterEach(final ExtensionContext context) throws Exception {
-        final TestSetup.TestContext testContext = (TestSetup.TestContext) context
+        final TestSetup.TestInstance testInstance = (TestSetup.TestInstance) context
                 .getStore(NS)
-                .get(TestSetup.TestContext.class);
-        if (testContext != null) {
-            testContext.shutdown();
+                .get(TestSetup.TestInstance.class);
+        if (testInstance != null) {
+            testInstance.shutdown();
         }
     }
 
     @Override
     public void beforeAll(final ExtensionContext context) throws Exception {
         final Class<?> testClass = testClassOf(context);
-        final TestSetup testSetup = new TestSetup(testClass, TestRuntime.instance());
+        final TestSetup testSetup = new TestSetup(testClass, TestRuntime.instance()).init();
         context.getStore(NS).put(TestSetup.class, testSetup);
     }
 
     @Override
     public void postProcessTestInstance(final Object testInstance, final ExtensionContext context) throws Exception {
         final TestSetup testSetup = (TestSetup) context.getStore(NS).get(TestSetup.class);
-        final TestSetup.TestContext testContext = testSetup.prepareTestInstance(
+        final TestSetup.TestInstance testContext = testSetup.prepareTestInstance(
                 randomUUID().toString(),
                 testInstance,
                 context.getTestMethod().orElse(null)
         );
-        context.getStore(NS).put(TestSetup.TestContext.class, testContext);
+        context.getStore(NS).put(TestSetup.TestInstance.class, testContext);
     }
 
     private static Class<?> testClassOf(final ExtensionContext context) {

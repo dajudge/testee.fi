@@ -39,7 +39,7 @@ public class TestEEfiObjectFactory implements ObjectFactory {
 
     private Map<Class<?>, Object> instances;
     private Object setupInstance;
-    private TestSetup.TestContext context;
+    private TestSetup.TestInstance context;
     private Releaser releaser;
 
     public TestEEfiObjectFactory() {
@@ -53,7 +53,7 @@ public class TestEEfiObjectFactory implements ObjectFactory {
             throw new TestEEfiException("Multiple classes annotated with @CucumberSetup were found: " + candidates);
         }
         testSetupClass = candidates.iterator().next();
-        testSetup = new TestSetup(testSetupClass, TestRuntime.instance());
+        testSetup = new TestSetup(testSetupClass, TestRuntime.instance()).init();
     }
 
     @Override

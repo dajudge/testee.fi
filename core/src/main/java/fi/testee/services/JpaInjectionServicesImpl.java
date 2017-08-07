@@ -140,6 +140,7 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
 
     @Override
     public void cleanup() {
+        LOG.debug("Cleanning up EntityManagers");
         entityManagers.values().forEach(it -> {
             if (it.isOpen()) {
                 it.close();
@@ -148,6 +149,7 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
     }
 
     public void flush() {
+        LOG.debug("Flushing EntityManagers");
         entityManagers.values().forEach(it -> {
             if (it.isOpen() && it.getTransaction().isActive()) {
                 it.flush();
@@ -155,7 +157,7 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
         });
     }
 
-    public EntityManager resolvePersistenceContext(PersistenceContext persistenceContext) {
+    public EntityManager resolvePersistenceContext(final PersistenceContext persistenceContext) {
         return registerPersistenceContextInjectionPoint(persistenceContext.unitName()).createResource().getInstance();
     }
 }

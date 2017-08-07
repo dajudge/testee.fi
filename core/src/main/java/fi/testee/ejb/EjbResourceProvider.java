@@ -16,16 +16,18 @@
 package fi.testee.ejb;
 
 import fi.testee.spi.ResourceProvider;
+import fi.testee.spi.scope.TestInstanceScope;
 
 import javax.ejb.EJBContext;
 import javax.enterprise.inject.spi.InjectionPoint;
 
+@TestInstanceScope
 public class EjbResourceProvider implements ResourceProvider {
     private EJBContext ejbContext = new EJBContextImpl();
 
     @Override
     public Object resolve(final InjectionPoint injectionPoint) {
-        if(injectionPoint.getAnnotated().getBaseType() == EJBContext.class) {
+        if (injectionPoint.getAnnotated().getBaseType() == EJBContext.class) {
             return ejbContext;
         }
         return null;
@@ -35,10 +37,4 @@ public class EjbResourceProvider implements ResourceProvider {
     public Object resolve(String jndiName, String mappedName) {
         return null;
     }
-
-    @Override
-    public void shutdown(boolean rollback) {
-
-    }
-
 }

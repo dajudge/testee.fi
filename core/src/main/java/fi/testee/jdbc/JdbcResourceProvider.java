@@ -18,9 +18,12 @@ package fi.testee.jdbc;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.spi.ConnectionFactory;
 import fi.testee.spi.ResourceProvider;
-import fi.testee.utils.JdbcUtils;
+import fi.testee.spi.scope.TestSetupScope;
 import fi.testee.utils.AnnotationUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.sql.DataSource;
@@ -32,11 +35,16 @@ import java.util.function.Supplier;
 
 import static java.util.stream.Collectors.toMap;
 
+@TestSetupScope
 public class JdbcResourceProvider implements ResourceProvider {
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcResourceProvider.class);
+
     @Resource(mappedName = "testeefi/setup/class")
     private Class<?> testSetupClass;
     @Resource(mappedName = "testeefi/setup/connectionFactoryManager")
     private ConnectionFactoryManager connectionFactoryManager;
+    @Resource(mappedName = "testeefi/setup/rollbackTransactions")
+    private boolean rollbackTransactions;
 
     private final Map<String, TesteeDataSource> dataSources = new HashMap<>();
     private Map<String, ConnectionFactory> connectionFactories;
@@ -84,18 +92,20 @@ public class JdbcResourceProvider implements ResourceProvider {
                 ));
     }
 
-    public void shutdown(final boolean rollback) {
-        final JdbcUtils.JdbcConsumer<TesteeDataSource> action = rollback
-                ? TesteeDataSource::rollback
-                : TesteeDataSource::commit;
+    @PreDestroy
+    public void shutdown() {
         dataSources.values().forEach(it -> {
             try {
-                action.run(it);
-                it.close();
+                if (rollbackTransactions) {
+                    LOG.trace("Rolling back {}", it);
+                    it.rollback();
+                } else {
+                    LOG.trace("Committing {}", it);
+                    it.commit();
+                }
             } catch (final SQLException e) {
                 throw new TestEEfiException("Failed to shut down JDBC resources", e);
             }
         });
-
     }
 }

@@ -27,7 +27,7 @@ import javax.persistence.PersistenceContext;
 import static org.junit.Assert.assertNotNull;
 
 public class PersistenceUnitTest {
-    private final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
+    private final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance()).init();
     private final TestBean testClassInstance = new TestBean();
 
     @Test
@@ -46,7 +46,7 @@ public class PersistenceUnitTest {
     }
 
     private void check(Runnable r) {
-        TestSetup.TestContext context = testSetup.prepareTestInstance(
+        TestSetup.TestInstance context = testSetup.prepareTestInstance(
                 "myInstance",
                 testClassInstance,
                 null

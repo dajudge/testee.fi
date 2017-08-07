@@ -64,11 +64,11 @@ public class InjectMockTest {
 
     private void test(Consumer<TestBean> test) {
         // Given
-        final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance());
+        final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance()).init();
         final TestBean testClassInstance = new TestBean();
 
         // When
-        final TestSetup.TestContext context = testSetup.prepareTestInstance("myInstance", testClassInstance, null);
+        final TestSetup.TestInstance context = testSetup.prepareTestInstance("myInstance", testClassInstance, null);
         when(testClassInstance.cdiMock.doIt()).thenReturn("lolcats");
         when(testClassInstance.ejbMock.doIt()).thenReturn("lolcats");
 

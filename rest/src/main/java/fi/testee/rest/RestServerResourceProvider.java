@@ -13,27 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.runtime;
+package fi.testee.rest;
 
+import fi.testee.spi.AnnotationScanner;
+import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ResourceProvider;
+import fi.testee.spi.scope.TestInstanceScope;
 
+import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.inject.spi.InjectionPoint;
-import java.util.Map;
+import java.util.Collection;
+import java.util.HashSet;
 
-public class SimpleResourceProvider implements ResourceProvider {
-    private final Map<String, Object> resources;
+@TestInstanceScope
+public class RestServerResourceProvider implements ResourceProvider {
+    @Resource(mappedName = "testeefi/setup/annotationScanner")
+    private AnnotationScanner annotationScanner;
+    @Resource(mappedName = "testeefi/instance/dependencyInjection")
+    private DependencyInjection dependencyInjection;
 
-    public SimpleResourceProvider(final Map<String, Object> resources) {
-        this.resources = resources;
-    }
+    private Collection<RestServerImpl> servers = new HashSet<>();
 
     @Override
     public Object resolve(final InjectionPoint injectionPoint) {
-        if (injectionPoint.getAnnotated().getAnnotation(Resource.class) == null) {
+        if (RestServer.class != injectionPoint.getType()) {
             return null;
         }
-        return resources.get(injectionPoint.getAnnotated().getAnnotation(Resource.class).mappedName());
+        final RestServerImpl server = new RestServerImpl(annotationScanner, dependencyInjection);
+        servers.add(server);
+        return server;
     }
 
     @Override
@@ -41,8 +50,8 @@ public class SimpleResourceProvider implements ResourceProvider {
         return null;
     }
 
-    @Override
-    public void shutdown(boolean rollback) {
-
+    @PreDestroy
+    public void shutdown() {
+        servers.forEach(RestServerImpl::shutdown);
     }
 }

@@ -13,33 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.rest;
+package fi.testee.spi.scope;
 
-import fi.testee.junit4.TestEEfi;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import javax.inject.Qualifier;
+import java.lang.annotation.Annotation;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-import javax.annotation.Resource;
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-import static org.junit.Assert.assertNotSame;
-
-@RunWith(TestEEfi.class)
-public class LifecycleTest {
-    @Resource
-    private RestServer restServer;
-
-    private static RestServer remember;
-
-    @Test
-    public void is_not_shared_1() {
-        if (remember != null) {
-            assertNotSame(remember, restServer);
+@Qualifier
+@Retention(RUNTIME)
+@Target({TYPE})
+public @interface TestSetupScope {
+    public static final TestSetupScope INSTANCE = new TestSetupScope(){
+        @Override
+        public Class<? extends Annotation> annotationType() {
+            return TestSetupScope.class;
         }
-        remember = restServer;
-    }
-
-    @Test
-    public void is_not_shared_2() {
-        is_not_shared_1();
-    }
+    };
 }

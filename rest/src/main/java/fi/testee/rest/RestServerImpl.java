@@ -53,13 +53,15 @@ class RestServerImpl implements RestServer {
     static final String ATTR_CLASSES = PREFIX + ".classes";
     static final String ATTR_DI = PREFIX + ".di";
 
+    private final AnnotationScanner annotationScanner;
+    private final DependencyInjection dependencyInjection;
 
     private Server server;
 
-    @Resource(mappedName = "testeefi/setup/annotationScanner")
-    private AnnotationScanner annotationScanner;
-    @Resource(mappedName = "testeefi/instance/dependencyInjection")
-    private DependencyInjection dependencyInjection;
+    public RestServerImpl(final AnnotationScanner annotationScanner, final DependencyInjection dependencyInjection) {
+        this.annotationScanner = annotationScanner;
+        this.dependencyInjection = dependencyInjection;
+    }
 
     @Override
     public int getPort() {
@@ -118,12 +120,6 @@ class RestServerImpl implements RestServer {
                 .collect(toSet());
     }
 
-    @PostConstruct
-    public void lolcats() {
-        server = null;
-    }
-
-    @PreDestroy
     public void shutdown() {
         if (server != null) {
             try {

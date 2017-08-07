@@ -55,9 +55,11 @@ final class TestDataSetup {
             final Class<?> setupClass,
             final ServiceRegistry serviceRegistry
     ) {
+        final JpaInjectionServicesImpl jpaInjectionServices = serviceRegistry.get(JpaInjectionServicesImpl.class);
+        final ResourceInjectionServices resourceInjectionServices = serviceRegistry.get(ResourceInjectionServices.class);
         final Set<Object> testDataSetupAccessors = new HashSet<>(asList(
-                testDataSources(serviceRegistry.get(ResourceInjectionServices.class)),
-                testPersistenceUnits(serviceRegistry.get(JpaInjectionServicesImpl.class))
+                testDataSources(resourceInjectionServices),
+                testPersistenceUnits(jpaInjectionServices)
         ));
         setupTestData(setupClass, testDataSetupAccessors);
     }
