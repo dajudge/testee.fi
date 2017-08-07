@@ -140,7 +140,7 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
 
     @Override
     public void cleanup() {
-        LOG.debug("Cleanning up EntityManagers");
+        // TODO find out why this gets called so insanely often
         entityManagers.values().forEach(it -> {
             if (it.isOpen()) {
                 it.close();

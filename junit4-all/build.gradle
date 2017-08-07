@@ -10,6 +10,7 @@ dependencies {
     compile project(":liquibase")
     compile project(":eclipselink")
     compile project(":util-nopostconstruct")
+    compile project(":util-resourcedef")
 
     testCompile libLogback
     testCompile libGroovy

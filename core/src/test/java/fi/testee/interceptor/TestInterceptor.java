@@ -39,9 +39,6 @@ import static org.junit.Assert.assertNotNull;
 public class TestInterceptor {
     private static final Logger LOG = LoggerFactory.getLogger(TestInterceptor.class);
 
-    @Resource
-    private EJBContext ejbContext;
-
     public enum Type {
         AROUND_INVOKE,
         POST_CONSTRUCT,
@@ -65,7 +62,6 @@ public class TestInterceptor {
     @PostConstruct
     public Object logPostConstruct(final InvocationContext invocationContext) throws Exception {
         LOG.info("PostConstruct: {} {}", invocationContext.getTarget(), invocationContext.getMethod());
-        assertNotNull(ejbContext);
         INVOCATIONS.add(new Invocation(invocationContext.getTarget(), invocationContext.getMethod(), POST_CONSTRUCT));
         return invocationContext.proceed();
     }
@@ -73,7 +69,6 @@ public class TestInterceptor {
     @PreDestroy
     public Object logPreDestroy(final InvocationContext invocationContext) throws Exception {
         LOG.info("PreDestroy: {} {}", invocationContext.getTarget(), invocationContext.getMethod());
-        assertNotNull(ejbContext);
         INVOCATIONS.add(new Invocation(invocationContext.getTarget(), invocationContext.getMethod(), PRE_DESTROY));
         return invocationContext.proceed();
     }
@@ -81,7 +76,6 @@ public class TestInterceptor {
     @AroundInvoke
     public Object logMethodEntry(final InvocationContext invocationContext) throws Exception {
         LOG.info("AroundInvoke: {} {}", invocationContext.getTarget(), invocationContext.getMethod());
-        assertNotNull(ejbContext);
         INVOCATIONS.add(new Invocation(invocationContext.getTarget(), invocationContext.getMethod(), AROUND_INVOKE));
         return invocationContext.proceed();
     }
