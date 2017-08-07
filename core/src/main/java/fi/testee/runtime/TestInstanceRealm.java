@@ -148,7 +148,7 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
 
     @Override
     public <T> T create(final Class<T> clazz, final ReleaseCallbackHandler releaser) {
-        return null;
+        return context.run((setupClass, realm) -> realm.getInstanceOf(clazz, releaser));
     }
 
     @Override

@@ -26,3 +26,5 @@ task cucumber() {
         }
     }
 }
+
+test.dependsOn cucumber

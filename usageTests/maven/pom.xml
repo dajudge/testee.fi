@@ -12,6 +12,10 @@
 
     <packaging>pom</packaging>
 
+    <properties>
+        <testeefi.version>0.4.0-SNAPSHOT</testeefi.version>
+    </properties>
+
     <modules>
         <module>junit4</module>
         <module>cucumber</module>

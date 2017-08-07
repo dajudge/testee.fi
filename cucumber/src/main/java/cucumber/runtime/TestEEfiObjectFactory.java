@@ -59,7 +59,6 @@ public class TestEEfiObjectFactory implements ObjectFactory {
     @Override
     public void start() {
         final String id = randomUUID().toString();
-        releaser = new Releaser();
         LOG.debug("Starting test instance {}", id);
         if (instances != null || context != null || setupInstance != null || releaser != null) {
             throw new TestEEfiException(
@@ -74,6 +73,7 @@ public class TestEEfiObjectFactory implements ObjectFactory {
             throw new TestEEfiException("Failed to instantiate cucumber test setup class", e);
         }
         context = testSetup.prepareTestInstance(id, setupInstance, null);
+        releaser = new Releaser();
     }
 
     @Override
@@ -96,7 +96,9 @@ public class TestEEfiObjectFactory implements ObjectFactory {
     @SuppressWarnings("unchecked")
     public <T> T getInstance(final Class<T> glueClass) {
         if (!instances.containsKey(glueClass)) {
-            instances.put(glueClass, context.create(glueClass, releaser));
+            final T value = context.create(glueClass, releaser);
+            LOG.trace("Created instance for {}: {}", glueClass, value);
+            instances.put(glueClass, value);
         }
         return (T) instances.get(glueClass);
     }
