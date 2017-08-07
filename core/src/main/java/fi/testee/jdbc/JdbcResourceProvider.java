@@ -71,7 +71,7 @@ public class JdbcResourceProvider implements ResourceProvider {
                 dataSources.put(mappedName, new TesteeDataSource(mappedName, factory));
             }
             if (!dataSources.containsKey(mappedName)) {
-                throw new TestEEfiException("Unknown JDBC data source: " + mappedName);
+                return null;
             }
             return dataSources.get(mappedName);
         }
