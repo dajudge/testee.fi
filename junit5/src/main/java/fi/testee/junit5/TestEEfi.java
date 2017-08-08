@@ -38,8 +38,7 @@ public class TestEEfi implements
         AfterEachCallback,
         AfterAllCallback,
         BeforeAllCallback,
-        BeforeEachCallback,
-        TestInstancePostProcessor {
+        BeforeEachCallback {
     private static final ExtensionContext.Namespace NS = ExtensionContext.Namespace.create(randomUUID());
 
     @Override
@@ -66,12 +65,6 @@ public class TestEEfi implements
         final Class<?> testClass = testClassOf(context);
         final TestSetup testSetup = new TestSetup(testClass, TestRuntime.instance()).init();
         context.getStore(NS).put(TestSetup.class, testSetup);
-    }
-
-    @Override
-    public void postProcessTestInstance(final Object testInstance, final ExtensionContext context) throws Exception {
-        final TestSetup testSetup = (TestSetup) context.getStore(NS).get(TestSetup.class);
-
     }
 
     private static Class<?> testClassOf(final ExtensionContext context) {
