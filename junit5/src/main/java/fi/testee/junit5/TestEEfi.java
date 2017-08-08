@@ -21,6 +21,7 @@ import fi.testee.runtime.TestSetup;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
@@ -37,6 +38,7 @@ public class TestEEfi implements
         AfterEachCallback,
         AfterAllCallback,
         BeforeAllCallback,
+        BeforeEachCallback,
         TestInstancePostProcessor {
     private static final ExtensionContext.Namespace NS = ExtensionContext.Namespace.create(randomUUID());
 
@@ -69,16 +71,21 @@ public class TestEEfi implements
     @Override
     public void postProcessTestInstance(final Object testInstance, final ExtensionContext context) throws Exception {
         final TestSetup testSetup = (TestSetup) context.getStore(NS).get(TestSetup.class);
-        final TestSetup.TestInstance testContext = testSetup.prepareTestInstance(
-                randomUUID().toString(),
-                testInstance,
-                context.getTestMethod().orElse(null)
-        );
-        context.getStore(NS).put(TestSetup.TestInstance.class, testContext);
+
     }
 
     private static Class<?> testClassOf(final ExtensionContext context) {
         return context.getTestClass().orElseThrow(() -> new TestEEfiException("No test class found"));
     }
 
+    @Override
+    public void beforeEach(ExtensionContext context) throws Exception {
+        final TestSetup testSetup = (TestSetup) context.getStore(NS).get(TestSetup.class);
+        final TestSetup.TestInstance testContext = testSetup.prepareTestInstance(
+                randomUUID().toString(),
+                context.getTestInstance().orElseThrow(() -> new TestEEfiException("No test instance available")),
+                context.getTestMethod().orElse(null)
+        );
+        context.getStore(NS).put(TestSetup.TestInstance.class, testContext);
+    }
 }

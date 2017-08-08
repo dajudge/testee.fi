@@ -38,10 +38,11 @@ public class NoPostConstructExtension implements Extension {
     }
 
     public <T> void processAnnotatedType(@Observes ProcessAnnotatedType<T> processAnnotatedType) {
-        if (!classes.contains(processAnnotatedType.getAnnotatedType().getJavaClass())) {
+        final AnnotatedType<T> annotatedType = processAnnotatedType.getAnnotatedType();
+        if (!classes.contains(annotatedType.getJavaClass())) {
             return;
         }
-        final AnnotatedType<T> delegate = processAnnotatedType.getAnnotatedType();
+        final AnnotatedType<T> delegate = annotatedType;
         final AnnotatedTypeWrapper<T> wrapper = new AnnotatedTypeWrapper<>(delegate, ANNOTATION);
         processAnnotatedType.setAnnotatedType(wrapper);
     }

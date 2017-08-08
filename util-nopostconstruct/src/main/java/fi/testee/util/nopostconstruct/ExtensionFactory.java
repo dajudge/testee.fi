@@ -25,8 +25,8 @@ import static java.util.Arrays.asList;
 
 public class ExtensionFactory implements CdiExtensionFactory {
     @Override
-    public Extension create(final Method method) {
-        if (method.getAnnotation(NoPostConstructFor.class) == null) {
+    public NoPostConstructExtension create(final Method method) {
+        if (method == null || method.getAnnotation(NoPostConstructFor.class) == null) {
             return null;
         }
         return new NoPostConstructExtension(asList(method.getAnnotation(NoPostConstructFor.class).value()));
