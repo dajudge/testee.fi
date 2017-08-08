@@ -6,6 +6,7 @@ dependencies {
     compile project(":common")
     compile project(":core-spi")
 
+    testCompile libMockito
     testCompile libJUnit4
     testCompile libLogback
     testCompile project(":core")
