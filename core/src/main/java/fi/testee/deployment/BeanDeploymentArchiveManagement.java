@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +34,7 @@ public class BeanDeploymentArchiveManagement {
 
     private final BeanArchiveDiscovery beanArchiveDiscovery;
     private final ServiceRegistry serviceRegistry;
+    private Collection<BeanDeploymentArchiveImpl> impls = null;
     private Collection<BeanDeploymentArchive> archives = null;
 
     public BeanDeploymentArchiveManagement(
@@ -43,13 +45,14 @@ public class BeanDeploymentArchiveManagement {
         this.serviceRegistry = serviceRegistry;
     }
 
-    public synchronized Collection<BeanDeploymentArchive> getArchives() {
-        if (archives == null) {
-            archives = beanArchiveDiscovery.getBeanArchives().stream()
+    public synchronized Collection<BeanDeploymentArchiveImpl> getArchives() {
+        if (impls == null) {
+            impls = beanArchiveDiscovery.getBeanArchives().stream()
                     .peek(it -> LOG.debug("Found bean archive: {}", it))
                     .map(it -> new BeanDeploymentArchiveImpl(serviceRegistry, it, () -> archives))
                     .collect(Collectors.toSet());
+            archives = new HashSet<>(impls);
         }
-        return archives;
+        return impls;
     }
 }

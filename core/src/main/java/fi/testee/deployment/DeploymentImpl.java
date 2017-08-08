@@ -67,7 +67,7 @@ public class DeploymentImpl implements CDI11Deployment {
 
     @Override
     public BeanDeploymentArchive getBeanDeploymentArchive(final Class<?> aClass) {
-        return null;
+        return loadBeanDeploymentArchive(aClass);
     }
 
     @Override

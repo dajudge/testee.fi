@@ -16,7 +16,10 @@
 package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchiveDiscovery;
+import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.ejb.EjbContainer;
+import fi.testee.ejb.EjbDescriptorHolder;
+import fi.testee.exceptions.TestEEfiException;
 import fi.testee.jpa.PersistenceUnitDiscovery;
 import fi.testee.services.EjbInjectionServicesImpl;
 import fi.testee.services.EjbServicesImpl;
@@ -31,16 +34,22 @@ import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
+import org.jboss.weld.annotated.enhanced.EnhancedAnnotatedField;
+import org.jboss.weld.annotated.enhanced.EnhancedAnnotatedType;
+import org.jboss.weld.bean.SessionBean;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.jboss.weld.bootstrap.spi.Metadata;
 import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.EjbServices;
+import org.jboss.weld.injection.FieldInjectionPoint;
+import org.jboss.weld.injection.InjectionPointFactory;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReference;
+import org.jboss.weld.manager.BeanManagerImpl;
 import org.jboss.weld.manager.api.ExecutorServices;
 import org.jboss.weld.security.spi.SecurityServices;
 import org.jboss.weld.serialization.spi.ProxyServices;
@@ -53,10 +62,11 @@ import javax.annotation.Resource;
 import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.Extension;
 import javax.inject.Inject;
-import javax.persistence.PersistenceContext;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -91,15 +101,7 @@ public class TransactionalContext {
             final Annotation... scopes
     ) {
         LOG.debug("Initializing new transactional context for {}", testSetupClass);
-        ejbContainer = new EjbContainer(
-                beanArchiveDiscovery.getSessionBeans(),
-                this::cdiInjection,
-                this::resourceInjection,
-                this::jpaInjection,
-                sessionBeanModifier,
-                this::contextFor
-        );
-
+        ejbContainer = new EjbContainer(beanArchiveDiscovery.getSessionBeans());
         final Set<ResourceProvider> resourceProviders = new HashSet<>(setupResolvers);
         Arrays.stream(scopes).forEach(it -> resourceProvidersInstance.select(it).forEach(resourceProviders::add));
         LOG.trace("Resource providers: {}", resourceProviders);
@@ -115,6 +117,23 @@ public class TransactionalContext {
                 extensions,
                 beansXmlModifier
         );
+        ejbContainer.init(
+                this::holderResolver,
+                this::cdiInjection,
+                this::resourceInjection,
+                this::jpaInjection,
+                sessionBeanModifier,
+                this::contextFor
+        );
+    }
+
+    private <T> EjbDescriptorHolder<T> holderResolver(final EjbDescriptorImpl<T> desc) {
+        final BeanManagerImpl archive = realm.findArchiveFor(desc.getBeanClass());
+        final SessionBean<T> sessionBean = archive.getBean(desc);
+        if (sessionBean == null) {
+            throw new TestEEfiException("Failed to find session bean for " + desc);
+        }
+        return new EjbDescriptorHolder(desc, sessionBean, archive);
     }
 
     private Collection<ResourceReference<?>> cdiInjection(final Object o) {
@@ -137,16 +156,33 @@ public class TransactionalContext {
         return realm.contextFor(ctx, releaser);
     }
 
-    private Object jpaInjection(final PersistenceContext persistenceContext) {
+    private Object jpaInjection(
+            final Field field,
+            final Bean<?> bean,
+            final BeanManagerImpl beanManager
+    ) {
         return realm.getServiceRegistry()
-                .get(JpaInjectionServicesImpl.class)
-                .resolvePersistenceContext(persistenceContext);
+                .get(JpaInjectionServices.class)
+                .registerPersistenceContextInjectionPoint(injectionPointOf(field, bean, beanManager))
+                .createResource()
+                .getInstance();
     }
 
-    private Object resourceInjection(final Resource resource) {
+    private FieldInjectionPoint<Object, ?> injectionPointOf(Field f, Bean<?> bean, BeanManagerImpl beanManager) {
+        final EnhancedAnnotatedType<?> type = beanManager.createEnhancedAnnotatedType(bean.getBeanClass());
+        final EnhancedAnnotatedField<Object, ?> eaf = type.getDeclaredEnhancedField(f.getName());
+        return InjectionPointFactory.instance()
+                .createFieldInjectionPoint(eaf, bean, bean.getBeanClass(), beanManager);
+    }
+
+    private <T, X> Object resourceInjection(
+            final Field field,
+            final Bean<?> bean,
+            final BeanManagerImpl beanManager
+    ) {
         return realm.getServiceRegistry()
                 .get(ResourceInjectionServices.class)
-                .registerResourceInjectionPoint(null, resource.mappedName())
+                .registerResourceInjectionPoint(injectionPointOf(field, bean, beanManager))
                 .createResource()
                 .getInstance();
     }

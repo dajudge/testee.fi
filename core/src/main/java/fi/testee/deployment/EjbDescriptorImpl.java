@@ -21,6 +21,8 @@ import fi.testee.spi.Releaser;
 import org.jboss.weld.ejb.spi.BusinessInterfaceDescriptor;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.ejb.spi.InterceptorBindings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ejb.Local;
 import javax.ejb.Remove;
@@ -43,12 +45,15 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 
 public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
+    private static final Logger LOG = LoggerFactory.getLogger(EjbDescriptorImpl.class);
+
     private final Collection<BusinessInterfaceDescriptor<?>> localBusinessInterfaces;
     private final Collection<BusinessInterfaceDescriptor<?>> remoteBusinessInterfaces;
     private final Class<T> clazz;
     private InterceptorBindings interceptorBindings;
 
     public EjbDescriptorImpl(final Class<T> clazz) {
+        LOG.trace("Creating EJB descriptor for {}", clazz);
         this.clazz = clazz;
         localBusinessInterfaces = new HashSet<>();
         remoteBusinessInterfaces = new HashSet<>();
@@ -260,5 +265,28 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
     @Override
     public String toString() {
         return "EjbDescriptorImpl for " + clazz;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null) {
+            return false;
+        }
+        if (o instanceof EjbDescriptorImpl) {
+            EjbDescriptorImpl<?> that = (EjbDescriptorImpl<?>) o;
+            return clazz.equals(that.clazz);
+        }
+        if (o instanceof EjbDescriptor) {
+            return o.equals(this);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return clazz.hashCode();
     }
 }

@@ -64,7 +64,7 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
 
     public ResourceReferenceFactory<EntityManager> registerPersistenceContextInjectionPoint(final String unitName) {
         LOG.debug("Creating persistence context for unit '{}'", unitName);
-        final PersistenceUnitInfo unit = getUnitByName(unitName);
+        final PersistenceUnitInfo unit = persistenceUnitDiscovery.findByUnitName(unitName);
         if (unit == null) {
             throw new IllegalStateException("Unknown persistence unit: " + unitName);
         }
@@ -94,10 +94,6 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
                     }
                 }
         );
-    }
-
-    private PersistenceUnitInfo getUnitByName(String unitName) {
-        return persistenceUnitDiscovery.findByUnitName(unitName);
     }
 
     private synchronized EntityManager getEntityManager(final PersistenceUnitInfo unit) {

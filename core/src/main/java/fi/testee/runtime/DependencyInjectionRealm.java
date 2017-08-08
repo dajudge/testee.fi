@@ -85,6 +85,10 @@ public class DependencyInjectionRealm implements DependencyInjection {
         return this;
     }
 
+    public BeanManagerImpl findArchiveFor(final Class<?> clazz){
+        return container().beanDeploymentArchives().get(deployment.getBeanDeploymentArchive(clazz));
+    }
+
     private void ensureTransactionServices(final ServiceRegistry serviceRegistry) {
         // Odd workaround for the message WELD-000101 that happens when you don't have transactional services
         if (serviceRegistry.get(TransactionServices.class) == null) {

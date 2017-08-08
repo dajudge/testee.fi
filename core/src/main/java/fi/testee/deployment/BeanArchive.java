@@ -16,7 +16,6 @@
 package fi.testee.deployment;
 
 import fi.testee.classpath.JavaArchive;
-import org.jboss.weld.ejb.spi.EjbDescriptor;
 
 import javax.ejb.Singleton;
 import javax.ejb.Stateful;
@@ -51,11 +50,15 @@ public class BeanArchive {
 
     public synchronized Collection<EjbDescriptorImpl<?>> getEjbs() {
         if (ejbs == null) {
-            ejbs = classpathEntry.annotatedWith(Singleton.class, Stateless.class, Stateful.class, Entity.class).stream()
+            ejbs = classpathEntry.annotatedWith(Singleton.class, Stateless.class, Stateful.class).stream()
                     .map(this::toEjbDescriptor)
                     .collect(Collectors.toSet());
         }
         return ejbs;
+    }
+
+    private boolean isEjbArchive() {
+        return !classpathEntry.annotatedWith(Singleton.class, Stateless.class, Stateful.class, Entity.class).isEmpty();
     }
 
     public JavaArchive getClasspathEntry() {
@@ -63,16 +66,12 @@ public class BeanArchive {
     }
 
     public boolean isRelevant() {
-        return hasBeansXml() || hasCdiExtension() || hasEjbs() || hasAdditionalQualification();
+        return hasBeansXml() || hasCdiExtension() || isEjbArchive() || hasAdditionalQualification();
     }
 
     @SuppressWarnings("unchecked")
     private boolean hasAdditionalQualification() {
         return !classpathEntry.annotatedWith(qualifyingAnnotations.toArray(new Class[]{})).isEmpty();
-    }
-
-    private boolean hasEjbs() {
-        return !getEjbs().isEmpty();
     }
 
     private boolean hasCdiExtension() {
