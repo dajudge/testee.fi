@@ -24,8 +24,7 @@ import org.jboss.weld.ejb.spi.InterceptorBindings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ejb.Local;
-import javax.ejb.Remove;
+import javax.ejb.Remote;
 import javax.ejb.Singleton;
 import javax.ejb.Stateful;
 import javax.ejb.Stateless;
@@ -59,11 +58,10 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
         remoteBusinessInterfaces = new HashSet<>();
         localBusinessInterfaces.add((BusinessInterfaceDescriptor) () -> clazz);
         stream(clazz.getInterfaces()).forEach(iface -> {
-            if (iface.getAnnotation(Local.class) != null) {
-                localBusinessInterfaces.add((BusinessInterfaceDescriptor) () -> iface);
-            }
-            if (iface.getAnnotation(Remove.class) != null) {
+            if (iface.getAnnotation(Remote.class) != null) {
                 remoteBusinessInterfaces.add((BusinessInterfaceDescriptor) () -> iface);
+            } else {
+                localBusinessInterfaces.add((BusinessInterfaceDescriptor) () -> iface);
             }
         });
     }

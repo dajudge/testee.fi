@@ -32,6 +32,7 @@ import javax.sql.DataSource;
 import static fi.testee.interceptor.TestInterceptor.Type.AROUND_INVOKE;
 import static fi.testee.interceptor.TestInterceptor.Type.POST_CONSTRUCT;
 import static fi.testee.interceptor.TestInterceptor.Type.PRE_DESTROY;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class DependencyInjectionTest extends BaseDependencyInjectionTest<DependencyInjectionTest.TestBean> {
@@ -74,6 +75,18 @@ public class DependencyInjectionTest extends BaseDependencyInjectionTest<Depende
     public void ejb_in_ejb_via_inject() {
         runTest(() -> {
             assertNotNull(root.getEjbInRootViaEjb().getEjbInEjbViaInject());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT); // TODO can't this happen lazily?
+            ensureInterception(SessionBean1.class, "getEjbInEjbViaInject", AROUND_INVOKE);
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
+
+    }
+
+    @Test
+    public void ejbIface_in_root_via_inject() {
+        runTest(() -> {
+            assertEquals("Hello, world", root.ejbIfaceViaInject.test());
             ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT); // TODO can't this happen lazily?
             ensureInterception(SessionBean1.class, "getEjbInEjbViaInject", AROUND_INVOKE);
         }, () -> {
@@ -152,9 +165,14 @@ public class DependencyInjectionTest extends BaseDependencyInjectionTest<Depende
         }
     }
 
+    public interface SessionBeanInterface {
+
+        String test();
+    }
+
     @Stateless
     @UseInterceptor
-    public static class SessionBean1 {
+    public static class SessionBean1 implements SessionBeanInterface {
         @Inject
         private SessionBean2 ejbInEjbViaInject;
         @EJB
@@ -172,6 +190,11 @@ public class DependencyInjectionTest extends BaseDependencyInjectionTest<Depende
 
         public DataSource getResourceInEjb() {
             return resourceInEjb;
+        }
+
+        @Override
+        public String test() {
+            return "Hello, world";
         }
     }
 
@@ -221,6 +244,8 @@ public class DependencyInjectionTest extends BaseDependencyInjectionTest<Depende
         private ExampleBean1 cdiInRootViaInject;
         @Inject
         private BeanArchiveDiscovery beanFromDifferentArchive;
+        @Inject
+        private SessionBeanInterface ejbIfaceViaInject;
 
         public ExampleBean1 getCdiInRootViaInject() {
             return cdiInRootViaInject;

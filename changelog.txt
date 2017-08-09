@@ -1,3 +1,6 @@
+Version 0.5.0
+- Fixed issue when @Injecting session beans via non-annotated interfaces.
+
 Version 0.4.3
 - Fixed issue in fi.testee.spi.base.BeanReplacementManager where new EJBs were instantiated on each call when being injected with @Inject
 
