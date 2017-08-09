@@ -150,22 +150,20 @@ class BeanReplacementManager {
 
             @Override
             public ResourceReferenceFactory<T> getResourceReferenceFactory() {
-                return () -> {
-                    final T replacement = findReplacementFor(sessionBean.getDescriptor().getBeanClass());
-                    if (replacement != null) {
-                        return new ResourceReference<T>() {
-                            @Override
-                            public T getInstance() {
-                                return replacement;
-                            }
-
-                            @Override
-                            public void release() {
-                                // Replacements don't need to be released
-                            }
-                        };
+                final T replacement = findReplacementFor(sessionBean.getDescriptor().getBeanClass());
+                if (replacement == null) {
+                    return sessionBean.getResourceReferenceFactory();
+                }
+                return () -> new ResourceReference<T>() {
+                    @Override
+                    public T getInstance() {
+                        return replacement;
                     }
-                    return sessionBean.getResourceReferenceFactory().createResource();
+
+                    @Override
+                    public void release() {
+                        // Replacements don't need to be released
+                    }
                 };
             }
         };

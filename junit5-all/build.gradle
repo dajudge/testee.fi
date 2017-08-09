@@ -11,4 +11,5 @@ dependencies {
     compile project(":util-resourcedef")
 
     testCompile libLogback
+    testRuntime libJUnit5PlatformLauncher
 }
