@@ -35,11 +35,12 @@ public class ResourceDefResourceProvider implements ResourceProvider {
     private Object testInstance;
 
     @Override
+    @SuppressWarnings("unchecked")
     public Object resolve(final InjectionPoint injectionPoint) {
         final Type type = injectionPoint.getType();
         final Set<Field> candidates = stream(getAllFields(testInstance.getClass()))
                 .filter(field -> field.getAnnotation(ResourceDef.class) != null)
-                .filter(field -> field.getType().isAssignableFrom((Class) type))
+                .filter(field -> ((Class)type).isAssignableFrom(field.getType()))
                 .collect(toSet());
         if (candidates.isEmpty()) {
             return null;
