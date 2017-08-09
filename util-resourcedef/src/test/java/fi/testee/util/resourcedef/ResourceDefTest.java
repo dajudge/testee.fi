@@ -43,10 +43,14 @@ public class ResourceDefTest {
 
     }
 
+    public interface SomeSubInterface extends SomeInterface {
+
+    }
+
     public static class TestClass {
         @ResourceDef
         @Mock
-        private SomeInterface mock;
+        private SomeSubInterface mock;
         @Resource
         private SomeInterface injected;
     }

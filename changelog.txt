@@ -1,3 +1,6 @@
+Version 0.4.2
+- Fixed injection into fields with inherited classes / interfaces when using @ResourceRef
+
 Version 0.4.1
 - Fixed NPE when using @NoPostConstructFor plugin with JUnit 5
 
