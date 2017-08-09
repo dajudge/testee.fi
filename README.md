@@ -9,7 +9,7 @@ Getting started with TestEE.fi is really easy. First you need to add TestEE.fi t
     <dependency>
         <groupId>fi.testee</groupId>
         <artifactId>testeefi-junit4-all</artifactId>
-        <version>0.4.0</version>
+        <version>0.4.2</version>
         <scope>test</scope>
     </dependency>
     <dependency>
@@ -27,7 +27,7 @@ repositories {
     mavenCentral()
 }
 dependencies {
-	testCompile 'fi.testee:testeefi-junit4-all:0.4.0'
+	testCompile 'fi.testee:testeefi-junit4-all:0.4.2'
 	testCompile 'ch.qos.logback:logback-classic:1.1.7'
 }
 ```
