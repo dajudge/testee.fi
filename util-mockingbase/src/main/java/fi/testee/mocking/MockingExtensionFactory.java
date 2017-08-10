@@ -13,13 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.spi;
+package fi.testee.mocking;
 
-/**
- * Factory for {@link BeanModifier}.
- *
- * @author Alex Stockinger, IT-Stockinger
- */
-public interface BeanModifierFactory {
-    BeanModifier createBeanModifier(Object testClassInstance);
+import fi.testee.spi.CdiExtensionFactory;
+
+import javax.enterprise.inject.spi.Extension;
+import javax.inject.Inject;
+import java.lang.reflect.Method;
+
+public class MockingExtensionFactory implements CdiExtensionFactory {
+    @Inject
+    private MockStore mockStore;
+
+    @Override
+    public Extension create(final Method method) {
+        return new MockingExtension(mockStore);
+    }
 }

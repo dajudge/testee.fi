@@ -15,6 +15,7 @@
  */
 package fi.testee.runtime;
 
+import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.ejb.EjbContainer;
@@ -34,6 +35,7 @@ import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
+import fi.testee.spi.SessionBeanAlternatives;
 import org.jboss.weld.annotated.enhanced.EnhancedAnnotatedField;
 import org.jboss.weld.annotated.enhanced.EnhancedAnnotatedType;
 import org.jboss.weld.bean.SessionBean;
@@ -71,8 +73,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * A transactional context.
@@ -94,35 +98,43 @@ public class TransactionalContext {
     private EjbContainer ejbContainer;
 
     public void initialize(
-            final EjbContainer.SessionBeanModifier sessionBeanModifier,
             final Collection<Metadata<Extension>> extensions,
             final BeansXmlModifier beansXmlModifier,
             final Collection<ResourceProvider> setupResolvers,
+            final Predicate<BeanArchive> archiveFilter,
+            final SessionBeanAlternatives sessionBeanAlternatives,
             final Annotation... scopes
     ) {
         LOG.debug("Initializing new transactional context for {}", testSetupClass);
-        ejbContainer = new EjbContainer(beanArchiveDiscovery.getSessionBeans());
+        ejbContainer = new EjbContainer(beanArchiveDiscovery.getBeanArchives().stream()
+                .filter(archiveFilter)
+                .map(BeanArchive::getEjbs)
+                .flatMap(Collection::stream)
+                .collect(toSet()));
         final Set<ResourceProvider> resourceProviders = new HashSet<>(setupResolvers);
         Arrays.stream(scopes).forEach(it -> resourceProvidersInstance.select(it).forEach(resourceProviders::add));
         LOG.trace("Resource providers: {}", resourceProviders);
+        ServiceRegistry instanceServiceRegistry = createInstanceServiceRegistry(
+                resourceProviders,
+                beanArchiveDiscovery,
+                sessionBeanAlternatives,
+                ejbContainer::lookupDescriptor,
+                ejbContainer::createInstance
+        );
         realm = new DependencyInjectionRealm().init(
-                createInstanceServiceRegistry(
-                        resourceProviders,
-                        beanArchiveDiscovery,
-                        ejbContainer::lookupDescriptor,
-                        ejbContainer::createInstance
-                ),
+                instanceServiceRegistry,
                 beanArchiveDiscovery,
                 Environments.EE_INJECT,
                 extensions,
-                beansXmlModifier
+                beansXmlModifier,
+                archiveFilter
         );
         ejbContainer.init(
                 this::holderResolver,
                 this::cdiInjection,
                 this::resourceInjection,
                 this::jpaInjection,
-                sessionBeanModifier,
+                this::ejbInjection,
                 this::contextFor
         );
     }
@@ -168,7 +180,23 @@ public class TransactionalContext {
                 .getInstance();
     }
 
-    private FieldInjectionPoint<Object, ?> injectionPointOf(Field f, Bean<?> bean, BeanManagerImpl beanManager) {
+    private Object ejbInjection(
+            final Field field,
+            final Bean<?> bean,
+            final BeanManagerImpl beanManager
+    ) {
+        return realm.getServiceRegistry()
+                .get(EjbInjectionServices.class)
+                .registerEjbInjectionPoint(injectionPointOf(field, bean, beanManager))
+                .createResource()
+                .getInstance();
+    }
+
+    private FieldInjectionPoint<Object, ?> injectionPointOf(
+            final Field f,
+            final Bean<?> bean,
+            final BeanManagerImpl beanManager
+    ) {
         final EnhancedAnnotatedType<?> type = beanManager.createEnhancedAnnotatedType(bean.getBeanClass());
         final EnhancedAnnotatedField<Object, ?> eaf = type.getDeclaredEnhancedField(f.getName());
         return InjectionPointFactory.instance()
@@ -190,6 +218,7 @@ public class TransactionalContext {
     private static ServiceRegistry createInstanceServiceRegistry(
             final Collection<ResourceProvider> resourceProviders,
             final BeanArchiveDiscovery beanArchiveDiscovery,
+            final SessionBeanAlternatives alternatives,
             final EjbInjectionServicesImpl.EjbLookup ejbLookup,
             final EjbInjectionServicesImpl.EjbFactory ejbFactory
     ) {
@@ -206,7 +235,11 @@ public class TransactionalContext {
         );
         serviceRegistry.add(JpaInjectionServices.class, jpaInjectionService);
         serviceRegistry.add(JpaInjectionServicesImpl.class, jpaInjectionService);
-        serviceRegistry.add(EjbInjectionServices.class, new EjbInjectionServicesImpl(ejbLookup, ejbFactory));
+        serviceRegistry.add(EjbInjectionServices.class, new EjbInjectionServicesImpl(
+                ejbLookup,
+                ejbFactory,
+                alternatives
+        ));
         // Only stubs from here on
         serviceRegistry.add(TransactionServices.class, new TransactionServicesImpl());
         serviceRegistry.add(SecurityServices.class, new SecurityServicesImpl());

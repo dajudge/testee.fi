@@ -7,6 +7,7 @@ dependencies {
     compile libWeld
     compile project(":core-spi")
     compile project(":common")
+    compile project(":util-mockingbase")
 
     testCompile libJUnit4
     testCompile libLogback

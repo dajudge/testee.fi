@@ -15,6 +15,7 @@
  */
 package fi.testee.runtime;
 
+import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.jdbc.ConnectionFactoryManager;
 import fi.testee.jdbc.TestDataSource;
@@ -26,22 +27,24 @@ import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
+import fi.testee.spi.SessionBeanAlternatives;
 import fi.testee.spi.scope.TestSetupScope;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
+import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import static fi.testee.deployment.DeploymentImpl.UNMODIFIED;
-import static fi.testee.ejb.EjbContainer.IDENTITY;
 import static fi.testee.runtime.ManualResourceProviderBuilder.manualResourceProvider;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
@@ -84,7 +87,8 @@ public class TestSetup extends DependencyInjectionRealm {
                 beanArchiveDiscovery,
                 Environments.SE,
                 Collections.emptySet(),
-                UNMODIFIED
+                UNMODIFIED,
+                BeanArchive::isFrameworkRelevant
         );
 
         setupTestData(setupResources);
@@ -96,7 +100,14 @@ public class TestSetup extends DependencyInjectionRealm {
             final Releaser testDataReleaser = new Releaser();
             final TransactionalContext context = getInstanceOf(TransactionalContext.class, testDataReleaser);
             final Annotation[] scopes = {TestSetupScope.INSTANCE};
-            context.initialize(IDENTITY, emptySet(), UNMODIFIED, asList(setupResources), scopes);
+            context.initialize(
+                    emptySet(),
+                    UNMODIFIED,
+                    asList(setupResources),
+                    BeanArchive::isFrameworkRelevant,
+                    type -> null,
+                    scopes
+            );
             try {
                 final Set<DataSourceMigrator> migrators = getInstancesOf(DataSourceMigrator.class, testDataReleaser);
                 context.run((clazz, testDataSetupRealm) -> {

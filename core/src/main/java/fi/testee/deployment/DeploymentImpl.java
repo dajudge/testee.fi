@@ -24,6 +24,7 @@ import org.jboss.weld.bootstrap.spi.Metadata;
 import javax.enterprise.inject.spi.Extension;
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -40,19 +41,14 @@ public class DeploymentImpl implements CDI11Deployment {
     private final Collection<Metadata<Extension>> extensions;
     private final Map<BeanDeploymentArchive, BeanDeploymentArchive> archives;
 
-    /**
-     * Constructor.
-     *
-     * @param bdaManagement   the management of the {@link BeanDeploymentArchive BDAs}.
-     * @param serviceRegistry the {@link ServiceRegistry}.
-     */
     public DeploymentImpl(
-            final BeanDeploymentArchiveManagement bdaManagement,
+            final Collection<BeanArchive> beanArchives,
             final ServiceRegistry serviceRegistry,
             final Collection<Metadata<Extension>> extensions,
             final BeansXmlModifier modifier
     ) {
-        archives = bdaManagement.getArchives().stream()
+        archives = beanArchives.stream()
+                .map(it -> new BeanDeploymentArchiveImpl(serviceRegistry, it, this::archiveSupplier))
                 .collect(toMap(
                         it -> it,
                         it -> new WrappedBeanDeploymentArchive(it, modifier, this::mapper)
@@ -61,7 +57,12 @@ public class DeploymentImpl implements CDI11Deployment {
         this.extensions = extensions;
     }
 
+    private Collection<BeanDeploymentArchive> archiveSupplier() {
+        return archives.keySet();
+    }
+
     private BeanDeploymentArchive mapper(final BeanDeploymentArchive bda) {
+        assert archives.containsKey(bda);
         return archives.get(bda);
     }
 

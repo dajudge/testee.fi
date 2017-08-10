@@ -18,12 +18,12 @@ package fi.testee.util.nopostconstruct;
 import fi.testee.spi.CdiExtensionFactory;
 import fi.testee.util.nopostconstruct.annotation.NoPostConstructFor;
 
-import javax.enterprise.inject.spi.Extension;
 import java.lang.reflect.Method;
 
 import static java.util.Arrays.asList;
 
 public class ExtensionFactory implements CdiExtensionFactory {
+
     @Override
     public NoPostConstructExtension create(final Method method) {
         if (method == null || method.getAnnotation(NoPostConstructFor.class) == null) {

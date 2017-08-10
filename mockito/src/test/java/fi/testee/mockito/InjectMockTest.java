@@ -34,7 +34,9 @@ public class InjectMockTest {
 
     @Test
     public void cdiMock_in_cdiBean_via_inject() {
-        test(it -> assertEquals("lolcats", it.getCdiBean().getCdiMockInCdiViaInject().doIt()));
+        test(it -> {
+            assertEquals("lolcats", it.getCdiBean().getCdiMockInCdiViaInject().doIt());
+        });
     }
 
     @Test
@@ -62,7 +64,27 @@ public class InjectMockTest {
         test(it -> assertEquals("lolcats", it.getEjb().getEjbMockInEjbViaInject().doIt()));
     }
 
-    private void test(Consumer<TestBean> test) {
+    @Test
+    public void pureMock_in_cdi_via_inject() {
+        test(it -> assertEquals("lolcats", it.getCdiBean().getPureMockInCdiViaInject().doit()));
+    }
+
+    @Test
+    public void pureMock_in_cdi_via_ejb() {
+        test(it -> assertEquals("lolcats", it.getCdiBean().getPureMockInCdiViaEjb().doit()));
+    }
+
+    @Test
+    public void pureMock_in_ejb_via_inject() {
+        test(it -> assertEquals("lolcats", it.getEjb().getPureMockInEjbViaInject().doit()));
+    }
+
+    @Test
+    public void pureMock_in_ejb_via_ejb() {
+        test(it -> assertEquals("lolcats", it.getEjb().getPureMockInEjbViaEjb().doit()));
+    }
+
+    private void test(final Consumer<TestBean> test) {
         // Given
         final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance()).init();
         final TestBean testClassInstance = new TestBean();
@@ -71,6 +93,7 @@ public class InjectMockTest {
         final TestSetup.TestInstance context = testSetup.prepareTestInstance("myInstance", testClassInstance, null);
         when(testClassInstance.cdiMock.doIt()).thenReturn("lolcats");
         when(testClassInstance.ejbMock.doIt()).thenReturn("lolcats");
+        when(testClassInstance.noImplementation.doit()).thenReturn("lolcats");
 
         try {
             // Then
@@ -101,6 +124,10 @@ public class InjectMockTest {
         private ExampleSessionBean2 ejbMockInEjbViaInject;
         @Inject
         private SomeProduct someProduct;
+        @Inject
+        private NoImplementation pureMockInEjbViaInject;
+        @EJB
+        private NoImplementation pureMockInEjbViaEjb;
 
         public ExampleBean2 getCdiMockInEjbViaInject() {
             return cdiMockInEjbViaInject;
@@ -112,6 +139,14 @@ public class InjectMockTest {
 
         public ExampleSessionBean2 getEjbMockInEjbViaInject() {
             return ejbMockInEjbViaInject;
+        }
+
+        public NoImplementation getPureMockInEjbViaInject() {
+            return pureMockInEjbViaInject;
+        }
+
+        public NoImplementation getPureMockInEjbViaEjb() {
+            return pureMockInEjbViaEjb;
         }
     }
 
@@ -135,6 +170,10 @@ public class InjectMockTest {
         private ExampleSessionBean2 ejbMockInCdiViaEjb;
         @Inject
         private ExampleSessionBean2 ejbMockInCdiViaInject;
+        @Inject
+        private NoImplementation pureMockInCdiViaInject;
+        @EJB
+        private NoImplementation pureMockInCdiViaEjb;
 
         public ExampleBean2 getCdiMockInCdiViaInject() {
             return cdiMockInCdiViaInject;
@@ -147,6 +186,18 @@ public class InjectMockTest {
         public ExampleSessionBean2 getEjbMockInCdiViaInject() {
             return ejbMockInCdiViaInject;
         }
+
+        public NoImplementation getPureMockInCdiViaInject() {
+            return pureMockInCdiViaInject;
+        }
+
+        public NoImplementation getPureMockInCdiViaEjb() {
+            return pureMockInCdiViaEjb;
+        }
+    }
+
+    public interface NoImplementation {
+        String doit();
     }
 
     public static class TestBean {
@@ -158,6 +209,8 @@ public class InjectMockTest {
         private ExampleBean2 cdiMock;
         @Mock
         private ExampleSessionBean2 ejbMock;
+        @Mock
+        private NoImplementation noImplementation;
 
         public ExampleBean1 getCdiBean() {
             return cdiBean;

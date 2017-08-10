@@ -66,7 +66,24 @@ public class BeanArchive {
     }
 
     public boolean isRelevant() {
-        return hasBeansXml() || hasCdiExtension() || isEjbArchive() || hasAdditionalQualification();
+        return hasBeansXml() || isEjbArchive() || hasAdditionalQualification() || isWeldCore();
+    }
+
+    private boolean isWeldCore() {
+        // TODO not very pretty
+        return has("org/jboss/weld/bootstrap/WeldExtension.class");
+    }
+
+    public boolean isFrameworkRelevant() {
+        return hasTesteefiMarker() || isWeldCore();
+    }
+
+    private boolean hasTesteefiMarker() {
+        return has("META-INF/testee.fi");
+    }
+
+    private boolean has(String filename) {
+        return getClasspathEntry().findResource(filename) != null;
     }
 
     @SuppressWarnings("unchecked")
@@ -74,12 +91,8 @@ public class BeanArchive {
         return !classpathEntry.annotatedWith(qualifyingAnnotations.toArray(new Class[]{})).isEmpty();
     }
 
-    private boolean hasCdiExtension() {
-        return getClasspathEntry().findResource("META-INF/services/javax.enterprise.inject.spi.CDIProvider") != null;
-    }
-
     private boolean hasBeansXml() {
-        return getClasspathEntry().findResource("META-INF/beans.xml") != null;
+        return has("META-INF/beans.xml");
     }
 
     @Override

@@ -15,8 +15,8 @@
  */
 package fi.testee.runtime;
 
+import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
-import fi.testee.deployment.BeanDeploymentArchiveManagement;
 import fi.testee.deployment.DeploymentImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.services.TransactionServicesImpl;
@@ -29,6 +29,7 @@ import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.bootstrap.api.Bootstrap;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
+import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
 import org.jboss.weld.bootstrap.spi.Metadata;
 import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.context.api.ContextualInstance;
@@ -46,6 +47,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toSet;
@@ -67,15 +69,17 @@ public class DependencyInjectionRealm implements DependencyInjection {
             final BeanArchiveDiscovery beanArchiveDiscovery,
             final Environments environment,
             final Collection<Metadata<Extension>> extensions,
-            final BeansXmlModifier beansXmlModifier
+            final BeansXmlModifier beansXmlModifier,
+            final Predicate<BeanArchive> beanArchiveFilter
     ) {
         LOG.trace("Starting dependency injection realm {}", contextId);
         ensureTransactionServices(serviceRegistry);
-        final BeanDeploymentArchiveManagement bdaManagement = new BeanDeploymentArchiveManagement(
-                beanArchiveDiscovery,
-                serviceRegistry
+        deployment = new DeploymentImpl(
+                beanArchiveDiscovery.getBeanArchives().stream().filter(beanArchiveFilter).collect(toSet()),
+                serviceRegistry,
+                extensions,
+                beansXmlModifier
         );
-        deployment = new DeploymentImpl(bdaManagement, serviceRegistry, extensions, beansXmlModifier);
         bootstrap = new WeldBootstrap()
                 .startContainer(contextId, environment, deployment)
                 .startInitialization()
@@ -85,8 +89,10 @@ public class DependencyInjectionRealm implements DependencyInjection {
         return this;
     }
 
-    public BeanManagerImpl findArchiveFor(final Class<?> clazz){
-        return container().beanDeploymentArchives().get(deployment.getBeanDeploymentArchive(clazz));
+    public BeanManagerImpl findArchiveFor(final Class<?> clazz) {
+        final BeanDeploymentArchive beanDeploymentArchive = deployment.getBeanDeploymentArchive(clazz);
+        assert beanDeploymentArchive != null : "Could not find bean deployment archive for " + clazz;
+        return container().beanDeploymentArchives().get(beanDeploymentArchive);
     }
 
     private void ensureTransactionServices(final ServiceRegistry serviceRegistry) {

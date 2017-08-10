@@ -88,7 +88,7 @@ public class DependencyInjectionTest extends BaseDependencyInjectionTest<Depende
         runTest(() -> {
             assertEquals("Hello, world", root.ejbIfaceViaInject.test());
             ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT); // TODO can't this happen lazily?
-            ensureInterception(SessionBean1.class, "getEjbInEjbViaInject", AROUND_INVOKE);
+            ensureInterception(SessionBean1.class, "test", AROUND_INVOKE);
         }, () -> {
             ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
         });

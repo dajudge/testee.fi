@@ -139,4 +139,7 @@ public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
         return beanArchive.getClasspathEntry().getURL().toExternalForm();
     }
 
+    public BeanArchive getBeanArchive() {
+        return beanArchive;
+    }
 }

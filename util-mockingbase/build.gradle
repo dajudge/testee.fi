@@ -1,0 +1,7 @@
+apply plugin: 'java'
+
+dependencies {
+    compile libCommonsLang3
+    compile libWeld
+    compile project(":core-spi")
+}

@@ -22,6 +22,7 @@ import fi.testee.spi.SessionBeanFactory;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
+import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.manager.BeanManagerImpl;
@@ -59,6 +60,7 @@ public class EjbContainer {
     private final Set<SessionBeanHolder<?>> existingBeans = new HashSet<>();
     private Map<Type, EjbDescriptorImpl<?>> ejbDescriptors;
     private Map<EjbDescriptor<?>, ResourceReferenceFactory<?>> containers;
+    private EjbInjectionServices ejbInjectionServices;
 
     public interface EjbDescriptorHolderResolver {
 
@@ -87,14 +89,14 @@ public class EjbContainer {
             final Function<Object, Collection<ResourceReference<?>>> cdiInjection,
             final Injection<Resource> resourceInjection,
             final Injection<PersistenceContext> jpaInjection,
-            final SessionBeanModifier modifier,
+            final Injection<EJB> ejbInjection,
             final ContextFactory contextFactory
     ) {
         LOG.debug("Starting EJB container with EJB descriptors {}", ejbDescriptors);
         final EjbInjection injection = (o, b, m) -> {
             final Collection<ResourceReference<?>> ret = new HashSet<>();
             ret.addAll(cdiInjection.apply(o));
-            ret.addAll(ejbInjection(EJB.class, this::injectEjb).instantiateAll(o, b, m));
+            ret.addAll(ejbInjection(EJB.class, injectResources(ejbInjection)).instantiateAll(o, b, m));
             ret.addAll(ejbInjection(Resource.class, injectResources(resourceInjection)).instantiateAll(o, b, m));
             ret.addAll(ejbInjection(PersistenceContext.class, injectResources(jpaInjection)).instantiateAll(o, b, m));
             return ret;
@@ -118,7 +120,7 @@ public class EjbContainer {
         this.containers = ejbDescriptors.values().stream()
                 .collect(toMap(
                         it -> it,
-                        it -> createFactory(holderResolver.resolve(it), injection, modifier, contextFactory, lifecycleListener)
+                        it -> createFactory(holderResolver.resolve(it), injection, contextFactory, lifecycleListener)
                                 .getResourceReferenceFactory()
                 ));
     }
@@ -184,11 +186,10 @@ public class EjbContainer {
     private <T> SessionBeanFactory<T> createFactory(
             final EjbDescriptorHolder<T> desc,
             final EjbInjection injection,
-            final SessionBeanModifier modifier,
             final ContextFactory contextFactory,
             final SessionBeanLifecycleListener lifecycleListener
     ) {
-        final RootSessionBeanFactory<T> root = new RootSessionBeanFactory<T>(
+        return new RootSessionBeanFactory<T>(
                 injection,
                 desc.getBean(),
                 desc.getBeanManager(),
@@ -196,7 +197,6 @@ public class EjbContainer {
                 contextFactory,
                 lifecycleListener
         );
-        return modifier.modify(root);
     }
 
     public EjbDescriptor<?> lookupDescriptor(final Type type) {
@@ -205,6 +205,7 @@ public class EjbContainer {
 
     @SuppressWarnings("unchecked")
     public <T> ResourceReferenceFactory<T> createInstance(final EjbDescriptor<T> descriptor) {
+        assert descriptor != null;
         return () -> (ResourceReference<T>) containers.get(descriptor).createResource();
     }
 
@@ -220,8 +221,6 @@ public class EjbContainer {
             return factory;
         }
     }
-
-    public static final SessionBeanModifier IDENTITY = new IdentitySessionBeanModifier();
 
     public void shutdown() {
         // This cleans up remaining beans that were part of reference cycles

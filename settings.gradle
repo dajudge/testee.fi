@@ -21,3 +21,4 @@ include 'rest'          // Support for testing JAX-RS REST resources
 // Various utility packages
 include 'util-nopostconstruct'  // @NoPostConstructFor
 include 'util-resourcedef'      // @ResourceDef
+include 'util-mockingbase'      // Base for mocking

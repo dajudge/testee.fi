@@ -13,19 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.easymock;
+package fi.testee.spi;
 
-import fi.testee.spi.BeanModifier;
-import fi.testee.spi.BeanModifierFactory;
+import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
-/**
- * Factory for {@link EasyMockBeanModifier}.
- *
- * @author Alex Stockinger, IT-Stockinger
- */
-public class EasyMockBeanModifierFactory implements BeanModifierFactory {
-    @Override
-    public BeanModifier createBeanModifier(Object testClassInstance) {
-        return new EasyMockBeanModifier(testClassInstance);
-    }
+import java.lang.reflect.Type;
+
+public interface SessionBeanAlternatives {
+    ResourceReferenceFactory<Object> alternativeFor(Type type);
 }

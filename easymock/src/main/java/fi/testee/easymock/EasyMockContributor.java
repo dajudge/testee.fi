@@ -13,17 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.spi;
+package fi.testee.easymock;
 
-import javax.enterprise.inject.spi.Bean;
+import fi.testee.mocking.spi.AbstractBaseMockContributor;
+import org.easymock.EasyMockSupport;
+import org.easymock.Mock;
 
-/**
- * Allows modification of Beans.
- *
- * @author Alex Stockinger, IT-Stockinger
- */
-public interface BeanModifier {
-    <T> void modifyCdiBean(Bean<T> cdiBean);
+import java.lang.reflect.Field;
 
-    <T> SessionBeanFactory<T> modifySessionBean(SessionBeanFactory<T> sessionBean);
+import static fi.testee.utils.ReflectionUtils.hasAnnotation;
+
+public class EasyMockContributor extends AbstractBaseMockContributor {
+    @Override
+    protected boolean isMockField(final Field field) {
+        return hasAnnotation(Mock.class).test(field);
+    }
+
+    @Override
+    protected void injectMocks(final Object testInstance) {
+        EasyMockSupport.injectMocks(testInstance);
+    }
 }

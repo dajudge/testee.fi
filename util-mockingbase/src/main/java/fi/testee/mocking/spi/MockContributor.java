@@ -13,19 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.mockito;
+package fi.testee.mocking.spi;
 
-import fi.testee.spi.BeanModifier;
-import fi.testee.spi.BeanModifierFactory;
+import java.lang.reflect.Field;
+import java.util.Map;
 
-/**
- * Factory for {@link MockitoBeanModifier}.
- *
- * @author Alex Stockinger, IT-Stockinger
- */
-public class MockitoBeanModifierFactory implements BeanModifierFactory {
-    @Override
-    public BeanModifier createBeanModifier(Object testClassInstance) {
-        return new MockitoBeanModifier(testClassInstance);
-    }
+public interface MockContributor {
+    Map<Field, Object> contributeMocks();
 }

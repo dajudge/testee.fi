@@ -15,6 +15,7 @@
  */
 package fi.testee.services;
 
+import fi.testee.spi.SessionBeanAlternatives;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
@@ -31,24 +32,36 @@ import java.lang.reflect.Type;
 public class EjbInjectionServicesImpl implements EjbInjectionServices {
     private final EjbLookup lookup;
     private final EjbFactory factory;
+    private final SessionBeanAlternatives alternatives;
 
     public EjbInjectionServicesImpl(
             final EjbLookup lookup,
-            final EjbFactory factory
+            final EjbFactory factory,
+            final SessionBeanAlternatives alternatives
     ) {
         this.lookup = lookup;
         this.factory = factory;
+        this.alternatives = alternatives;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public ResourceReferenceFactory<Object> registerEjbInjectionPoint(final InjectionPoint injectionPoint) {
-        if (injectionPoint.getAnnotated().getAnnotation(EJB.class) != null) {
-            final Type type = injectionPoint.getType();
-            final EjbDescriptor<Object> descriptor = (EjbDescriptor<Object>) lookup.lookup(type);
-            return factory.createInstance(descriptor);
+    public ResourceReferenceFactory<Object> registerEjbInjectionPoint(
+            final InjectionPoint injectionPoint
+    ) {
+        if (injectionPoint.getAnnotated().getAnnotation(EJB.class) == null) {
+            throw new IllegalStateException("Unhandled injection point: " + injectionPoint);
         }
-        throw new IllegalStateException("Unhandled injection point: " + injectionPoint);
+        final Type type = injectionPoint.getType();
+        final ResourceReferenceFactory<Object> alternative = alternatives.alternativeFor(type);
+        if (alternative != null) {
+            return alternative;
+        }
+        final EjbDescriptor<Object> descriptor = (EjbDescriptor<Object>) lookup.lookup(type);
+        if (descriptor == null) {
+            throw new IllegalStateException("No EJB descriptor found for EJB injection point: " + injectionPoint);
+        }
+        return factory.createInstance(descriptor);
     }
 
     @Override

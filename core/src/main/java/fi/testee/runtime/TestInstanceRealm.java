@@ -15,17 +15,17 @@
  */
 package fi.testee.runtime;
 
+import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.ejb.EjbContainer;
 import fi.testee.services.ResourceInjectionServicesImpl;
-import fi.testee.spi.BeanModifier;
-import fi.testee.spi.BeanModifierFactory;
 import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.CdiExtensionFactory;
 import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
+import fi.testee.spi.SessionBeanAlternatives;
 import fi.testee.spi.SessionBeanFactory;
 import fi.testee.spi.scope.TestInstanceScope;
 import fi.testee.spi.scope.TestSetupScope;
@@ -35,6 +35,7 @@ import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.jboss.weld.bootstrap.spi.BeansXml;
 import org.jboss.weld.bootstrap.spi.Metadata;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
+import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.Extension;
@@ -68,26 +69,46 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
                 beanArchiveDiscovery,
                 Environments.SE,
                 emptySet(),
-                UNMODIFIED
+                UNMODIFIED,
+                BeanArchive::isFrameworkRelevant
+
         );
         this.instanceId = instanceId;
         this.testInstance = testInstance;
 
         final Set<ResourceProvider> resourceProviders = getInstancesOf(ResourceProvider.class, releaser);
-        final Set<BeanModifier> beanModifiers = beanModifiers(testInstance);
-        final SessionBeanModifierImpl beanModifier = new SessionBeanModifierImpl(beanModifiers);
         final BeansXmlModifier beansXmlModifier = beansXmlModifiers();
         final Collection<Metadata<Extension>> extensions = instanceExtensions(method);
         context = getInstanceOf(TransactionalContext.class, releaser);
         final Annotation[] scopes = {TestSetupScope.INSTANCE, TestInstanceScope.INSTANCE};
-        context.initialize(beanModifier, extensions, beansXmlModifier, resourceProviders, scopes);
+        context.initialize(
+                extensions,
+                beansXmlModifier,
+                resourceProviders,
+                it -> true,
+                sessionBeanAlternatives(releaser),
+                scopes
+        );
         context.run((clazz, testInstanceRealm) -> {
-            testInstanceRealm.getAllBeans().forEach(modifyCdiBeans(beanModifiers));
             testInstanceRealm.inject(testInstance, releaser);
             testInstanceRealm.postConstruct(testInstance);
             return null;
         });
         return this;
+    }
+
+    private SessionBeanAlternatives sessionBeanAlternatives(final Releaser releaser) {
+        final Set<SessionBeanAlternatives> all = getInstancesOf(SessionBeanAlternatives.class, releaser);
+        return type -> {
+            // TODO handle ambiguous alternatives
+            for (final SessionBeanAlternatives it : all) {
+                final ResourceReferenceFactory<Object> alternative = it.alternativeFor(type);
+                if (alternative != null) {
+                    return alternative;
+                }
+            }
+            return null;
+        };
     }
 
     private Collection<ResourceProvider> resourceProviders(
@@ -108,12 +129,9 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
         return new DeferredDependencyInjection(() -> context.getDependencyInjection());
     }
 
-    private Consumer<Bean<?>> modifyCdiBeans(final Collection<BeanModifier> beanModifiers) {
-        return bean -> beanModifiers.forEach(it -> it.modifyCdiBean(bean));
-    }
-
     private Collection<Metadata<Extension>> instanceExtensions(final Method method) {
-        return getInstancesOf(CdiExtensionFactory.class, releaser).stream()
+        final Set<CdiExtensionFactory> factories = getInstancesOf(CdiExtensionFactory.class, releaser);
+        return factories.stream()
                 .map(factory -> factory.create(method))
                 .filter(Objects::nonNull)
                 .map(this::testExtension)
@@ -140,12 +158,6 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
         return services;
     }
 
-    private Set<BeanModifier> beanModifiers(final Object testInstance) {
-        return getInstancesOf(BeanModifierFactory.class, releaser).stream()
-                .map(it -> it.createBeanModifier(testInstance))
-                .collect(toSet());
-    }
-
     @Override
     public <T> T create(final Class<T> clazz, final ReleaseCallbackHandler releaser) {
         return context.run((setupClass, realm) -> realm.getInstanceOf(clazz, releaser));
@@ -167,21 +179,6 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
         return instanceId;
     }
 
-    private static class SessionBeanModifierImpl implements EjbContainer.SessionBeanModifier {
-        private final Set<BeanModifier> beanModifiers;
-
-        private SessionBeanModifierImpl(final Set<BeanModifier> beanModifiers) {
-            this.beanModifiers = beanModifiers;
-        }
-
-        @Override
-        public <T> SessionBeanFactory<T> modify(SessionBeanFactory<T> factory) {
-            for (final BeanModifier beanModifier : beanModifiers) {
-                factory = beanModifier.modifySessionBean(factory);
-            }
-            return factory;
-        }
-    }
 
     private BeansXmlModifier beansXmlModifiers() {
         final Set<BeansXmlModifier> modifiers = getInstancesOf(BeansXmlModifier.class, releaser);

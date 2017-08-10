@@ -15,6 +15,7 @@
  */
 package fi.testee.runtime;
 
+import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.RuntimeLifecycleListener;
@@ -55,7 +56,8 @@ public class TestRuntime {
 
     private TestRuntime() {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
-        realm = new DependencyInjectionRealm().init(serviceRegistry, beanArchiveDiscovery, SE, emptySet(), UNMODIFIED);
+        realm = new DependencyInjectionRealm()
+                .init(serviceRegistry, beanArchiveDiscovery, SE, emptySet(), UNMODIFIED, BeanArchive::isFrameworkRelevant);
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
