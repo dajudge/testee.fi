@@ -72,7 +72,12 @@ public class TestEEfiObjectFactory implements ObjectFactory {
         } catch (final InstantiationException | IllegalAccessException e) {
             throw new TestEEfiException("Failed to instantiate cucumber test setup class", e);
         }
-        context = testSetup.prepareTestInstance(id, setupInstance, null);
+        try {
+            context = testSetup.prepareTestInstance(id, setupInstance, null);
+        }catch(final RuntimeException e) {
+            testSetup.shutdown();
+            throw e;
+        }
         releaser = new Releaser();
     }
 

@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -149,13 +148,19 @@ public class TestSetup extends DependencyInjectionRealm {
 
     public TestInstance prepareTestInstance(final String id, final Object testInstance, final Method method) {
         LOG.debug("Instantiating test run '{}' for class {}", id, testInstance.getClass().getName());
-        return new TestInstanceRealm().init(
-                runtime.getBeanArchiveDiscorvery(),
-                id,
-                testInstance,
-                method,
-                asList(createSetupResources(true))
-        );
+        final TestInstanceRealm context = new TestInstanceRealm();
+        try {
+            return context.init(
+                    runtime.getBeanArchiveDiscorvery(),
+                    id,
+                    testInstance,
+                    method,
+                    asList(createSetupResources(true))
+            );
+        } catch (final RuntimeException e) {
+            context.shutdown();
+            throw e;
+        }
     }
 
     @Override
