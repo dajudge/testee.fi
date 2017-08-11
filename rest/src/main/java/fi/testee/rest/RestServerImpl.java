@@ -18,8 +18,11 @@ package fi.testee.rest;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.spi.AnnotationScanner;
 import fi.testee.spi.DependencyInjection;
+import fi.testee.spi.Releaser;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -55,12 +58,18 @@ class RestServerImpl implements RestServer {
 
     private final AnnotationScanner annotationScanner;
     private final DependencyInjection dependencyInjection;
+    private final Collection<StaticResourceResolver> staticResourceResolvers;
 
     private Server server;
 
-    public RestServerImpl(final AnnotationScanner annotationScanner, final DependencyInjection dependencyInjection) {
+    public RestServerImpl(
+            final AnnotationScanner annotationScanner,
+            final DependencyInjection dependencyInjection,
+            final Collection<StaticResourceResolver> staticResourceResolvers
+    ) {
         this.annotationScanner = annotationScanner;
         this.dependencyInjection = dependencyInjection;
+        this.staticResourceResolvers = staticResourceResolvers;
     }
 
     @Override
@@ -79,11 +88,21 @@ class RestServerImpl implements RestServer {
 
         try {
             server = new Server(0);
-            server.setHandler(createJerseyHandler());
+            server.setHandler(new HandlerCollection(
+                    createJerseyHandler(),
+                    createStaticHandler()
+            ));
             server.start();
         } catch (final Exception e) {
             throw new TestEEfiException("Failed to start Jetty", e);
         }
+    }
+
+    private ServletContextHandler createStaticHandler() {
+        final ServletContextHandler context = new ServletContextHandler();
+        context.setContextPath("/static");
+        context.addServlet(new ServletHolder(new StaticServlet(staticResourceResolvers)), "/*");
+        return context;
     }
 
     private ServletContextHandler createJerseyHandler() {

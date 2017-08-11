@@ -149,18 +149,13 @@ public class TestSetup extends DependencyInjectionRealm {
     public TestInstance prepareTestInstance(final String id, final Object testInstance, final Method method) {
         LOG.debug("Instantiating test run '{}' for class {}", id, testInstance.getClass().getName());
         final TestInstanceRealm context = new TestInstanceRealm();
-        try {
-            return context.init(
-                    runtime.getBeanArchiveDiscorvery(),
-                    id,
-                    testInstance,
-                    method,
-                    asList(createSetupResources(true))
-            );
-        } catch (final RuntimeException e) {
-            context.shutdown();
-            throw e;
-        }
+        return context.init(
+                runtime.getBeanArchiveDiscorvery(),
+                id,
+                testInstance,
+                method,
+                asList(createSetupResources(true))
+        );
     }
 
     @Override

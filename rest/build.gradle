@@ -7,8 +7,10 @@ dependencies {
     compile 'org.glassfish.jersey.containers:jersey-container-servlet:2.24.1'
     compile 'org.glassfish.jersey.media:jersey-media-moxy:2.24.1'
     compile libJettyServlet
+    compile libJavaxActivation
 
     testCompile project(":junit4")
+    testCompile libCommonsIO
     testCompile libLogback
     testCompile libOkhttp3
 }

@@ -5,6 +5,7 @@ Version 0.5.0
 - Fixed issue when injecting EJBs with @EJB via one of theis interfaces
 - Vastly improved mocking
 - Improved shutdown behavior when Cucumber test init fails
+- Support for serving static resources via HTTP
 
 Version 0.4.3
 - Fixed issue in fi.testee.spi.base.BeanReplacementManager where new EJBs were instantiated on each call when being injected with @Inject

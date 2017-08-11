@@ -15,16 +15,14 @@
  */
 package fi.testee.rest;
 
-import org.junit.Test;
+import java.io.OutputStream;
 
-import java.io.IOException;
-import java.util.function.Consumer;
+public interface StaticResourceResolver {
+    interface ResolvedResource {
+        String getContentType();
 
-import static org.junit.Assert.assertEquals;
-
-public class RestTest extends AbstractBaseRestTest {
-    @Test
-    public void serves_rest_resources() throws IOException {
-        assertGet("/rest/api/ping", 200, body -> assertEquals("managed:session", body));
+        void getContent(OutputStream out);
     }
+
+    ResolvedResource resolve(String path);
 }

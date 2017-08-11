@@ -17,14 +17,17 @@ package fi.testee.rest;
 
 import fi.testee.spi.AnnotationScanner;
 import fi.testee.spi.DependencyInjection;
+import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
 import fi.testee.spi.scope.TestInstanceScope;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.inject.spi.InjectionPoint;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 
 @TestInstanceScope
 public class RestServerResourceProvider implements ResourceProvider {
@@ -33,14 +36,20 @@ public class RestServerResourceProvider implements ResourceProvider {
     @Resource(mappedName = "testeefi/instance/dependencyInjection")
     private DependencyInjection dependencyInjection;
 
-    private Collection<RestServerImpl> servers = new HashSet<>();
+    private final Collection<RestServerImpl> servers = new HashSet<>();
+    private final Releaser releaser = new Releaser();
+    private Set<StaticResourceResolver> staticResourceResolvers;
 
     @Override
     public Object resolve(final InjectionPoint injectionPoint) {
         if (RestServer.class != injectionPoint.getType()) {
             return null;
         }
-        final RestServerImpl server = new RestServerImpl(annotationScanner, dependencyInjection);
+        final RestServerImpl server = new RestServerImpl(
+                annotationScanner,
+                dependencyInjection,
+                dependencyInjection.getInstancesOf(StaticResourceResolver.class, releaser)
+        );
         servers.add(server);
         return server;
     }
@@ -53,5 +62,6 @@ public class RestServerResourceProvider implements ResourceProvider {
     @PreDestroy
     public void shutdown() {
         servers.forEach(RestServerImpl::shutdown);
+        releaser.release();
     }
 }

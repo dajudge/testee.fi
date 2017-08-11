@@ -18,13 +18,18 @@ package fi.testee.rest;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 
-public class RestTest extends AbstractBaseRestTest {
+public class StaticTest extends AbstractBaseRestTest {
     @Test
-    public void serves_rest_resources() throws IOException {
-        assertGet("/rest/api/ping", 200, body -> assertEquals("managed:session", body));
+    public void serves_resources() throws IOException {
+        assertGet("/static/test.txt", 200, body -> assertEquals("TestContent", body));
+    }
+
+    @Test
+    public void notFound_when_not_found() throws IOException {
+        assertGet("/static/notFound", 404, body -> {
+        });
     }
 }
