@@ -98,10 +98,6 @@ public class TransactionalContext {
     private DependencyInjectionRealm realm;
     private EjbContainer ejbContainer;
 
-    public TransactionalContext() {
-        LOG.info("New transactional context");
-    }
-
     public void initialize(
             final Collection<Metadata<Extension>> extensions,
             final BeansXmlModifier beansXmlModifier,

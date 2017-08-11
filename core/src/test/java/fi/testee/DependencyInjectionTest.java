@@ -92,7 +92,17 @@ public class DependencyInjectionTest extends BaseDependencyInjectionTest<Depende
         }, () -> {
             ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
         });
+    }
 
+    @Test
+    public void ejbIface_in_root_via_ejb() {
+        runTest(() -> {
+            assertEquals("Hello, world", root.ejbIfaceViaInject.test());
+            ensureInterception(ExampleBean1.class, null, POST_CONSTRUCT); // TODO can't this happen lazily?
+            ensureInterception(SessionBean1.class, "test", AROUND_INVOKE);
+        }, () -> {
+            ensureInterception(ExampleBean1.class, null, PRE_DESTROY);
+        });
     }
 
     @Test
@@ -248,6 +258,8 @@ public class DependencyInjectionTest extends BaseDependencyInjectionTest<Depende
         private BeanArchiveDiscovery beanFromDifferentArchive;
         @Inject
         private SessionBeanInterface ejbIfaceViaInject;
+        @EJB
+        private SessionBeanInterface ejbIfaceViaEjb;
 
         public ExampleBean1 getCdiInRootViaInject() {
             return cdiInRootViaInject;

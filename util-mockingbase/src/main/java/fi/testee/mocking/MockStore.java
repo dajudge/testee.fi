@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 
 import static java.util.stream.Collectors.toSet;
+import static org.jboss.weld.resolution.CovariantTypes.isAssignableFrom;
 
 @Singleton
 public class MockStore {
@@ -56,14 +57,9 @@ public class MockStore {
     }
 
     private Map.Entry<Field, Object> findEntryFor(final Type type) {
-        if (!(type instanceof Class)) {
-            // TODO handle more cases
-            return null;
-        }
-        final Class<?> clazz = (Class<?>) type;
         for (final Map.Entry<Field, Object> e : mocks.entrySet()) {
             // TODO handle ambiguous mocks
-            if (clazz.isAssignableFrom(e.getValue().getClass())) {
+            if (isAssignableFrom(type, e.getValue().getClass())) {
                 return e;
             }
         }

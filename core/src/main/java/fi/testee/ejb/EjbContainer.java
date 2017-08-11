@@ -48,6 +48,7 @@ import java.util.function.Function;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
+import static org.jboss.weld.resolution.CovariantTypes.isAssignableFrom;
 
 /**
  * Bridge between CDI and EJB dependency injection.
@@ -200,7 +201,12 @@ public class EjbContainer {
     }
 
     public EjbDescriptor<?> lookupDescriptor(final Type type) {
-        return ejbDescriptors.get(type);
+        for (final Map.Entry<Type, EjbDescriptorImpl<?>> e : ejbDescriptors.entrySet()) {
+            if(isAssignableFrom(type, e.getKey())) {
+                return e.getValue();
+            }
+        }
+        return null;
     }
 
     @SuppressWarnings("unchecked")
