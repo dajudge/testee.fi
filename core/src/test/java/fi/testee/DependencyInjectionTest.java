@@ -166,26 +166,28 @@ public class DependencyInjectionTest extends BaseDependencyInjectionTest<Depende
     }
 
     public interface SessionBeanInterface {
-
         String test();
+    }
+
+    public abstract static class BaseSessionBean {
+        @EJB
+        private SessionBean2 ejbInEjbViaEjb;
+
+        public SessionBean2 getEjbInEjbViaEjb() {
+            return ejbInEjbViaEjb;
+        }
     }
 
     @Stateless
     @UseInterceptor
-    public static class SessionBean1 implements SessionBeanInterface {
+    public static class SessionBean1 extends BaseSessionBean implements SessionBeanInterface {
         @Inject
         private SessionBean2 ejbInEjbViaInject;
-        @EJB
-        private SessionBean2 ejbInEjbViaEjb;
         @Resource(mappedName = "testds")
         private DataSource resourceInEjb;
 
         public SessionBean2 getEjbInEjbViaInject() {
             return ejbInEjbViaInject;
-        }
-
-        public SessionBean2 getEjbInEjbViaEjb() {
-            return ejbInEjbViaEjb;
         }
 
         public DataSource getResourceInEjb() {

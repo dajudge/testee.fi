@@ -192,13 +192,18 @@ public class TransactionalContext {
                 .getInstance();
     }
 
-    private FieldInjectionPoint<Object, ?> injectionPointOf(
-            final Field f,
-            final Bean<?> bean,
+    @SuppressWarnings("unchecked")
+    private <T> FieldInjectionPoint<Object, T> injectionPointOf(
+            final Field field,
+            final Bean<T> bean,
             final BeanManagerImpl beanManager
     ) {
-        final EnhancedAnnotatedType<?> type = beanManager.createEnhancedAnnotatedType(bean.getBeanClass());
-        final EnhancedAnnotatedField<Object, ?> eaf = type.getDeclaredEnhancedField(f.getName());
+        final EnhancedAnnotatedType<T> type = beanManager.createEnhancedAnnotatedType((Class<T>) bean.getBeanClass());
+        final Collection<EnhancedAnnotatedField<?, ? super T>> enhancedFields = type.getEnhancedFields();
+        final EnhancedAnnotatedField<Object, T> eaf = (EnhancedAnnotatedField<Object, T>) enhancedFields.stream()
+                .filter(it -> field.equals(it.getJavaMember()))
+                .findFirst()
+                .orElseThrow(() -> new TestEEfiException("Failed to get enhanced annotated field for " + field));
         return InjectionPointFactory.instance()
                 .createFieldInjectionPoint(eaf, bean, bean.getBeanClass(), beanManager);
     }
