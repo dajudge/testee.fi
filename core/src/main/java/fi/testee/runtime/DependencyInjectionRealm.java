@@ -20,6 +20,7 @@ import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.deployment.DeploymentImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.services.TransactionServicesImpl;
+import fi.testee.spi.DynamicArchiveContributor;
 import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ReleaseCallbackHandler;
@@ -70,12 +71,14 @@ public class DependencyInjectionRealm implements DependencyInjection {
             final Environments environment,
             final Collection<Metadata<Extension>> extensions,
             final BeansXmlModifier beansXmlModifier,
-            final Predicate<BeanArchive> beanArchiveFilter
+            final Predicate<BeanArchive> beanArchiveFilter,
+            final Collection<DynamicArchiveContributor> archiveContributors
     ) {
         LOG.trace("Starting dependency injection realm {}", contextId);
         ensureTransactionServices(serviceRegistry);
         deployment = new DeploymentImpl(
                 beanArchiveDiscovery.getBeanArchives().stream().filter(beanArchiveFilter).collect(toSet()),
+                archiveContributors,
                 serviceRegistry,
                 extensions,
                 beansXmlModifier

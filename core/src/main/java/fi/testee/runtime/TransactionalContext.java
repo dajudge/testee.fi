@@ -30,6 +30,7 @@ import fi.testee.services.ProxyServicesImpl;
 import fi.testee.services.ResourceInjectionServicesImpl;
 import fi.testee.services.SecurityServicesImpl;
 import fi.testee.services.TransactionServicesImpl;
+import fi.testee.spi.DynamicArchiveContributor;
 import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ReleaseCallbackHandler;
@@ -97,12 +98,17 @@ public class TransactionalContext {
     private DependencyInjectionRealm realm;
     private EjbContainer ejbContainer;
 
+    public TransactionalContext() {
+        LOG.info("New transactional context");
+    }
+
     public void initialize(
             final Collection<Metadata<Extension>> extensions,
             final BeansXmlModifier beansXmlModifier,
             final Collection<ResourceProvider> setupResolvers,
             final Predicate<BeanArchive> archiveFilter,
             final SessionBeanAlternatives sessionBeanAlternatives,
+            final Collection<DynamicArchiveContributor> archiveContributors,
             final Annotation... scopes
     ) {
         LOG.debug("Initializing new transactional context for {}", testSetupClass);
@@ -127,7 +133,8 @@ public class TransactionalContext {
                 Environments.EE_INJECT,
                 extensions,
                 beansXmlModifier,
-                archiveFilter
+                archiveFilter,
+                archiveContributors
         );
         ejbContainer.init(
                 this::holderResolver,

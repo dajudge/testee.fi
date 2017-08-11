@@ -13,22 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.mocking;
+package fi.testee.spi;
 
-import fi.testee.spi.CdiExtensionFactory;
+import org.jboss.weld.bootstrap.api.ServiceRegistry;
+import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
 
-import javax.enterprise.inject.spi.Extension;
-import javax.inject.Inject;
-import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.function.Supplier;
 
-public class MockingExtensionFactory implements CdiExtensionFactory {
-    @Inject
-    private MockStore mockStore;
-    @Inject
-    private MockingDynamicArchiveContributor contributor;
-
-    @Override
-    public Extension create(final Method method) {
-        return new MockingExtension(contributor, mockStore);
-    }
+public interface DynamicArchiveContributor {
+    Collection<BeanDeploymentArchive> contribute(
+            final ServiceRegistry serviceRegistry,
+            final Supplier<Collection<BeanDeploymentArchive>> archives
+    );
 }

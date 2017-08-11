@@ -5,3 +5,16 @@ dependencies {
     compile libWeld
     compile project(":core-spi")
 }
+
+configurations {
+    testArtifacts.extendsFrom testRuntime
+}
+
+task testJar(type: Jar) {
+    classifier "tests"
+    from sourceSets.test.output
+}
+
+artifacts {
+    testArtifacts testJar
+}

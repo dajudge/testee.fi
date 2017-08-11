@@ -15,20 +15,11 @@
  */
 package fi.testee.mocking;
 
-import fi.testee.spi.CdiExtensionFactory;
-
-import javax.enterprise.inject.spi.Extension;
-import javax.inject.Inject;
-import java.lang.reflect.Method;
-
-public class MockingExtensionFactory implements CdiExtensionFactory {
-    @Inject
-    private MockStore mockStore;
-    @Inject
-    private MockingDynamicArchiveContributor contributor;
-
-    @Override
-    public Extension create(final Method method) {
-        return new MockingExtension(contributor, mockStore);
-    }
+/**
+ * This is an interface in a non-bean archvie that
+ * will be used by bean archives.
+ *
+ * @author Alex Stockinger, IT-Stockinger
+ */
+public interface InterfaceNotInBeanArchive {
 }

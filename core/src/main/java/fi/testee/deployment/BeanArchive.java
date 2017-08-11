@@ -82,7 +82,7 @@ public class BeanArchive {
         return has("META-INF/testee.fi");
     }
 
-    private boolean has(String filename) {
+    private boolean has(final String filename) {
         return getClasspathEntry().findResource(filename) != null;
     }
 

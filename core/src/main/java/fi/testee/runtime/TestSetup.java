@@ -27,18 +27,15 @@ import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
-import fi.testee.spi.SessionBeanAlternatives;
 import fi.testee.spi.scope.TestSetupScope;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
-import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -86,9 +83,10 @@ public class TestSetup extends DependencyInjectionRealm {
                 serviceRegistry,
                 beanArchiveDiscovery,
                 Environments.SE,
-                Collections.emptySet(),
+                emptySet(),
                 UNMODIFIED,
-                BeanArchive::isFrameworkRelevant
+                BeanArchive::isFrameworkRelevant,
+                emptySet()
         );
 
         setupTestData(setupResources);
@@ -106,6 +104,7 @@ public class TestSetup extends DependencyInjectionRealm {
                     asList(setupResources),
                     BeanArchive::isFrameworkRelevant,
                     type -> null,
+                    emptySet(),
                     scopes
             );
             try {

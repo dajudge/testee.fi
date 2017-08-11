@@ -35,6 +35,7 @@ import javax.enterprise.inject.spi.Producer;
 import javax.enterprise.inject.spi.ProducerFactory;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -50,9 +51,15 @@ public class MockingExtension implements Extension {
         }
     };
 
+    private final MockingDynamicArchiveContributor contributor;
     private final MockStore mockStore;
+    private final Collection<InjectionPoint> mockedInjectionPoints = new HashSet<>();
 
-    public MockingExtension(final MockStore mockStore) {
+    public MockingExtension(
+            final MockingDynamicArchiveContributor contributor,
+            final MockStore mockStore
+    ) {
+        this.contributor = contributor;
         this.mockStore = mockStore;
     }
 
@@ -61,7 +68,7 @@ public class MockingExtension implements Extension {
     ) {
         final Type type = processInjectionPoint.getInjectionPoint().getType();
         final Object mock = mockStore.findFor(type);
-        if(mock == null) {
+        if (mock == null) {
             return;
         }
 
@@ -82,17 +89,22 @@ public class MockingExtension implements Extension {
                 return original;
             }
         });
+        mockedInjectionPoints.add(original);
     }
 
     public void afterBeanDiscovery(
             final @Observes AfterBeanDiscovery afterBeanDiscovery,
             final BeanManager beanManager
     ) {
-        mockStore.forEach((field, mock) -> {
-            final AnnotatedType<?> annotatedType = beanManager.createAnnotatedType(field.getType());
+        final Collection<Type> types = mockedInjectionPoints.stream()
+                .map(it -> it.getType())
+                .collect(toSet());
+        mockStore.forEachType(types, (field, mock) -> {
+            final Class<?> beanType = mock.getClass();
+            final AnnotatedType<?> annotatedType = beanManager.createAnnotatedType(beanType);
             final AnnotatedTypeWrapper<?> wrapped = new AnnotatedTypeWrapper<>(annotatedType, MOCKED);
             final BeanAttributes<?> attributes = beanManager.createBeanAttributes(wrapped);
-            final Bean<?> bean = beanManager.createBean(attributes, field.getType(), factory(mock));
+            final Bean<?> bean = beanManager.createBean(attributes, beanType, factory(mock));
             LOG.trace("Creating CDI mock bean for {}", annotatedType);
             afterBeanDiscovery.addBean(bean);
         });

@@ -15,6 +15,7 @@
  */
 package fi.testee.mockito;
 
+import fi.testee.mocking.InterfaceNotInBeanArchive;
 import fi.testee.runtime.TestRuntime;
 import fi.testee.runtime.TestSetup;
 import org.junit.Test;
@@ -174,6 +175,8 @@ public class InjectMockTest {
         private NoImplementation pureMockInCdiViaInject;
         @EJB
         private NoImplementation pureMockInCdiViaEjb;
+        @Inject
+        private InterfaceNotInBeanArchive interfaceNotInBeanArchive;
 
         public ExampleBean2 getCdiMockInCdiViaInject() {
             return cdiMockInCdiViaInject;
@@ -211,6 +214,8 @@ public class InjectMockTest {
         private ExampleSessionBean2 ejbMock;
         @Mock
         private NoImplementation noImplementation;
+        @Mock
+        private InterfaceNotInBeanArchive someBaseInterface;
 
         public ExampleBean1 getCdiBean() {
             return cdiBean;

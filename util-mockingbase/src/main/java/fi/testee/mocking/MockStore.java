@@ -16,8 +16,6 @@
 package fi.testee.mocking;
 
 import fi.testee.mocking.spi.MockContributor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.inject.Any;
@@ -26,9 +24,13 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
+
+import static java.util.stream.Collectors.toSet;
 
 @Singleton
 public class MockStore {
@@ -46,22 +48,34 @@ public class MockStore {
 
     }
 
-    public void forEach(final BiConsumer<? super Field, ? super Object> action) {
-        mocks.forEach(action);
+    public void forEachType(final Collection<Type> types, final BiConsumer<? super Field, ? super Object> action) {
+        types.stream()
+                .map(this::findEntryFor)
+                .filter(Objects::nonNull)
+                .forEach(e -> action.accept(e.getKey(), e.getValue()));
     }
 
-    public Object findFor(final Type type) {
+    private Map.Entry<Field, Object> findEntryFor(final Type type) {
         if (!(type instanceof Class)) {
             // TODO handle more cases
             return null;
         }
         final Class<?> clazz = (Class<?>) type;
-        for (final Object o : mocks.values()) {
+        for (final Map.Entry<Field, Object> e : mocks.entrySet()) {
             // TODO handle ambiguous mocks
-            if (clazz.isAssignableFrom(o.getClass())) {
-                return o;
+            if (clazz.isAssignableFrom(e.getValue().getClass())) {
+                return e;
             }
         }
         return null;
+    }
+
+    public Object findFor(final Type type) {
+        final Map.Entry<Field, Object> entry = findEntryFor(type);
+        return entry == null ? null : entry.getValue();
+    }
+
+    public Collection<Class<?>> getMockClasses() {
+        return mocks.values().stream().map(Object::getClass).collect(toSet());
     }
 }

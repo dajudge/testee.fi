@@ -19,7 +19,6 @@ import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.RuntimeLifecycleListener;
-import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.slf4j.Logger;
@@ -56,8 +55,15 @@ public class TestRuntime {
 
     private TestRuntime() {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
-        realm = new DependencyInjectionRealm()
-                .init(serviceRegistry, beanArchiveDiscovery, SE, emptySet(), UNMODIFIED, BeanArchive::isFrameworkRelevant);
+        realm = new DependencyInjectionRealm().init(
+                serviceRegistry,
+                beanArchiveDiscovery,
+                SE,
+                emptySet(),
+                UNMODIFIED,
+                BeanArchive::isFrameworkRelevant,
+                emptySet()
+        );
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {

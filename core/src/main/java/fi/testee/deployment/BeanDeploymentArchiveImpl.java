@@ -138,8 +138,4 @@ public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
     public String getId() {
         return beanArchive.getClasspathEntry().getURL().toExternalForm();
     }
-
-    public BeanArchive getBeanArchive() {
-        return beanArchive;
-    }
 }

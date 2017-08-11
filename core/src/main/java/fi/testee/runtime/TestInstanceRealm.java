@@ -17,16 +17,15 @@ package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
-import fi.testee.ejb.EjbContainer;
 import fi.testee.services.ResourceInjectionServicesImpl;
 import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.CdiExtensionFactory;
 import fi.testee.spi.DependencyInjection;
+import fi.testee.spi.DynamicArchiveContributor;
 import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
 import fi.testee.spi.SessionBeanAlternatives;
-import fi.testee.spi.SessionBeanFactory;
 import fi.testee.spi.scope.TestInstanceScope;
 import fi.testee.spi.scope.TestSetupScope;
 import org.jboss.weld.bootstrap.api.Environments;
@@ -37,7 +36,6 @@ import org.jboss.weld.bootstrap.spi.Metadata;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 
-import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.Extension;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -45,7 +43,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import static fi.testee.deployment.DeploymentImpl.UNMODIFIED;
 import static java.util.Collections.emptySet;
@@ -70,8 +67,8 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
                 Environments.SE,
                 emptySet(),
                 UNMODIFIED,
-                BeanArchive::isFrameworkRelevant
-
+                BeanArchive::isFrameworkRelevant,
+                emptySet()
         );
         this.instanceId = instanceId;
         this.testInstance = testInstance;
@@ -81,12 +78,17 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
         final Collection<Metadata<Extension>> extensions = instanceExtensions(method);
         context = getInstanceOf(TransactionalContext.class, releaser);
         final Annotation[] scopes = {TestSetupScope.INSTANCE, TestInstanceScope.INSTANCE};
+        final Collection<DynamicArchiveContributor> archiveContributors = getInstancesOf(
+                DynamicArchiveContributor.class,
+                releaser
+        );
         context.initialize(
                 extensions,
                 beansXmlModifier,
                 resourceProviders,
                 it -> true,
                 sessionBeanAlternatives(releaser),
+                archiveContributors,
                 scopes
         );
         context.run((clazz, testInstanceRealm) -> {

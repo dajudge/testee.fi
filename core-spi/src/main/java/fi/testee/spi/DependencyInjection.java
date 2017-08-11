@@ -15,8 +15,6 @@
  */
 package fi.testee.spi;
 
-import org.jboss.weld.context.CreationalContextImpl;
-
 import java.util.Set;
 
 /**
