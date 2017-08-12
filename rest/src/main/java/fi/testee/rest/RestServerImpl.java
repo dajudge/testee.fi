@@ -112,7 +112,7 @@ class RestServerImpl implements RestServer {
         final ResourceConfig config = initConfig(managedClasses);
         annotationScanner.scanFor(ApplicationPath.class).forEach(appClass -> {
             final String path = appClass.getAnnotation(ApplicationPath.class).value();
-            LOG.info("Mapping rest application {} to {}", appClass.getName(), path);
+            LOG.debug("Mapping rest application {} to {}", appClass.getName(), path);
             context.addServlet(new ServletHolder(new JerseyServlet(config)), path + "/*");
         });
         return context;

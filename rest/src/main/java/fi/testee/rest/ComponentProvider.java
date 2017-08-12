@@ -60,7 +60,7 @@ public class ComponentProvider implements org.glassfish.jersey.server.spi.Compon
         if (!managedClasses().contains(component)) {
             return false;
         }
-        LOG.info("Binding {} {} to dependency injection", component, providerContracts);
+        LOG.trace("Binding {} {} to dependency injection", component, providerContracts);
         final DynamicConfiguration dynamicConfig = Injections.getConfiguration(locator);
         final DependencyInjectionFactory<Object> factory = new DependencyInjectionFactory<>(
                 (Class<Object>) component,
