@@ -1,3 +1,7 @@
+Version 0.6.0
+- Fixed classpath entry merging issues with Gradle 4 (found and fixed with 4.1)
+- Using Gradle 4.1 for build
+
 Version 0.5.0
 - Fixed issue with mocks for interfaces that are not in bean archives
 - Fixed issue when @Injecting session beans via non-annotated interfaces
