@@ -53,8 +53,8 @@ subprojects {
                             failedFiles.add(f)
                         }
                     }
-                    if(!failedFiles.isEmpty())
-                        throw new GradleException("The following files don't have a Copyright notice:\n" + failedFiles.join("\n")+"\n");
+                    if (!failedFiles.isEmpty())
+                        throw new GradleException("The following files don't have a Copyright notice:\n" + failedFiles.join("\n") + "\n");
                 }
             }
             build.dependsOn checkLicenseHeader
@@ -170,9 +170,7 @@ ext {
 }
 
 task wrapper(type: Wrapper) {
-    // As of 2017-03-15 the IntelliJ gradle plugin had problems with dependency scopes
-    // with gradle 3.4 and later, so we're sticking to 3.3 for now.
-    gradleVersion = '3.3'
+    gradleVersion = '4.1'
 }
 
 task clean {
