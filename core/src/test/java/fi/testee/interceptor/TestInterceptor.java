@@ -20,8 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
-import javax.ejb.EJBContext;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
@@ -32,7 +30,6 @@ import java.util.List;
 import static fi.testee.interceptor.TestInterceptor.Type.AROUND_INVOKE;
 import static fi.testee.interceptor.TestInterceptor.Type.POST_CONSTRUCT;
 import static fi.testee.interceptor.TestInterceptor.Type.PRE_DESTROY;
-import static org.junit.Assert.assertNotNull;
 
 @UseInterceptor
 @Interceptor
@@ -49,11 +46,13 @@ public class TestInterceptor {
         public final Object target;
         public final Method method;
         public final Type type;
+        public final StackTraceElement[] stacktrace;
 
         public Invocation(final Object target, final Method method, final Type type) {
             this.target = target;
             this.method = method;
             this.type = type;
+            stacktrace = Thread.currentThread().getStackTrace();
         }
     }
 
@@ -61,6 +60,7 @@ public class TestInterceptor {
 
     @PostConstruct
     public Object logPostConstruct(final InvocationContext invocationContext) throws Exception {
+
         LOG.info("PostConstruct: {} {}", invocationContext.getTarget(), invocationContext.getMethod());
         INVOCATIONS.add(new Invocation(invocationContext.getTarget(), invocationContext.getMethod(), POST_CONSTRUCT));
         return invocationContext.proceed();
@@ -76,7 +76,9 @@ public class TestInterceptor {
     @AroundInvoke
     public Object logMethodEntry(final InvocationContext invocationContext) throws Exception {
         LOG.info("AroundInvoke: {} {}", invocationContext.getTarget(), invocationContext.getMethod());
-        INVOCATIONS.add(new Invocation(invocationContext.getTarget(), invocationContext.getMethod(), AROUND_INVOKE));
+        if (invocationContext.getMethod().getDeclaringClass() != Object.class) {
+            INVOCATIONS.add(new Invocation(invocationContext.getTarget(), invocationContext.getMethod(), AROUND_INVOKE));
+        }
         return invocationContext.proceed();
     }
 }
