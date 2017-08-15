@@ -37,7 +37,6 @@ import static fi.testee.utils.UrlUtils.splitCompositeUrl;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class TesteeArchiveFactoryImpl implements ArchiveFactory {
-    public static final String COMPOSITE_URL_PREFIX = "file:/:testeeComposite/";
     private ArchiveFactory delegate = new ArchiveFactoryImpl();
 
     private interface ArchiveFromUrl {
