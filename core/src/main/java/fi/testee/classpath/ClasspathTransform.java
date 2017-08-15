@@ -61,7 +61,7 @@ public class ClasspathTransform {
         // Directory entries transformed if matching
         in.stream()
                 .filter(it -> it instanceof DirectoryJavaArchive)
-                .peek(it -> LOG.trace("Processing directory java archive{}", it))
+                .peek(it -> LOG.trace("Processing directory java archive {}", it))
                 .map(it -> (DirectoryJavaArchive) it)
                 .filter(it -> getBuildDir(it) != null)
                 .collect(Collectors.groupingBy(ClasspathTransform::getBuildDir))
@@ -84,13 +84,15 @@ public class ClasspathTransform {
     }
 
     private static URL getBuildDir(final String path) {
-        final Pattern pattern = Pattern.compile("(.*/build/)[^/]+(/[^/]+/)");
+        final Pattern pattern = Pattern.compile("(.*/build/)(([^/]+)|([^/]+/[^/]+))/((main)|(test))/?");
         final Matcher matcher = pattern.matcher(path);
         if (!matcher.matches()) {
             return null;
         }
+        final String url = matcher.group(1) + "[any]/" + matcher.group(5);
+        LOG.trace("{} -> {}", path, url);
         try {
-            return new URL(matcher.group(1) + "[any]" + matcher.group(2));
+            return new URL(url);
         } catch (final MalformedURLException e) {
             throw new TestEEfiException("Failed to build composite java archive URL", e);
         }
