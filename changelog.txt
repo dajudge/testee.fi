@@ -7,7 +7,7 @@ Version 0.5.0
 - Fixed issue with mocks for interfaces that are not in bean archives
 - Fixed issue when @Injecting session beans via non-annotated interfaces
 - Fixed injection of EJBs in base classes of EJBs
-- Fixed issue when injecting EJBs with @EJB via one of theis interfaces
+- Fixed issue when injecting EJBs with @EJB via one of their interfaces
 - Vastly improved mocking
 - Improved shutdown behavior when Cucumber test init fails
 - Support for serving static resources via HTTP
