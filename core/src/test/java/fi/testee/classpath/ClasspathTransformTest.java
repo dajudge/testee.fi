@@ -27,16 +27,16 @@ public class ClasspathTransformTest {
     @Test
     public void gradle_3_3() {
         assertEquals(1, transform(asList(
-                new DirectoryJavaArchive(new File("C:\\dev\\priv\\testee\\core\\build\\classes\\main")),
-                new DirectoryJavaArchive(new File("C:\\dev\\priv\\testee\\core\\build\\resources\\main"))
+                new DirectoryJavaArchive(new File("/develop/testee/core/build/classes/main")),
+                new DirectoryJavaArchive(new File("/develop/testee/core/build/resources/main"))
         )).size());
     }
 
     @Test
     public void gradle_4_1() {
         assertEquals(1, transform(asList(
-                new DirectoryJavaArchive(new File("C:\\dev\\priv\\testee\\core\\build\\classes\\java\\main")),
-                new DirectoryJavaArchive(new File("C:\\dev\\priv\\testee\\core\\build\\resources\\main"))
+                new DirectoryJavaArchive(new File("/develop/testee/core/build/classes/java/main")),
+                new DirectoryJavaArchive(new File("/develop/testee/core/build/resources/main"))
         )).size());
     }
 }
