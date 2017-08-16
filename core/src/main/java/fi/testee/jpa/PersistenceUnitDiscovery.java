@@ -15,6 +15,7 @@
  */
 package fi.testee.jpa;
 
+import fi.testee.spi.PersistenceUnitPropertyContributor;
 import fi.testee.classpath.ClasspathResource;
 import fi.testee.classpath.JavaArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
@@ -63,16 +64,21 @@ import static javax.xml.xpath.XPathConstants.STRING;
 public class PersistenceUnitDiscovery {
     private static final Logger LOG = LoggerFactory.getLogger(PersistenceUnitDiscovery.class);
     private static final DocumentBuilder BUILDER = createDocumentBuilder();
+
+    private final PersistenceUnitPropertyContributor contributor;
+    private final BeanArchiveDiscovery beanArchiveDiscovery;
+    private final ResourceInjectionServices resourceInjectionServices;
+
     private Map<String, ? extends PersistenceUnitInfo> units;
-    private BeanArchiveDiscovery beanArchiveDiscovery;
-    private ResourceInjectionServices resourceInjectionServices;
 
     public PersistenceUnitDiscovery(
             final BeanArchiveDiscovery beanArchiveDiscovery,
-            final ResourceInjectionServices resourceInjectionServices
+            final ResourceInjectionServices resourceInjectionServices,
+            final PersistenceUnitPropertyContributor contributor
     ) {
         this.beanArchiveDiscovery = beanArchiveDiscovery;
         this.resourceInjectionServices = resourceInjectionServices;
+        this.contributor = contributor;
     }
 
     private static DocumentBuilder createDocumentBuilder() {
@@ -128,6 +134,7 @@ public class PersistenceUnitDiscovery {
             final String propValue = prop.getAttribute("value");
             properties.put(propName, propValue);
         }
+        contributor.contribute(properties, provider);
         final List<URL> jarFileUrls = collectStringListElements(unit, xpath, "jar-file").stream()
                 .map(UrlUtils::toUrl)
                 .collect(toList());

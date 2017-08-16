@@ -1,4 +1,5 @@
 Version 0.6.0
+- Hibernate support
 - Fixed classpath entry merging issues with Gradle 4 (found and fixed with 4.1)
 - Using Gradle 4.1 for build
 

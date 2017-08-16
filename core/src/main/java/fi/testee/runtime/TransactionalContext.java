@@ -30,9 +30,10 @@ import fi.testee.services.ProxyServicesImpl;
 import fi.testee.services.ResourceInjectionServicesImpl;
 import fi.testee.services.SecurityServicesImpl;
 import fi.testee.services.TransactionServicesImpl;
-import fi.testee.spi.DynamicArchiveContributor;
 import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.DependencyInjection;
+import fi.testee.spi.DynamicArchiveContributor;
+import fi.testee.spi.PersistenceUnitPropertyContributor;
 import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
@@ -94,6 +95,9 @@ public class TransactionalContext {
     @Inject
     @Any
     private Instance<ResourceProvider> resourceProvidersInstance;
+    @Inject
+    @Any
+    private Instance<PersistenceUnitPropertyContributor> propertyContributorInstance;
 
     private DependencyInjectionRealm realm;
     private EjbContainer ejbContainer;
@@ -121,8 +125,8 @@ public class TransactionalContext {
                 beanArchiveDiscovery,
                 sessionBeanAlternatives,
                 ejbContainer::lookupDescriptor,
-                ejbContainer::createInstance
-        );
+                ejbContainer::createInstance,
+                propertyContributor());
         realm = new DependencyInjectionRealm().init(
                 instanceServiceRegistry,
                 beanArchiveDiscovery,
@@ -228,7 +232,8 @@ public class TransactionalContext {
             final BeanArchiveDiscovery beanArchiveDiscovery,
             final SessionBeanAlternatives alternatives,
             final EjbInjectionServicesImpl.EjbLookup ejbLookup,
-            final EjbInjectionServicesImpl.EjbFactory ejbFactory
+            final EjbInjectionServicesImpl.EjbFactory ejbFactory,
+            final PersistenceUnitPropertyContributor propertyContributor
     ) {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
         // Resource injection
@@ -239,7 +244,8 @@ public class TransactionalContext {
         // JPA injection
         JpaInjectionServicesImpl jpaInjectionService = createJpaInjectionService(
                 beanArchiveDiscovery,
-                serviceRegistry.get(ResourceInjectionServices.class)
+                serviceRegistry.get(ResourceInjectionServices.class),
+                propertyContributor
         );
         serviceRegistry.add(JpaInjectionServices.class, jpaInjectionService);
         serviceRegistry.add(JpaInjectionServicesImpl.class, jpaInjectionService);
@@ -259,13 +265,21 @@ public class TransactionalContext {
 
     private static JpaInjectionServicesImpl createJpaInjectionService(
             final BeanArchiveDiscovery beanArchiveDiscovery,
-            final ResourceInjectionServices resourceInjectionServices
+            final ResourceInjectionServices resourceInjectionServices,
+            final PersistenceUnitPropertyContributor propertyContributor
     ) {
         final PersistenceUnitDiscovery persistenceUnitDiscovery = new PersistenceUnitDiscovery(
                 beanArchiveDiscovery,
-                resourceInjectionServices
+                resourceInjectionServices,
+                propertyContributor
         );
         return new JpaInjectionServicesImpl(persistenceUnitDiscovery);
+    }
+
+    private PersistenceUnitPropertyContributor propertyContributor() {
+        final Collection<PersistenceUnitPropertyContributor> contributors = new HashSet<>();
+        propertyContributorInstance.forEach(contributors::add);
+        return (properties, provider) -> contributors.forEach(it -> it.contribute(properties, provider));
     }
 
     public <T> T run(final TransactionRunnable<T> runnable) {

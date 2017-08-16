@@ -16,6 +16,7 @@ include 'postgres'      // PSQL database support
 include 'flyway'        // Flyway integration
 include 'liquibase'     // Liquibase integration
 include 'eclipselink'   // EclipseLink integration
+include 'hibernate'     // Hibernate integration
 include 'rest'          // Support for testing JAX-RS REST resources
 
 // Various utility packages

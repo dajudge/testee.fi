@@ -9,6 +9,7 @@ dependencies {
     compile project(":flyway")
     compile project(":liquibase")
     compile project(":eclipselink")
+    compile project(":hibernate")
     compile project(":util-nopostconstruct")
     compile project(":util-resourcedef")
 

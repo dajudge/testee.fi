@@ -15,6 +15,7 @@
  */
 package fi.testee.services;
 
+import fi.testee.exceptions.TestEEfiException;
 import org.jboss.weld.transaction.spi.TransactionServices;
 
 import javax.transaction.Synchronization;
@@ -40,7 +41,7 @@ public class TransactionServicesImpl implements TransactionServices {
     @Override
     public UserTransaction getUserTransaction() {
         // TODO figure out what to do here
-        return null;
+        throw new AssertionError("getUserTransaction");
     }
 
     @Override

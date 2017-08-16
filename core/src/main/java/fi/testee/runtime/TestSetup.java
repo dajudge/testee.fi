@@ -31,14 +31,18 @@ import fi.testee.spi.scope.TestSetupScope;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
+import org.jboss.weld.transaction.spi.TransactionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.transaction.Synchronization;
+import javax.transaction.UserTransaction;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static fi.testee.deployment.DeploymentImpl.UNMODIFIED;
 import static fi.testee.runtime.ManualResourceProviderBuilder.manualResourceProvider;
@@ -123,7 +127,9 @@ public class TestSetup extends DependencyInjectionRealm {
         }
     }
 
-    private ResourceProvider createSetupResources(final boolean rollbackTransactions) {
+    private ResourceProvider createSetupResources(
+            final boolean rollbackTransactions
+    ) {
         return manualResourceProvider()
                 .put("testeefi/setup/class", setupClass)
                 .put("testeefi/setup/beanArchiveDiscovery", runtime.getBeanArchiveDiscorvery())
@@ -131,7 +137,33 @@ public class TestSetup extends DependencyInjectionRealm {
                 .put("testeefi/setup/dependencyInjection", testSetupDependencyInjection())
                 .put("testeefi/setup/annotationScanner", (AnnotationScanner) runtime.getBeanArchiveDiscorvery()::getClassesWith)
                 .put("testeefi/setup/rollbackTransactions", rollbackTransactions)
+                .put("testeefi/setup/transactionServices", transactionServices())
                 .build();
+    }
+
+    private TransactionServices transactionServices() {
+        final Supplier<TransactionServices> delegate = () -> getServiceRegistry().get(TransactionServices.class);
+        return new TransactionServices() {
+            @Override
+            public void registerSynchronization(final Synchronization synchronizedObserver) {
+                delegate.get().registerSynchronization(synchronizedObserver);
+            }
+
+            @Override
+            public boolean isTransactionActive() {
+                return delegate.get().isTransactionActive();
+            }
+
+            @Override
+            public UserTransaction getUserTransaction() {
+                return delegate.get().getUserTransaction();
+            }
+
+            @Override
+            public void cleanup() {
+                delegate.get().cleanup();
+            }
+        };
     }
 
     private DependencyInjection testSetupDependencyInjection() {
