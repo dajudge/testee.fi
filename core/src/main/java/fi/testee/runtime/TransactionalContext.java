@@ -18,6 +18,7 @@ package fi.testee.runtime;
 import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.deployment.EjbDescriptorImpl;
+import fi.testee.deployment.InterceptorChain;
 import fi.testee.ejb.EjbContainer;
 import fi.testee.ejb.EjbDescriptorHolder;
 import fi.testee.exceptions.TestEEfiException;
@@ -34,21 +35,17 @@ import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.DynamicArchiveContributor;
 import fi.testee.spi.PersistenceUnitPropertyContributor;
-import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
 import fi.testee.spi.SessionBeanAlternatives;
-import org.jboss.weld.annotated.enhanced.EnhancedAnnotatedField;
-import org.jboss.weld.annotated.enhanced.EnhancedAnnotatedType;
+import fi.testee.utils.InjectionPointUtils;
 import org.jboss.weld.bean.SessionBean;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.jboss.weld.bootstrap.spi.Metadata;
-import org.jboss.weld.context.CreationalContextImpl;
+import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.ejb.spi.EjbServices;
-import org.jboss.weld.injection.FieldInjectionPoint;
-import org.jboss.weld.injection.InjectionPointFactory;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
@@ -63,7 +60,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.Bean;
@@ -71,14 +67,15 @@ import javax.enterprise.inject.spi.Extension;
 import javax.inject.Inject;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
 import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toSet;
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toMap;
 
 /**
  * A transactional context.
@@ -112,15 +109,19 @@ public class TransactionalContext {
             final Annotation... scopes
     ) {
         LOG.debug("Initializing new transactional context for {}", testSetupClass);
-        ejbContainer = new EjbContainer(beanArchiveDiscovery.getBeanArchives().stream()
+        Map<EjbDescriptor<?>, EjbDescriptorImpl<?>> ejbDescriptors = beanArchiveDiscovery.getBeanArchives().stream()
                 .filter(archiveFilter)
                 .map(BeanArchive::getEjbs)
                 .flatMap(Collection::stream)
-                .collect(toSet()));
+                .collect(toMap(
+                        it -> it,
+                        it -> it
+                ));
+        ejbContainer = new EjbContainer(ejbDescriptors.keySet());
         final Set<ResourceProvider> resourceProviders = new HashSet<>(setupResolvers);
-        Arrays.stream(scopes).forEach(it -> resourceProvidersInstance.select(it).forEach(resourceProviders::add));
+        stream(scopes).forEach(it -> resourceProvidersInstance.select(it).forEach(resourceProviders::add));
         LOG.trace("Resource providers: {}", resourceProviders);
-        ServiceRegistry instanceServiceRegistry = createInstanceServiceRegistry(
+        final ServiceRegistry instanceServiceRegistry = createInstanceServiceRegistry(
                 resourceProviders,
                 beanArchiveDiscovery,
                 sessionBeanAlternatives,
@@ -137,22 +138,31 @@ public class TransactionalContext {
                 archiveContributors
         );
         ejbContainer.init(
-                this::holderResolver,
+                new EjbContainer.EjbDescriptorHolderResolver() {
+                    @Override
+                    public <T> EjbDescriptorHolder<T> resolve(final EjbDescriptor<T> descriptor) {
+                        return holderResolver(descriptor, ejbDescriptors);
+                    }
+                },
                 this::cdiInjection,
                 this::resourceInjection,
                 this::jpaInjection,
-                this::ejbInjection,
-                this::contextFor
+                this::ejbInjection
         );
     }
 
-    private <T> EjbDescriptorHolder<T> holderResolver(final EjbDescriptorImpl<T> desc) {
+    private <T> EjbDescriptorHolder<T> holderResolver(
+            final EjbDescriptor<T> desc,
+            final Map<EjbDescriptor<?>, EjbDescriptorImpl<?>> impls
+    ) {
         final BeanManagerImpl archive = realm.findArchiveFor(desc.getBeanClass());
         final SessionBean<T> sessionBean = archive.getBean(desc);
         if (sessionBean == null) {
             throw new TestEEfiException("Failed to find session bean for " + desc);
         }
-        return new EjbDescriptorHolder(desc, sessionBean, archive);
+        final EjbDescriptorImpl<?> descImpl = impls.get(desc);
+        final InterceptorChain chain = descImpl.getInterceptorChain(realm::contextFor);
+        return new EjbDescriptorHolder<T>(desc, chain, sessionBean, archive);
     }
 
     private Collection<ResourceReference<?>> cdiInjection(final Object o) {
@@ -171,10 +181,6 @@ public class TransactionalContext {
         });
     }
 
-    private <T> CreationalContextImpl<T> contextFor(final Contextual<T> ctx, final ReleaseCallbackHandler releaser) {
-        return realm.contextFor(ctx, releaser);
-    }
-
     private Object jpaInjection(
             final Field field,
             final Bean<?> bean,
@@ -182,7 +188,7 @@ public class TransactionalContext {
     ) {
         return realm.getServiceRegistry()
                 .get(JpaInjectionServices.class)
-                .registerPersistenceContextInjectionPoint(injectionPointOf(field, bean, beanManager))
+                .registerPersistenceContextInjectionPoint(InjectionPointUtils.injectionPointOf(field, bean, beanManager))
                 .createResource()
                 .getInstance();
     }
@@ -194,35 +200,19 @@ public class TransactionalContext {
     ) {
         return realm.getServiceRegistry()
                 .get(EjbInjectionServices.class)
-                .registerEjbInjectionPoint(injectionPointOf(field, bean, beanManager))
+                .registerEjbInjectionPoint(InjectionPointUtils.injectionPointOf(field, bean, beanManager))
                 .createResource()
                 .getInstance();
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> FieldInjectionPoint<Object, T> injectionPointOf(
-            final Field field,
-            final Bean<T> bean,
-            final BeanManagerImpl beanManager
-    ) {
-        final EnhancedAnnotatedType<T> type = beanManager.createEnhancedAnnotatedType((Class<T>) bean.getBeanClass());
-        final Collection<EnhancedAnnotatedField<?, ? super T>> enhancedFields = type.getEnhancedFields();
-        final EnhancedAnnotatedField<Object, T> eaf = (EnhancedAnnotatedField<Object, T>) enhancedFields.stream()
-                .filter(it -> field.equals(it.getJavaMember()))
-                .findFirst()
-                .orElseThrow(() -> new TestEEfiException("Failed to get enhanced annotated field for " + field));
-        return InjectionPointFactory.instance()
-                .createFieldInjectionPoint(eaf, bean, bean.getBeanClass(), beanManager);
-    }
-
-    private <T, X> Object resourceInjection(
+    private Object resourceInjection(
             final Field field,
             final Bean<?> bean,
             final BeanManagerImpl beanManager
     ) {
         return realm.getServiceRegistry()
                 .get(ResourceInjectionServices.class)
-                .registerResourceInjectionPoint(injectionPointOf(field, bean, beanManager))
+                .registerResourceInjectionPoint(InjectionPointUtils.injectionPointOf(field, bean, beanManager))
                 .createResource()
                 .getInstance();
     }
@@ -311,5 +301,4 @@ public class TransactionalContext {
                 DependencyInjectionRealm realm
         );
     }
-
 }

@@ -15,14 +15,12 @@
  */
 package fi.testee.ejb;
 
-import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.exceptions.TestEEfiException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jboss.weld.bean.SessionBean;
+import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
-import org.jboss.weld.manager.BeanManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,46 +28,44 @@ import java.util.Collection;
 
 public class SessionBeanFactory<T> {
     private static final Logger LOG = LoggerFactory.getLogger(SessionBeanFactory.class);
+
     private final EjbContainer.EjbInjection injection;
-    private final SessionBean<T> bean;
-    private final BeanManagerImpl beanManager;
-    private final EjbDescriptorImpl<T> descriptor;
-    private final EjbContainer.ContextFactory contextFactory;
-    private SessionBeanLifecycleListener lifecycleListener;
+    private final EjbDescriptorHolder<T> holder;
+    private final SessionBeanLifecycleListener lifecycleListener;
 
     public SessionBeanFactory(
             final EjbContainer.EjbInjection injection,
-            final SessionBean<T> bean,
-            final BeanManagerImpl beanManager,
-            final EjbDescriptorImpl<T> descriptor,
-            final EjbContainer.ContextFactory contextFactory,
+            final EjbDescriptorHolder<T> holder,
             final SessionBeanLifecycleListener lifecycleListener
     ) {
         this.injection = injection;
-        this.bean = bean;
-        this.beanManager = beanManager;
-        this.descriptor = descriptor;
-        this.contextFactory = contextFactory;
+        this.holder = holder;
         this.lifecycleListener = lifecycleListener;
     }
 
     public ResourceReferenceFactory<T> getResourceReferenceFactory() {
+        final EjbDescriptor<T> descriptor = holder.getDescriptor();
         LOG.debug("Creating session bean holder for {}", descriptor.getBeanClass());
         final SingletonHolder<T> singletonHolder = new SingletonHolder<>(
                 descriptor.getBeanClass(),
                 this::createNewInstance,
-                descriptor.getInterceptorChain(contextFactory)
+                holder.getInterceptorChain()
         );
         singletonHolder.addLifecycleListener(lifecycleListener);
         return singletonHolder;
     }
 
     private Pair<T, Collection<ResourceReference<?>>> createNewInstance() {
+        final EjbDescriptor<T> descriptor = holder.getDescriptor();
         LOG.debug("Creating new instance of {}", descriptor.getBeanClass());
         try {
-            final T t = descriptor.getBeanClass().newInstance();
-            final Collection<ResourceReference<?>> references = injection.instantiateAll(t, bean, beanManager);
-            return new ImmutablePair<>(t, references);
+            final T beanInstance = descriptor.getBeanClass().newInstance();
+            final Collection<ResourceReference<?>> references = injection.instantiateAll(
+                    beanInstance,
+                    holder.getBean(),
+                    holder.getBeanManager()
+            );
+            return new ImmutablePair<>(beanInstance, references);
         } catch (final InstantiationException | IllegalAccessException e) {
             throw new TestEEfiException("Failed to instantiate session bean", e);
         }

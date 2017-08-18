@@ -15,26 +15,36 @@
  */
 package fi.testee.ejb;
 
-import fi.testee.deployment.EjbDescriptorImpl;
+import fi.testee.deployment.InterceptorChain;
 import org.jboss.weld.bean.SessionBean;
+import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.manager.BeanManagerImpl;
 
+import java.util.function.Supplier;
+
 public class EjbDescriptorHolder<T> {
-    private final EjbDescriptorImpl<T> descriptor;
+    private final EjbDescriptor<T> descriptor;
+    private final InterceptorChain chain;
     private final SessionBean<T> bean;
     private final BeanManagerImpl beanManager;
 
     public EjbDescriptorHolder(
-            final EjbDescriptorImpl<T> descriptor,
+            final EjbDescriptor<T> descriptor,
+            final InterceptorChain chain,
             final SessionBean<T> bean,
             final BeanManagerImpl beanManager
     ) {
         this.descriptor = descriptor;
+        this.chain = chain;
         this.bean = bean;
         this.beanManager = beanManager;
     }
 
-    public EjbDescriptorImpl<T> getDescriptor() {
+    public InterceptorChain getInterceptorChain() {
+        return chain;
+    }
+
+    public EjbDescriptor<T> getDescriptor() {
         return descriptor;
     }
 

@@ -15,9 +15,10 @@
  */
 package fi.testee.deployment;
 
-import fi.testee.ejb.EjbContainer;
 import fi.testee.exceptions.TestEEfiException;
+import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
+import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.BusinessInterfaceDescriptor;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.ejb.spi.InterceptorBindings;
@@ -28,6 +29,7 @@ import javax.ejb.Remote;
 import javax.ejb.Singleton;
 import javax.ejb.Stateful;
 import javax.ejb.Stateless;
+import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.inject.spi.InterceptionType;
 import javax.enterprise.inject.spi.Interceptor;
 import javax.interceptor.InvocationContext;
@@ -132,7 +134,7 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
     }
 
     public InterceptorChain getInterceptorChain(
-            final EjbContainer.ContextFactory contextFactory
+            final ContextFactory contextFactory
     ) {
         return new InterceptorChain() {
             @Override
@@ -165,7 +167,7 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
             final Object target,
             final Method method,
             final Object[] args,
-            final EjbContainer.ContextFactory contextFactory,
+            final ContextFactory contextFactory,
             final InterceptorChain.ChainEnd<T> next,
             final InterceptionType interceptionType
     ) throws Throwable {
@@ -286,5 +288,9 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
     @Override
     public int hashCode() {
         return clazz.hashCode();
+    }
+
+    public interface ContextFactory {
+        <T> CreationalContextImpl<T> create(Contextual<T> ctx, ReleaseCallbackHandler releaser);
     }
 }

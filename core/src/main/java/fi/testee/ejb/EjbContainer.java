@@ -15,11 +15,8 @@
  */
 package fi.testee.ejb;
 
-import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.exceptions.TestEEfiException;
-import fi.testee.spi.ReleaseCallbackHandler;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
@@ -29,9 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Resource;
 import javax.ejb.EJB;
-import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.inject.spi.Bean;
-import javax.enterprise.inject.spi.BeanManager;
 import javax.persistence.PersistenceContext;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -54,26 +49,14 @@ import static org.jboss.weld.resolution.CovariantTypes.isAssignableFrom;
  * @author Alex Stockinger, IT-Stockinger
  */
 public class EjbContainer {
-
     private static final Logger LOG = LoggerFactory.getLogger(EjbContainer.class);
+
     private final Set<SessionBeanHolder<?>> existingBeans = new HashSet<>();
-    private Map<Type, EjbDescriptorImpl<?>> ejbDescriptors;
+    private Map<Type, EjbDescriptor<?>> ejbDescriptors;
     private Map<EjbDescriptor<?>, ResourceReferenceFactory<?>> containers;
 
-    public interface EjbDescriptorHolderResolver {
-        <T> EjbDescriptorHolder<T> resolve(EjbDescriptorImpl<T> descriptor);
-    }
-
-    public interface Injection<A extends Annotation> {
-        Object instantiate(final Field field, final Bean<?> bean, final BeanManagerImpl beanManager);
-    }
-
-    public interface ContextFactory {
-        <T> CreationalContextImpl<T> create(Contextual<T> ctx, ReleaseCallbackHandler releaser);
-    }
-
     public EjbContainer(
-            final Set<EjbDescriptorImpl<?>> ejbDescriptors
+            final Collection<EjbDescriptor<?>> ejbDescriptors
     ) {
         this.ejbDescriptors = ejbDescriptors.stream().collect(toMap(
                 it -> it.getBeanClass(),
@@ -86,10 +69,9 @@ public class EjbContainer {
             final Function<Object, Collection<ResourceReference<?>>> cdiInjection,
             final Injection<Resource> resourceInjection,
             final Injection<PersistenceContext> jpaInjection,
-            final Injection<EJB> ejbInjection,
-            final ContextFactory contextFactory
+            final Injection<EJB> ejbInjection
     ) {
-        LOG.debug("Starting EJB container with EJB descriptors {}", ejbDescriptors);
+        LOG.debug("Starting EJB container with descriptors {}", ejbDescriptors);
         final EjbInjection injection = (o, b, m) -> {
             final Collection<ResourceReference<?>> ret = new HashSet<>();
             ret.addAll(cdiInjection.apply(o));
@@ -117,20 +99,12 @@ public class EjbContainer {
         this.containers = ejbDescriptors.values().stream()
                 .collect(toMap(
                         it -> it,
-                        it -> createFactory(holderResolver.resolve(it), injection, contextFactory, lifecycleListener)
-                                .getResourceReferenceFactory()
+                        it -> createFactory(
+                                injection,
+                                lifecycleListener,
+                                holderResolver.resolve(it)
+                        ).getResourceReferenceFactory()
                 ));
-    }
-
-    private ResourceReference<?> injectEjb(
-            final Object o,
-            final Field field,
-            final Bean<?> bean,
-            final BeanManager beanManager
-    ) {
-        final ResourceReference<?> ref = createInstance(lookupDescriptor(field.getType())).createResource();
-        inject(o, field, ref.getInstance());
-        return ref;
     }
 
     private interface Injector {
@@ -150,14 +124,6 @@ public class EjbContainer {
             inject(o, f, instance);
             return null;
         };
-    }
-
-    interface EjbInjection {
-        Collection<ResourceReference<?>> instantiateAll(
-                final Object o,
-                final Bean<?> bean,
-                final BeanManagerImpl beanManager
-        );
     }
 
     private EjbInjection ejbInjection(
@@ -181,23 +147,15 @@ public class EjbContainer {
     }
 
     private <T> SessionBeanFactory<T> createFactory(
-            final EjbDescriptorHolder<T> desc,
             final EjbInjection injection,
-            final ContextFactory contextFactory,
-            final SessionBeanLifecycleListener lifecycleListener
+            final SessionBeanLifecycleListener lifecycleListener,
+            final EjbDescriptorHolder<T> holder
     ) {
-        return new SessionBeanFactory<T>(
-                injection,
-                desc.getBean(),
-                desc.getBeanManager(),
-                desc.getDescriptor(),
-                contextFactory,
-                lifecycleListener
-        );
+        return new SessionBeanFactory<T>(injection, holder, lifecycleListener);
     }
 
     public EjbDescriptor<?> lookupDescriptor(final Type type) {
-        for (final Map.Entry<Type, EjbDescriptorImpl<?>> e : ejbDescriptors.entrySet()) {
+        for (final Map.Entry<Type, EjbDescriptor<?>> e : ejbDescriptors.entrySet()) {
             if (isAssignableFrom(type, e.getKey())) {
                 return e.getValue();
             }
@@ -216,5 +174,21 @@ public class EjbContainer {
         while (!existingBeans.isEmpty()) {
             existingBeans.iterator().next().forceDestroy();
         }
+    }
+
+    public interface EjbDescriptorHolderResolver {
+        <T> EjbDescriptorHolder<T> resolve(EjbDescriptor<T> descriptor);
+    }
+
+    public interface Injection<A extends Annotation> {
+        Object instantiate(Field field, Bean<?> bean, BeanManagerImpl beanManager);
+    }
+
+    interface EjbInjection {
+        Collection<ResourceReference<?>> instantiateAll(
+                final Object o,
+                final Bean<?> bean,
+                final BeanManagerImpl beanManager
+        );
     }
 }
