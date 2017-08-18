@@ -61,7 +61,6 @@ public class EjbContainer {
     private final Set<SessionBeanHolder<?>> existingBeans = new HashSet<>();
     private Map<Type, EjbDescriptorImpl<?>> ejbDescriptors;
     private Map<EjbDescriptor<?>, ResourceReferenceFactory<?>> containers;
-    private EjbInjectionServices ejbInjectionServices;
 
     public interface EjbDescriptorHolderResolver {
 
