@@ -73,6 +73,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static fi.testee.utils.InjectionPointUtils.injectionPointOf;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toMap;
@@ -85,8 +86,6 @@ import static java.util.stream.Collectors.toMap;
 public class TransactionalContext {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionalContext.class);
 
-    @Resource(mappedName = "testeefi/setup/class")
-    private Class<?> testSetupClass;
     @Resource(mappedName = "testeefi/setup/beanArchiveDiscovery")
     private BeanArchiveDiscovery beanArchiveDiscovery;
     @Inject
@@ -108,7 +107,7 @@ public class TransactionalContext {
             final Collection<DynamicArchiveContributor> archiveContributors,
             final Annotation... scopes
     ) {
-        LOG.debug("Initializing new transactional context for {}", testSetupClass);
+        LOG.debug("Initializing new transactional context");
         Map<EjbDescriptor<?>, EjbDescriptorImpl<?>> ejbDescriptors = beanArchiveDiscovery.getBeanArchives().stream()
                 .filter(archiveFilter)
                 .map(BeanArchive::getEjbs)
@@ -188,7 +187,7 @@ public class TransactionalContext {
     ) {
         return realm.getServiceRegistry()
                 .get(JpaInjectionServices.class)
-                .registerPersistenceContextInjectionPoint(InjectionPointUtils.injectionPointOf(field, bean, beanManager))
+                .registerPersistenceContextInjectionPoint(injectionPointOf(field, bean, beanManager))
                 .createResource()
                 .getInstance();
     }
@@ -200,7 +199,7 @@ public class TransactionalContext {
     ) {
         return realm.getServiceRegistry()
                 .get(EjbInjectionServices.class)
-                .registerEjbInjectionPoint(InjectionPointUtils.injectionPointOf(field, bean, beanManager))
+                .registerEjbInjectionPoint(injectionPointOf(field, bean, beanManager))
                 .createResource()
                 .getInstance();
     }
@@ -212,7 +211,7 @@ public class TransactionalContext {
     ) {
         return realm.getServiceRegistry()
                 .get(ResourceInjectionServices.class)
-                .registerResourceInjectionPoint(InjectionPointUtils.injectionPointOf(field, bean, beanManager))
+                .registerResourceInjectionPoint(injectionPointOf(field, bean, beanManager))
                 .createResource()
                 .getInstance();
     }
@@ -272,13 +271,9 @@ public class TransactionalContext {
         return (properties, provider) -> contributors.forEach(it -> it.contribute(properties, provider));
     }
 
-    public <T> T run(final TransactionRunnable<T> runnable) {
-        return runnable.run(testSetupClass, realm);
-    }
-
     @PreDestroy
     public void shutdown() {
-        LOG.debug("Shutting down transactional context for {}", testSetupClass);
+        LOG.debug("Shutting down transactional context");
         if (ejbContainer != null) {
             ejbContainer.shutdown();
         }
@@ -291,14 +286,7 @@ public class TransactionalContext {
         realm.getServiceRegistry().get(JpaInjectionServicesImpl.class).flush();
     }
 
-    public DependencyInjection getDependencyInjection() {
+    public DependencyInjectionRealm getDependencyInjection() {
         return realm;
-    }
-
-    public interface TransactionRunnable<T> {
-        T run(
-                Class<?> testSetupClass,
-                DependencyInjectionRealm realm
-        );
     }
 }

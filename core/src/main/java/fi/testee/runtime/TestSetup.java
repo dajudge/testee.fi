@@ -29,6 +29,7 @@ import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
 import fi.testee.spi.scope.TestSetupScope;
 import org.jboss.weld.bootstrap.api.Environments;
+import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.jboss.weld.transaction.spi.TransactionServices;
@@ -56,10 +57,11 @@ import static java.util.Collections.emptySet;
  */
 public class TestSetup extends DependencyInjectionRealm {
     private static final Logger LOG = LoggerFactory.getLogger(TestSetup.class);
+
     private final Map<Class<? extends ConnectionFactory>, ConnectionFactory> connectionFactories = new HashMap<>();
     private final Class<?> setupClass;
     private final TestRuntime runtime;
-    private Releaser setupReleaser = new Releaser();
+    private final Releaser setupReleaser = new Releaser();
 
     public interface TestInstance {
         <T> T create(Class<T> clazz, ReleaseCallbackHandler releaser);
@@ -91,7 +93,6 @@ public class TestSetup extends DependencyInjectionRealm {
                 BeanArchive::isFrameworkRelevant,
                 emptySet()
         );
-
         setupTestData(setupResources);
         return this;
     }
@@ -112,11 +113,9 @@ public class TestSetup extends DependencyInjectionRealm {
             );
             try {
                 final Set<DataSourceMigrator> migrators = getInstancesOf(DataSourceMigrator.class, testDataReleaser);
-                context.run((clazz, testDataSetupRealm) -> {
-                    DatabaseMigration.migrateDataSources(clazz, migrators, testDataSetupRealm.getServiceRegistry());
-                    TestDataSetup.setupTestData(clazz, testDataSetupRealm.getServiceRegistry());
-                    return null;
-                });
+                final ServiceRegistry serviceRegistry = context.getDependencyInjection().getServiceRegistry();
+                DatabaseMigration.migrateDataSources(setupClass, migrators, serviceRegistry);
+                TestDataSetup.setupTestData(setupClass, serviceRegistry);
                 context.flushEntityManagers();
             } finally {
                 testDataReleaser.release();

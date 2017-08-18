@@ -91,11 +91,8 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
                 archiveContributors,
                 scopes
         );
-        context.run((clazz, testInstanceRealm) -> {
-            testInstanceRealm.inject(testInstance, releaser);
-            testInstanceRealm.postConstruct(testInstance);
-            return null;
-        });
+        context.getDependencyInjection().inject(testInstance, releaser);
+        context.getDependencyInjection().postConstruct(testInstance);
         return this;
     }
 
@@ -162,16 +159,13 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
 
     @Override
     public <T> T create(final Class<T> clazz, final ReleaseCallbackHandler releaser) {
-        return context.run((setupClass, realm) -> realm.getInstanceOf(clazz, releaser));
+        return context.getDependencyInjection().getInstanceOf(clazz, releaser);
     }
 
     @Override
     public void shutdown() {
         context.flushEntityManagers();
-        context.run((clazz, testInstanceRealm) -> {
-            testInstanceRealm.preDestroy(testInstance);
-            return null;
-        });
+        context.getDependencyInjection().preDestroy(testInstance);
         releaser.release();
         super.shutdown();
     }

@@ -188,13 +188,6 @@ public class DependencyInjectionRealm implements DependencyInjection {
         return container().services();
     }
 
-    Collection<Bean<?>> getAllBeans() {
-        return container().beanDeploymentArchives().values().stream()
-                .map(BeanManagerImpl::getBeans)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toSet());
-    }
-
     private <T> Bean<T> resolveUnique(Class<T> clazz) {
         return unique(clazz, resolve(clazz));
     }
