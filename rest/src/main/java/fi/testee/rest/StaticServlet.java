@@ -15,6 +15,9 @@
  */
 package fi.testee.rest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -23,6 +26,7 @@ import java.io.IOException;
 import java.util.Collection;
 
 public class StaticServlet extends HttpServlet {
+    private static Logger LOG = LoggerFactory.getLogger(StaticServlet.class);
     private final Collection<StaticResourceResolver> staticResourceResolvers;
 
     public StaticServlet(final Collection<StaticResourceResolver> staticResourceResolvers) {
@@ -40,7 +44,12 @@ public class StaticServlet extends HttpServlet {
                 continue;
             }
             resp.setContentType(resource.getContentType());
-            resource.getContent(resp.getOutputStream());
+            try {
+                resource.getContent(resp.getOutputStream());
+            }catch(final IOException e) {
+                LOG.error("I/O error serving static resource", e);
+                resp.setStatus(500);
+            }
             return;
         }
         resp.setStatus(404);

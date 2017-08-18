@@ -22,8 +22,8 @@ import javax.transaction.TransactionManager;
 import javax.transaction.UserTransaction;
 
 public class TestEEfiJtaPlatform extends AbstractJtaPlatform {
-    private final TransactionManager transactionManager;
-    private final TransactionServices transactionServices;
+    private final transient TransactionManager transactionManager;
+    private final transient TransactionServices transactionServices;
 
     public TestEEfiJtaPlatform(
             final TransactionManager transactionManager,

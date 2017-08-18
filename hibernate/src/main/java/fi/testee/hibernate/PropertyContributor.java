@@ -17,6 +17,7 @@ package fi.testee.hibernate;
 
 import fi.testee.spi.PersistenceUnitPropertyContributor;
 import org.hibernate.cfg.AvailableSettings;
+import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.jboss.weld.transaction.spi.TransactionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,13 +38,14 @@ import java.util.Properties;
 
 public class PropertyContributor implements PersistenceUnitPropertyContributor {
     private static final Logger LOG = LoggerFactory.getLogger(PropertyContributor.class);
+    public static final String HIBERNATE_PROVIDER = HibernatePersistenceProvider.class.getName();
 
     @Resource(mappedName = "testeefi/setup/transactionServices")
     private TransactionServices transactionServices;
 
     @Override
     public void contribute(final Properties properties, final String provider) {
-        if (!provider.equals(org.hibernate.jpa.HibernatePersistenceProvider.class.getName())) {
+        if (!provider.equals(HIBERNATE_PROVIDER)) {
             return;
         }
         properties.put(
@@ -64,6 +66,7 @@ public class PropertyContributor implements PersistenceUnitPropertyContributor {
     private TransactionManager transactionManager() {
         return new TransactionManager() {
             private int status = Status.STATUS_NO_TRANSACTION;
+
             @Override
             public void begin() throws NotSupportedException, SystemException {
                 status = Status.STATUS_ACTIVE;
