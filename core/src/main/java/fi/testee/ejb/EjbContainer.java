@@ -18,11 +18,9 @@ package fi.testee.ejb;
 import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.spi.ReleaseCallbackHandler;
-import fi.testee.spi.SessionBeanFactory;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
-import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.manager.BeanManagerImpl;
@@ -63,7 +61,6 @@ public class EjbContainer {
     private Map<EjbDescriptor<?>, ResourceReferenceFactory<?>> containers;
 
     public interface EjbDescriptorHolderResolver {
-
         <T> EjbDescriptorHolder<T> resolve(EjbDescriptorImpl<T> descriptor);
     }
 
@@ -189,7 +186,7 @@ public class EjbContainer {
             final ContextFactory contextFactory,
             final SessionBeanLifecycleListener lifecycleListener
     ) {
-        return new RootSessionBeanFactory<T>(
+        return new SessionBeanFactory<T>(
                 injection,
                 desc.getBean(),
                 desc.getBeanManager(),
@@ -201,7 +198,7 @@ public class EjbContainer {
 
     public EjbDescriptor<?> lookupDescriptor(final Type type) {
         for (final Map.Entry<Type, EjbDescriptorImpl<?>> e : ejbDescriptors.entrySet()) {
-            if(isAssignableFrom(type, e.getKey())) {
+            if (isAssignableFrom(type, e.getKey())) {
                 return e.getValue();
             }
         }
@@ -212,19 +209,6 @@ public class EjbContainer {
     public <T> ResourceReferenceFactory<T> createInstance(final EjbDescriptor<T> descriptor) {
         assert descriptor != null;
         return () -> (ResourceReference<T>) containers.get(descriptor).createResource();
-    }
-
-
-    public interface SessionBeanModifier {
-        <T> SessionBeanFactory<T> modify(SessionBeanFactory<T> factory);
-    }
-
-    private static class IdentitySessionBeanModifier implements SessionBeanModifier {
-
-        @Override
-        public <T> SessionBeanFactory<T> modify(final SessionBeanFactory<T> factory) {
-            return factory;
-        }
     }
 
     public void shutdown() {

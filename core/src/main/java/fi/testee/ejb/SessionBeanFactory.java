@@ -17,11 +17,9 @@ package fi.testee.ejb;
 
 import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.exceptions.TestEEfiException;
-import fi.testee.spi.SessionBeanFactory;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jboss.weld.bean.SessionBean;
-import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.manager.BeanManagerImpl;
@@ -30,8 +28,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 
-public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
-    private static final Logger LOG = LoggerFactory.getLogger(RootSessionBeanFactory.class);
+public class SessionBeanFactory<T> {
+    private static final Logger LOG = LoggerFactory.getLogger(SessionBeanFactory.class);
     private final EjbContainer.EjbInjection injection;
     private final SessionBean<T> bean;
     private final BeanManagerImpl beanManager;
@@ -39,7 +37,7 @@ public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
     private final EjbContainer.ContextFactory contextFactory;
     private SessionBeanLifecycleListener lifecycleListener;
 
-    public RootSessionBeanFactory(
+    public SessionBeanFactory(
             final EjbContainer.EjbInjection injection,
             final SessionBean<T> bean,
             final BeanManagerImpl beanManager,
@@ -55,12 +53,6 @@ public class RootSessionBeanFactory<T> implements SessionBeanFactory<T> {
         this.lifecycleListener = lifecycleListener;
     }
 
-    @Override
-    public EjbDescriptor<T> getDescriptor() {
-        return descriptor;
-    }
-
-    @Override
     public ResourceReferenceFactory<T> getResourceReferenceFactory() {
         LOG.debug("Creating session bean holder for {}", descriptor.getBeanClass());
         final SingletonHolder<T> singletonHolder = new SingletonHolder<>(
