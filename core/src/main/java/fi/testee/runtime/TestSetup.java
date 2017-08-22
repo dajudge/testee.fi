@@ -17,6 +17,7 @@ package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
+import fi.testee.deployment.BeanDeployment;
 import fi.testee.jdbc.ConnectionFactoryManager;
 import fi.testee.jdbc.TestDataSource;
 import fi.testee.services.ResourceInjectionServicesImpl;
@@ -84,14 +85,13 @@ public class TestSetup extends DependencyInjectionRealm {
         final ResourceProvider setupResources = createSetupResources(false);
         serviceRegistry.add(ResourceInjectionServices.class, new ResourceInjectionServicesImpl(asList(setupResources)));
         final BeanArchiveDiscovery beanArchiveDiscovery = runtime.getBeanArchiveDiscorvery();
+        final BeanDeployment beanDeployment = new BeanDeployment(beanArchiveDiscovery, BeanArchive::isFrameworkRelevant);
         super.init(
                 serviceRegistry,
-                beanArchiveDiscovery,
                 Environments.SE,
                 emptySet(),
                 UNMODIFIED,
-                BeanArchive::isFrameworkRelevant,
-                emptySet()
+                asList(beanDeployment)
         );
         setupTestData(setupResources);
         return this;

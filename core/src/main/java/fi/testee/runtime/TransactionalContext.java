@@ -17,6 +17,7 @@ package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
+import fi.testee.deployment.BeanDeployment;
 import fi.testee.deployment.EjbDescriptorImpl;
 import fi.testee.deployment.InterceptorChain;
 import fi.testee.ejb.EjbContainer;
@@ -32,13 +33,11 @@ import fi.testee.services.ResourceInjectionServicesImpl;
 import fi.testee.services.SecurityServicesImpl;
 import fi.testee.services.TransactionServicesImpl;
 import fi.testee.spi.BeansXmlModifier;
-import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.DynamicArchiveContributor;
 import fi.testee.spi.PersistenceUnitPropertyContributor;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
 import fi.testee.spi.SessionBeanAlternatives;
-import fi.testee.utils.InjectionPointUtils;
 import org.jboss.weld.bean.SessionBean;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
@@ -73,6 +72,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static fi.testee.deployment.BeanDeployment.and;
 import static fi.testee.utils.InjectionPointUtils.injectionPointOf;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
@@ -127,14 +127,13 @@ public class TransactionalContext {
                 ejbContainer::lookupDescriptor,
                 ejbContainer::createInstance,
                 propertyContributor());
+        final BeanDeployment beanDeployment = new BeanDeployment(beanArchiveDiscovery, archiveFilter);
         realm = new DependencyInjectionRealm().init(
                 instanceServiceRegistry,
-                beanArchiveDiscovery,
                 Environments.EE_INJECT,
                 extensions,
                 beansXmlModifier,
-                archiveFilter,
-                archiveContributors
+                and(archiveContributors, beanDeployment)
         );
         ejbContainer.init(
                 new EjbContainer.EjbDescriptorHolderResolver() {

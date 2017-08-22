@@ -17,6 +17,7 @@ package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
+import fi.testee.deployment.BeanDeployment;
 import fi.testee.services.ResourceInjectionServicesImpl;
 import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.CdiExtensionFactory;
@@ -45,6 +46,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import static fi.testee.deployment.DeploymentImpl.UNMODIFIED;
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toSet;
 
@@ -61,14 +63,13 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
             final Method method,
             final Collection<ResourceProvider> setupResourceProviders
     ) {
+        final BeanDeployment beanDeployment = new BeanDeployment(beanArchiveDiscovery, BeanArchive::isFrameworkRelevant);
         super.init(
                 serviceRegistry(resourceProviders(testInstance, method, setupResourceProviders)),
-                beanArchiveDiscovery,
                 Environments.SE,
                 emptySet(),
                 UNMODIFIED,
-                BeanArchive::isFrameworkRelevant,
-                emptySet()
+                asList(beanDeployment)
         );
         this.instanceId = instanceId;
         this.testInstance = testInstance;

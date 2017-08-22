@@ -17,6 +17,7 @@ package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
+import fi.testee.deployment.BeanDeployment;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.RuntimeLifecycleListener;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
@@ -25,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static fi.testee.deployment.DeploymentImpl.UNMODIFIED;
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static org.jboss.weld.bootstrap.api.Environments.SE;
 
@@ -55,14 +57,13 @@ public class TestRuntime {
 
     private TestRuntime() {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
+        final BeanDeployment beanDeployment = new BeanDeployment(beanArchiveDiscovery, BeanArchive::isFrameworkRelevant);
         realm = new DependencyInjectionRealm().init(
                 serviceRegistry,
-                beanArchiveDiscovery,
                 SE,
                 emptySet(),
                 UNMODIFIED,
-                BeanArchive::isFrameworkRelevant,
-                emptySet()
+                asList(beanDeployment)
         );
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override

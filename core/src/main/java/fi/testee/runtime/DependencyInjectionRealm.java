@@ -17,12 +17,13 @@ package fi.testee.runtime;
 
 import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
+import fi.testee.deployment.BeanDeploymentArchiveImpl;
 import fi.testee.deployment.DeploymentImpl;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.services.TransactionServicesImpl;
-import fi.testee.spi.DynamicArchiveContributor;
 import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.DependencyInjection;
+import fi.testee.spi.DynamicArchiveContributor;
 import fi.testee.spi.ReleaseCallbackHandler;
 import org.jboss.weld.Container;
 import org.jboss.weld.bean.AbstractClassBean;
@@ -45,11 +46,11 @@ import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.InjectionTarget;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toSet;
 
@@ -67,17 +68,15 @@ public class DependencyInjectionRealm implements DependencyInjection {
 
     public DependencyInjectionRealm init(
             final ServiceRegistry serviceRegistry,
-            final BeanArchiveDiscovery beanArchiveDiscovery,
             final Environments environment,
             final Collection<Metadata<Extension>> extensions,
             final BeansXmlModifier beansXmlModifier,
-            final Predicate<BeanArchive> beanArchiveFilter,
             final Collection<DynamicArchiveContributor> archiveContributors
     ) {
         LOG.trace("Starting dependency injection realm {}", contextId);
         ensureTransactionServices(serviceRegistry);
+
         deployment = new DeploymentImpl(
-                beanArchiveDiscovery.getBeanArchives().stream().filter(beanArchiveFilter).collect(toSet()),
                 archiveContributors,
                 serviceRegistry,
                 extensions,

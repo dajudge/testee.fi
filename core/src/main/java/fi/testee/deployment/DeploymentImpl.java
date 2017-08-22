@@ -15,8 +15,8 @@
  */
 package fi.testee.deployment;
 
-import fi.testee.spi.DynamicArchiveContributor;
 import fi.testee.spi.BeansXmlModifier;
+import fi.testee.spi.DynamicArchiveContributor;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
 import org.jboss.weld.bootstrap.spi.CDI11Deployment;
@@ -24,12 +24,9 @@ import org.jboss.weld.bootstrap.spi.Metadata;
 
 import javax.enterprise.inject.spi.Extension;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
 
 /**
  * Implementation of the {@link CDI11Deployment}, which is basically tying together the service
@@ -45,21 +42,14 @@ public class DeploymentImpl implements CDI11Deployment {
     private final Map<BeanDeploymentArchive, BeanDeploymentArchive> archives;
 
     public DeploymentImpl(
-            final Collection<BeanArchive> beanArchives,
             final Collection<DynamicArchiveContributor> dynamicArchiveContributors,
             final ServiceRegistry serviceRegistry,
             final Collection<Metadata<Extension>> extensions,
             final BeansXmlModifier modifier
     ) {
-        // TODO contribute those instead of directly passing them in
-        final Set<BeanDeploymentArchive> deploymentArchives = new HashSet<>();
-        deploymentArchives.addAll(beanArchives.stream()
-                .map(it -> new BeanDeploymentArchiveImpl(serviceRegistry, it, this::archiveSupplier))
-                .collect(toSet())
-        );
-        dynamicArchiveContributors
-                .forEach(it -> deploymentArchives.addAll(it.contribute(serviceRegistry, this::archiveSupplier)));
-        archives = deploymentArchives.stream()
+        archives = dynamicArchiveContributors.stream()
+                .map(it -> it.contribute(serviceRegistry, this::archiveSupplier))
+                .flatMap(Collection::stream)
                 .collect(toMap(
                         it -> it,
                         it -> new WrappedBeanDeploymentArchive(it, modifier, this::mapper)
