@@ -126,7 +126,8 @@ public class TransactionalContext {
                 sessionBeanAlternatives,
                 ejbContainer::lookupDescriptor,
                 ejbContainer::createInstance,
-                propertyContributor());
+                propertyContributor()
+        );
         final BeanDeployment beanDeployment = new BeanDeployment(beanArchiveDiscovery, archiveFilter);
         realm = new DependencyInjectionRealm().init(
                 instanceServiceRegistry,

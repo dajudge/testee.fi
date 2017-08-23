@@ -74,8 +74,6 @@ public class DependencyInjectionRealm implements DependencyInjection {
             final Collection<DynamicArchiveContributor> archiveContributors
     ) {
         LOG.trace("Starting dependency injection realm {}", contextId);
-        ensureTransactionServices(serviceRegistry);
-
         deployment = new DeploymentImpl(
                 archiveContributors,
                 serviceRegistry,
@@ -95,13 +93,6 @@ public class DependencyInjectionRealm implements DependencyInjection {
         final BeanDeploymentArchive beanDeploymentArchive = deployment.getBeanDeploymentArchive(clazz);
         assert beanDeploymentArchive != null : "Could not find bean deployment archive for " + clazz;
         return container().beanDeploymentArchives().get(beanDeploymentArchive);
-    }
-
-    private void ensureTransactionServices(final ServiceRegistry serviceRegistry) {
-        // Odd workaround for the message WELD-000101 that happens when you don't have transactional services
-        if (serviceRegistry.get(TransactionServices.class) == null) {
-            serviceRegistry.add(TransactionServices.class, new TransactionServicesImpl());
-        }
     }
 
     void shutdown() {

@@ -18,10 +18,12 @@ package fi.testee.runtime;
 import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.deployment.BeanDeployment;
+import fi.testee.services.TransactionServicesImpl;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.RuntimeLifecycleListener;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
+import org.jboss.weld.transaction.spi.TransactionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +59,7 @@ public class TestRuntime {
 
     private TestRuntime() {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
+        serviceRegistry.add(TransactionServices.class, new TransactionServicesImpl());
         final BeanDeployment beanDeployment = new BeanDeployment(beanArchiveDiscovery, BeanArchive::isFrameworkRelevant);
         realm = new DependencyInjectionRealm().init(
                 serviceRegistry,

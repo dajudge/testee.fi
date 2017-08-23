@@ -19,6 +19,7 @@ import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.deployment.BeanDeployment;
 import fi.testee.services.ResourceInjectionServicesImpl;
+import fi.testee.services.TransactionServicesImpl;
 import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.CdiExtensionFactory;
 import fi.testee.spi.DependencyInjection;
@@ -36,6 +37,7 @@ import org.jboss.weld.bootstrap.spi.BeansXml;
 import org.jboss.weld.bootstrap.spi.Metadata;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
+import org.jboss.weld.transaction.spi.TransactionServices;
 
 import javax.enterprise.inject.spi.Extension;
 import java.lang.annotation.Annotation;
@@ -155,6 +157,7 @@ public class TestInstanceRealm extends DependencyInjectionRealm implements TestS
     private static ServiceRegistry serviceRegistry(final Collection<ResourceProvider> resourceProviders) {
         final SimpleServiceRegistry services = new SimpleServiceRegistry();
         services.add(ResourceInjectionServices.class, new ResourceInjectionServicesImpl(resourceProviders));
+        services.add(TransactionServices.class, new TransactionServicesImpl());
         return services;
     }
 

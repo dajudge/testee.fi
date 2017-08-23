@@ -21,6 +21,7 @@ import fi.testee.deployment.BeanDeployment;
 import fi.testee.jdbc.ConnectionFactoryManager;
 import fi.testee.jdbc.TestDataSource;
 import fi.testee.services.ResourceInjectionServicesImpl;
+import fi.testee.services.TransactionServicesImpl;
 import fi.testee.spi.AnnotationScanner;
 import fi.testee.spi.ConnectionFactory;
 import fi.testee.spi.DataSourceMigrator;
@@ -37,14 +38,11 @@ import org.jboss.weld.transaction.spi.TransactionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.transaction.Synchronization;
-import javax.transaction.UserTransaction;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import static fi.testee.deployment.DeploymentImpl.UNMODIFIED;
 import static fi.testee.runtime.ManualResourceProviderBuilder.manualResourceProvider;
@@ -82,8 +80,10 @@ public class TestSetup extends DependencyInjectionRealm {
 
     public TestSetup init() {
         final SimpleServiceRegistry serviceRegistry = new SimpleServiceRegistry();
-        final ResourceProvider setupResources = createSetupResources(false);
+        final TransactionServicesImpl transactionServices = new TransactionServicesImpl();
+        final ResourceProvider setupResources = createSetupResources(transactionServices, false);
         serviceRegistry.add(ResourceInjectionServices.class, new ResourceInjectionServicesImpl(asList(setupResources)));
+        serviceRegistry.add(TransactionServicesImpl.class, transactionServices);
         final BeanArchiveDiscovery beanArchiveDiscovery = runtime.getBeanArchiveDiscorvery();
         final BeanDeployment beanDeployment = new BeanDeployment(beanArchiveDiscovery, BeanArchive::isFrameworkRelevant);
         super.init(
@@ -127,6 +127,7 @@ public class TestSetup extends DependencyInjectionRealm {
     }
 
     private ResourceProvider createSetupResources(
+            final TransactionServices transactionServices,
             final boolean rollbackTransactions
     ) {
         return manualResourceProvider()
@@ -136,33 +137,8 @@ public class TestSetup extends DependencyInjectionRealm {
                 .put("testeefi/setup/dependencyInjection", testSetupDependencyInjection())
                 .put("testeefi/setup/annotationScanner", (AnnotationScanner) runtime.getBeanArchiveDiscorvery()::getClassesWith)
                 .put("testeefi/setup/rollbackTransactions", rollbackTransactions)
-                .put("testeefi/setup/transactionServices", transactionServices())
+                .put("testeefi/setup/transactionServices", transactionServices)
                 .build();
-    }
-
-    private TransactionServices transactionServices() {
-        final Supplier<TransactionServices> delegate = () -> getServiceRegistry().get(TransactionServices.class);
-        return new TransactionServices() {
-            @Override
-            public void registerSynchronization(final Synchronization synchronizedObserver) {
-                delegate.get().registerSynchronization(synchronizedObserver);
-            }
-
-            @Override
-            public boolean isTransactionActive() {
-                return delegate.get().isTransactionActive();
-            }
-
-            @Override
-            public UserTransaction getUserTransaction() {
-                return delegate.get().getUserTransaction();
-            }
-
-            @Override
-            public void cleanup() {
-                delegate.get().cleanup();
-            }
-        };
     }
 
     private DependencyInjection testSetupDependencyInjection() {
@@ -185,7 +161,7 @@ public class TestSetup extends DependencyInjectionRealm {
                 id,
                 testInstance,
                 method,
-                asList(createSetupResources(true))
+                asList(createSetupResources(getServiceRegistry().get(TransactionServicesImpl.class), true))
         );
     }
 
