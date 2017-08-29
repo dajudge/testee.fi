@@ -18,8 +18,6 @@ package fi.testee.rest;
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.spi.AnnotationScanner;
 import fi.testee.spi.DependencyInjection;
-import fi.testee.spi.Releaser;
-import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerCollection;
@@ -29,9 +27,6 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.Path;
 import javax.ws.rs.ext.Provider;
@@ -112,8 +107,9 @@ class RestServerImpl implements RestServer {
         final ResourceConfig config = initConfig(managedClasses);
         annotationScanner.scanFor(ApplicationPath.class).forEach(appClass -> {
             final String path = appClass.getAnnotation(ApplicationPath.class).value();
-            LOG.debug("Mapping rest application {} to {}", appClass.getName(), path);
-            context.addServlet(new ServletHolder(new JerseyServlet(config)), path + "/*");
+            final String pathSpec = (path.startsWith("/") ? "" : "/") + path + "/*";
+            LOG.debug("Mapping rest application {} to {}", appClass.getName(), pathSpec);
+            context.addServlet(new ServletHolder(new JerseyServlet(config)), pathSpec);
         });
         return context;
     }
