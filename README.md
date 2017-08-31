@@ -56,7 +56,7 @@ very well:
 * [Part 2: Mocking with Mockito and EasyMock](https://blog.alexstockinger.de/2017/08/05/functional-testing-java-ee-applications-with-testee-fi-part-2-mocking-with-mockito-and-easymock/)
 * [Part 3: JDBC and JPA](https://blog.alexstockinger.de/2017/08/11/functional-testing-java-ee-applications-with-testee-fi-part-3-jdbc-and-jpa/)
 * [Part 4: Cucumber JVM](https://blog.alexstockinger.de/2017/08/22/functional-testing-java-ee-applications-with-testee-fi-part-4-cucumber-jvm/)
-* Part 5: JAX-RS and REST resources (coming soon)
+* [Part 5: JAX-RS and REST resources](https://blog.alexstockinger.de/2017/08/31/functional-testing-java-ee-applications-with-testee-fi-part-5-jax-rs-and-rest-resources/)
 * Part 6: Static resources and Selenium (coming soon)
 * Part 7: JUnit 5 (coming soon)
 
