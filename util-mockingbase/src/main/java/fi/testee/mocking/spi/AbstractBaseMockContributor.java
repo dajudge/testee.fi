@@ -16,7 +16,6 @@
 package fi.testee.mocking.spi;
 
 import fi.testee.exceptions.TestEEfiException;
-import fi.testee.utils.ReflectionUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 
 import javax.annotation.Resource;
@@ -30,22 +29,22 @@ public abstract class AbstractBaseMockContributor implements MockContributor {
     @Resource(mappedName = "testeefi/instance/instance")
     private Object testInstance;
 
-        @Override
-        public Map<Field, Object> contributeMocks() {
-            injectMocks(testInstance);
-            return stream(FieldUtils.getAllFields(testInstance.getClass()))
-                    .filter(this::isMockField)
-                    .collect(Collectors.toMap(
-                            it -> it,
-                            it -> {
-                                try {
-                                    it.setAccessible(true);
-                                    return it.get(testInstance);
-                                } catch (IllegalAccessException e) {
-                                    throw new TestEEfiException("Failed to retrieve mock from test instance", e);
-                                }
+    @Override
+    public Map<Field, Object> contributeMocks() {
+        injectMocks(testInstance);
+        return stream(FieldUtils.getAllFields(testInstance.getClass()))
+                .filter(this::isMockField)
+                .collect(Collectors.toMap(
+                        it -> it,
+                        it -> {
+                            try {
+                                it.setAccessible(true);
+                                return it.get(testInstance);
+                            } catch (IllegalAccessException e) {
+                                throw new TestEEfiException("Failed to retrieve mock from test instance", e);
                             }
-                    ));
+                        }
+                ));
     }
 
     protected abstract boolean isMockField(Field field);

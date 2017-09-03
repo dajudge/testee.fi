@@ -57,6 +57,9 @@ public class WrappedBeansXml implements BeansXml {
 
             @Override
             public String getLocation() {
+                if (beansXml == null || beansXml.getUrl() == null) {
+                    return "null";
+                }
                 return beansXml.getUrl().toString();
             }
         });

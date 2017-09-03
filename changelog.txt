@@ -1,3 +1,6 @@
+Version 0.5.3
+- Fixed issue with globally enabled interceptors and mocks
+
 Version 0.5.2
 - Fixed classpath entry merging issues with Gradle 4 (found and fixed with 4.1)
 - Using Gradle 4.1 for build
