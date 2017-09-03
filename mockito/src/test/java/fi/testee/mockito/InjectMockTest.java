@@ -152,6 +152,7 @@ public class InjectMockTest {
     }
 
     @Singleton
+    @UseInterceptor
     public static class ExampleSessionBean2 {
         public String doIt() {
             return "I am IronMan";

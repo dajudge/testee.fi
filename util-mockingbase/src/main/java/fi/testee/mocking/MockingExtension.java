@@ -20,6 +20,7 @@ import org.jboss.weld.util.annotated.AnnotatedTypeWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Priority;
 import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Default;
@@ -30,9 +31,11 @@ import javax.enterprise.inject.spi.BeanAttributes;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.InjectionPoint;
+import javax.enterprise.inject.spi.ProcessAnnotatedType;
 import javax.enterprise.inject.spi.ProcessInjectionPoint;
 import javax.enterprise.inject.spi.Producer;
 import javax.enterprise.inject.spi.ProducerFactory;
+import javax.interceptor.Interceptor;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Collection;
@@ -61,6 +64,19 @@ public class MockingExtension implements Extension {
     ) {
         this.contributor = contributor;
         this.mockStore = mockStore;
+    }
+
+    public <X> void beans(
+            final @Observes ProcessAnnotatedType<X> processBean
+    ) {
+        if (!processBean.getAnnotatedType().isAnnotationPresent(Interceptor.class)) {
+            return;
+        }
+        final FilteringAnnotatedTypeWrapper<X> filtered = new FilteringAnnotatedTypeWrapper<>(
+                processBean.getAnnotatedType(),
+                it -> it != Priority.class
+        );
+        processBean.setAnnotatedType(filtered);
     }
 
     public <T, X> void injectionPoints(
@@ -102,7 +118,7 @@ public class MockingExtension implements Extension {
         mockStore.forEachType(types, (field, mock) -> {
             final Class<?> beanType = mock.getClass();
             final AnnotatedType<?> annotatedType = beanManager.createAnnotatedType(beanType);
-            final AnnotatedTypeWrapper<?> wrapped = new AnnotatedTypeWrapper<>(annotatedType, MOCKED);
+            final AnnotatedType<?> wrapped = new AnnotatedTypeWrapper<>(annotatedType, MOCKED);
             final BeanAttributes<?> attributes = beanManager.createBeanAttributes(wrapped);
             final Bean<?> bean = beanManager.createBean(attributes, beanType, factory(mock));
             LOG.trace("Creating CDI mock bean for {}", annotatedType);

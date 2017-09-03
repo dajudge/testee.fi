@@ -13,23 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.util.nopostconstruct;
+package fi.testee.mockito;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
+import javax.annotation.Priority;
+import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
 
-@NoPostConstructIntercepted
 @Interceptor
-public class NoPostConstructInterceptor {
-    private static final Logger LOG = LoggerFactory.getLogger(NoPostConstructInterceptor.class);
+@UseInterceptor
+@Priority(Interceptor.Priority.APPLICATION)
+public class TestInterceptor {
+    private static final Logger LOG = LoggerFactory.getLogger(TestInterceptor.class);
 
-    @PostConstruct
-    public Object logPostConstruct(final InvocationContext invocationContext) {
-        LOG.trace("Skipping @PostConstruct for " + invocationContext.getTarget());
-        return null;
+    @AroundInvoke
+    public Object logMethodEntry(final InvocationContext invocationContext) throws Exception {
+        LOG.info("AroundInvoke: {} {}", invocationContext.getTarget(), invocationContext.getMethod());
+        return invocationContext.proceed();
     }
 }
