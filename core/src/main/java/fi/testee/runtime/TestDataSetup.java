@@ -17,16 +17,14 @@ package fi.testee.runtime;
 
 import fi.testee.exceptions.TestEEfiException;
 import fi.testee.jdbc.TestData;
-import fi.testee.jdbc.TestDataSources;
-import fi.testee.jpa.TestPersistenceUnits;
-import fi.testee.services.JpaInjectionServicesImpl;
+import fi.testee.spi.TestDataSetupAccessorFactory;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
-import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.persistence.EntityManager;
-import javax.sql.DataSource;
+import javax.enterprise.inject.Any;
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -36,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toSet;
 
@@ -45,37 +42,20 @@ import static java.util.stream.Collectors.toSet;
  *
  * @author Alex Stockinger, IT-Stockinger
  */
-final class TestDataSetup {
+public class TestDataSetup {
     private static final Logger LOG = LoggerFactory.getLogger(TestDataSetup.class);
 
-    private TestDataSetup() {
-    }
+    @Inject
+    @Any
+    private Instance<TestDataSetupAccessorFactory> providers;
 
-    static void setupTestData(
+    public void setupTestData(
             final Class<?> setupClass,
             final ServiceRegistry serviceRegistry
     ) {
-        final JpaInjectionServicesImpl jpaInjectionServices = serviceRegistry.get(JpaInjectionServicesImpl.class);
-        final ResourceInjectionServices resourceInjectionServices = serviceRegistry.get(ResourceInjectionServices.class);
-        final Set<Object> testDataSetupAccessors = new HashSet<>(asList(
-                testDataSources(resourceInjectionServices),
-                testPersistenceUnits(jpaInjectionServices)
-        ));
+        final Set<Object> testDataSetupAccessors = new HashSet<>();
+        providers.forEach(it -> testDataSetupAccessors.add(it.createTestDataSetupAccessor(serviceRegistry)));
         setupTestData(setupClass, testDataSetupAccessors);
-    }
-
-    private static TestPersistenceUnits testPersistenceUnits(final JpaInjectionServicesImpl jpaInjectionServices) {
-        return unitName -> (EntityManager) jpaInjectionServices
-                .registerPersistenceContextInjectionPoint(unitName)
-                .createResource()
-                .getInstance();
-    }
-
-    private static TestDataSources testDataSources(final ResourceInjectionServices resourceInjectionServices) {
-        return mappedName -> (DataSource) resourceInjectionServices
-                .registerResourceInjectionPoint(null, mappedName)
-                .createResource()
-                .getInstance();
     }
 
     public static void setupTestData(final Class<?> setupClass, final Collection<Object> testDataSetupAccessors) {

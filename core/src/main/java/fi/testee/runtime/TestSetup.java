@@ -29,6 +29,7 @@ import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
+import fi.testee.spi.TestDataSetupAccessorFactory;
 import fi.testee.spi.scope.TestSetupScope;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
@@ -115,7 +116,7 @@ public class TestSetup extends DependencyInjectionRealm {
                 final Set<DataSourceMigrator> migrators = getInstancesOf(DataSourceMigrator.class, testDataReleaser);
                 final ServiceRegistry serviceRegistry = context.getDependencyInjection().getServiceRegistry();
                 DatabaseMigration.migrateDataSources(setupClass, migrators, serviceRegistry);
-                TestDataSetup.setupTestData(setupClass, serviceRegistry);
+                getInstanceOf(TestDataSetup.class, testDataReleaser).setupTestData(setupClass, serviceRegistry);
                 context.flushEntityManagers();
             } finally {
                 testDataReleaser.release();
