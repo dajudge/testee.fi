@@ -20,6 +20,7 @@ import fi.testee.runtime.TestSetup;
 import org.junit.Test;
 
 import javax.ejb.Singleton;
+import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -60,7 +61,7 @@ public class PersistenceUnitTest {
 
     @Singleton
     public static class SessionBean {
-        @PersistenceContext(unitName = "testUnit")
+        @Inject
         private EntityManager entityManager;
 
         public EntityManager getEntityManager() {
@@ -68,8 +69,14 @@ public class PersistenceUnitTest {
         }
     }
 
-    public static class ManagedBean {
+    public static class EntityManagerProducer {
         @PersistenceContext(unitName = "testUnit")
+        @Produces
+        public EntityManager entityManager;
+    }
+
+    public static class ManagedBean {
+        @Inject
         private EntityManager entityManager;
 
         public EntityManager getEntityManager() {
@@ -78,7 +85,7 @@ public class PersistenceUnitTest {
     }
 
     public static class TestBean {
-        @PersistenceContext(unitName = "testUnit")
+        @Inject
         private EntityManager entityManager;
         @Inject
         private ManagedBean managedBean;
