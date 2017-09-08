@@ -2,6 +2,7 @@ Version 0.6.0
 - Hibernate support
 - Custom params for @TestData methods can be contributed via TestDataSetupAccessorFactories now
 - Using JUnit 5 final now
+- Experimental JMS testing
 
 Version 0.5.3
 - Fixed issue with globally enabled interceptors and mocks

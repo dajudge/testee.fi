@@ -74,10 +74,10 @@ public class ResourceInjectionServicesImpl implements ResourceInjectionServices 
                 .filter(Objects::nonNull)
                 .collect(toSet());
         if (candidates.isEmpty()) {
-            throw new IllegalStateException("Failed to resolve resource specification " + resolver);
+            throw new IllegalStateException("Failed to resolve resource " + resolver);
         }
         if (candidates.size() > 1) {
-            throw new IllegalStateException("Ambiguous resource specification" + resolver + ": " + candidates);
+            throw new IllegalStateException("Ambiguous resource " + resolver + ": " + candidates);
         }
         return candidates.iterator().next();
     }

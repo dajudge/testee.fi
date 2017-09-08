@@ -17,6 +17,7 @@ package fi.testee.deployment;
 
 import fi.testee.classpath.JavaArchive;
 
+import javax.ejb.MessageDriven;
 import javax.ejb.Singleton;
 import javax.ejb.Stateful;
 import javax.ejb.Stateless;
@@ -26,6 +27,13 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 public class BeanArchive {
+    public static final Class[] EJB_ANNOTATIONS = {
+            Singleton.class,
+            Stateless.class,
+            Stateful.class,
+            Entity.class,
+            MessageDriven.class
+    };
     private final JavaArchive classpathEntry;
     private final Collection<Class<? extends Annotation>> qualifyingAnnotations;
     private Collection<EjbDescriptorImpl<?>> ejbs;
@@ -58,7 +66,7 @@ public class BeanArchive {
     }
 
     private boolean isEjbArchive() {
-        return !classpathEntry.annotatedWith(Singleton.class, Stateless.class, Stateful.class, Entity.class).isEmpty();
+        return !classpathEntry.annotatedWith(EJB_ANNOTATIONS).isEmpty();
     }
 
     public JavaArchive getClasspathEntry() {

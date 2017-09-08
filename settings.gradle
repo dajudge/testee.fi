@@ -18,6 +18,7 @@ include 'liquibase'     // Liquibase integration
 include 'eclipselink'   // EclipseLink integration
 include 'hibernate'     // Hibernate integration
 include 'rest'          // Support for testing JAX-RS REST resources
+include 'jms'           // Support for testing MDBs and JMS
 
 // Various utility packages
 include 'util-nopostconstruct'  // @NoPostConstructFor
