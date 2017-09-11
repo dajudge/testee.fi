@@ -16,11 +16,13 @@
 package fi.testee.rest;
 
 import fi.testee.junit4.TestEEfi;
+import fi.testee.rest.app.ManagedBean;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 
 import javax.annotation.Resource;
 import java.io.IOException;
@@ -34,6 +36,8 @@ public abstract class AbstractBaseRestTest {
 
     @Resource
     private RestServer restServer;
+    @Mock
+    protected ManagedBean managedBean;
 
     protected void assertGet(
             final String path,
