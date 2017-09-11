@@ -76,7 +76,7 @@ class TesteeDataSource implements DataSource {
                 new Class<?>[]{Connection.class},
                 (proxy, method, args) -> {
                     try {
-                        if (asList("close", "commit", "rollback").contains(method.getName())) {
+                        if (asList("close", "commit", "rollback", "setAutoCommit").contains(method.getName())) {
                             return null;
                         }
                         return method.invoke(connection, args);

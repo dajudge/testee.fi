@@ -84,7 +84,7 @@ public class PropertyContributor implements PersistenceUnitPropertyContributor {
 
             @Override
             public void setRollbackOnly() throws IllegalStateException, SystemException {
-                throw new AssertionError("setRollbackOnly");
+                // Nothing to do
             }
 
             @Override
@@ -104,12 +104,12 @@ public class PropertyContributor implements PersistenceUnitPropertyContributor {
 
             @Override
             public Transaction suspend() throws SystemException {
-                throw new AssertionError("Suspend");
+                return transaction();
             }
 
             @Override
             public void resume(Transaction tobj) throws InvalidTransactionException, IllegalStateException, SystemException {
-                throw new AssertionError("Resume");
+                // nothing to do
             }
         };
     }

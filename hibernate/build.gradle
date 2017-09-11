@@ -3,4 +3,8 @@ apply plugin: 'java'
 dependencies {
     compile project(":core-spi")
     compile libHibernate
+
+    testCompile project(":junit4")
+    testCompile project(":h2")
+    testCompile libLogback
 }
