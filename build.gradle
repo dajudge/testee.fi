@@ -168,6 +168,9 @@ ext {
     libJerseyServlet = 'com.sun.jersey:jersey-servlet:1.19.4'
     libOkhttp3 = 'com.squareup.okhttp3:okhttp:3.8.1'
     libJavaxActivation = 'javax.activation:activation:1.1.1'
+    libJerseyContainerServletCore = 'org.glassfish.jersey.containers:jersey-container-servlet-core:2.24.1'
+    libJerseyContainerServlet = 'org.glassfish.jersey.containers:jersey-container-servlet:2.24.1'
+    libJerseyMediaMoxy = 'org.glassfish.jersey.media:jersey-media-moxy:2.24.1'
 }
 
 task wrapper(type: Wrapper) {
