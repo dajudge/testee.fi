@@ -11,7 +11,7 @@ Getting started with TestEE.fi is really easy. First you need to add TestEE.fi t
     <dependency>
         <groupId>fi.testee</groupId>
         <artifactId>testeefi-junit4-all</artifactId>
-        <version>0.5.2</version>
+        <version>0.6.0</version>
         <scope>test</scope>
     </dependency>
     <dependency>
@@ -29,7 +29,7 @@ repositories {
     mavenCentral()
 }
 dependencies {
-	testCompile 'fi.testee:testeefi-junit4-all:0.5.2'
+	testCompile 'fi.testee:testeefi-junit4-all:0.6.0'
 	testCompile 'ch.qos.logback:logback-classic:1.1.7'
 }
 ```
@@ -59,8 +59,9 @@ very well:
 * [Part 3: JDBC and JPA](https://blog.alexstockinger.de/2017/08/11/functional-testing-java-ee-applications-with-testee-fi-part-3-jdbc-and-jpa/)
 * [Part 4: Cucumber JVM](https://blog.alexstockinger.de/2017/08/22/functional-testing-java-ee-applications-with-testee-fi-part-4-cucumber-jvm/)
 * [Part 5: JAX-RS and REST resources](https://blog.alexstockinger.de/2017/08/31/functional-testing-java-ee-applications-with-testee-fi-part-5-jax-rs-and-rest-resources/)
-* Part 6: Static resources and Selenium (coming soon)
-* Part 7: JUnit 5 (coming soon)
+* Part 6: JUnit 5 (coming soon)
+* Part 7: Static resources and Selenium (coming soon)
+* Part 8: JMS and MDBs (coming soon)
 
 ## Example projects
 There's also a number of example projects based on a Gradle build that
