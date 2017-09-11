@@ -21,10 +21,12 @@ import java.io.IOException;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 public class RestTest extends AbstractBaseRestTest {
     @Test
     public void serves_rest_resources() throws IOException {
-        assertGet("/rest/api/ping", 200, body -> assertEquals("managed:session", body));
+        when(managedBean.getValue()).thenReturn("mocked");
+        assertGet("/rest/api/ping", 200, body -> assertEquals("mocked:session", body));
     }
 }

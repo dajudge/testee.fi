@@ -8,9 +8,12 @@ dependencies {
     compile libJerseyMediaMoxy
     compile libJettyServlet
     compile libJavaxActivation
+    compile libJettyWebsocketServer
 
     testCompile project(":junit4")
+    testCompile project(":mockito")
     testCompile libCommonsIO
     testCompile libLogback
     testCompile libOkhttp3
+    testCompile libJettyWebsocketClient
 }
