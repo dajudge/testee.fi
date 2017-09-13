@@ -1,3 +1,6 @@
+Version 0.6.1
+- Classpath entry merging for IntelliJ IDEA 2017.2.3
+
 Version 0.6.0
 - Hibernate support
 - Custom params for @TestData methods can be contributed via TestDataSetupAccessorFactories now
