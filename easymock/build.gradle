@@ -12,4 +12,5 @@ dependencies {
     testCompile libJUnit4
     testCompile libLogback
     testCompile project(":core")
+    testCompile project(path: ':util-mockingbase', configuration: "testArtifacts")
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.mockito;
+package fi.testee.mocking;
 
 import javax.interceptor.InterceptorBinding;
 import java.lang.annotation.Inherited;

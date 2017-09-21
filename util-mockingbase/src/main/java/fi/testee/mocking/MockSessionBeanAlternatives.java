@@ -27,7 +27,7 @@ public class MockSessionBeanAlternatives implements fi.testee.spi.SessionBeanAlt
 
     @Override
     public ResourceReferenceFactory<Object> alternativeFor(final Type type) {
-        final Object mock = mockStore.findFor(type);
+        final Object mock = mockStore.findFor(type, true);
         if (mock == null) {
             return null;
         }

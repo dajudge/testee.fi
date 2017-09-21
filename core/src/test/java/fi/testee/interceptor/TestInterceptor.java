@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.annotation.Priority;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
@@ -32,6 +33,7 @@ import static fi.testee.interceptor.TestInterceptor.Type.POST_CONSTRUCT;
 import static fi.testee.interceptor.TestInterceptor.Type.PRE_DESTROY;
 
 @UseInterceptor
+@Priority(5)
 @Interceptor
 public class TestInterceptor {
     private static final Logger LOG = LoggerFactory.getLogger(TestInterceptor.class);

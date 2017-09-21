@@ -1,5 +1,6 @@
 Version 0.6.2
 - Using Weld 2.4.5.Final now
+- Proper support for globally enabled interceptors using @Priority
 
 Version 0.6.1
 - Classpath entry merging for IntelliJ IDEA 2017.2.3

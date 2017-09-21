@@ -4,6 +4,10 @@ dependencies {
     compile libCommonsLang3
     compile libWeld
     compile project(":core-spi")
+    compile libByteBuddy
+
+    testCompile libJUnit4
+    testCompile libJavaEE
 }
 
 configurations {

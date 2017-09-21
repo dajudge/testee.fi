@@ -19,6 +19,7 @@ import cucumber.api.java.en.Then;
 import fi.testee.cucumber.beans.ManagedBean;
 import fi.testee.cucumber.beans.MockBean;
 import fi.testee.cucumber.beans.SessionBean;
+import fi.testee.mocking.annotation.InjectMock;
 
 import javax.ejb.EJB;
 import javax.inject.Inject;
@@ -32,7 +33,7 @@ public class TestSteps {
     private ManagedBean managedBean;
     @EJB
     private SessionBean sessionBean;
-    @EJB
+    @InjectMock
     private MockBean mockBean;
 
     @Then("^Managed bean got injected$")

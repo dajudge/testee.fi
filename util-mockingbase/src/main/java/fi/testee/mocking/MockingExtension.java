@@ -15,12 +15,13 @@
  */
 package fi.testee.mocking;
 
+import fi.testee.exceptions.TestEEfiException;
+import fi.testee.mocking.annotation.InjectMock;
 import org.jboss.weld.injection.ForwardingInjectionPoint;
 import org.jboss.weld.util.annotated.AnnotatedTypeWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Priority;
 import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Default;
@@ -31,18 +32,19 @@ import javax.enterprise.inject.spi.BeanAttributes;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.InjectionPoint;
-import javax.enterprise.inject.spi.ProcessAnnotatedType;
+import javax.enterprise.inject.spi.InjectionTarget;
 import javax.enterprise.inject.spi.ProcessInjectionPoint;
-import javax.enterprise.inject.spi.Producer;
+import javax.enterprise.inject.spi.ProcessInjectionTarget;
 import javax.enterprise.inject.spi.ProducerFactory;
-import javax.interceptor.Interceptor;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toSet;
 
 public class MockingExtension implements Extension {
@@ -66,24 +68,58 @@ public class MockingExtension implements Extension {
         this.mockStore = mockStore;
     }
 
-    public <X> void beans(
-            final @Observes ProcessAnnotatedType<X> processBean
-    ) {
-        if (!processBean.getAnnotatedType().isAnnotationPresent(Interceptor.class)) {
+    public <T> void initializePropertyLoading(final @Observes ProcessInjectionTarget<T> pit) {
+        final InjectionTarget<T> delegate = pit.getInjectionTarget();
+        final InjectionTarget<T> wrapped = new ForwardingInjectionTarget<T>(delegate) {
+            @Override
+            public void inject(final T instance, final CreationalContext<T> ctx) {
+                super.inject(instance, ctx);
+                injectMocks(instance, instance.getClass());
+            }
+        };
+        pit.setInjectionTarget(wrapped);
+    }
+
+    private <T> void injectMocks(final T instance, final Class<?> clazz) {
+        if (clazz == Object.class || clazz == null) {
             return;
         }
-        final FilteringAnnotatedTypeWrapper<X> filtered = new FilteringAnnotatedTypeWrapper<>(
-                processBean.getAnnotatedType(),
-                it -> it != Priority.class
-        );
-        processBean.setAnnotatedType(filtered);
+        stream(clazz.getDeclaredFields())
+                .peek(it -> it.setAccessible(true))
+                .filter(it -> injectsMock(instance, it))
+                .forEach(it -> injectMock(instance, it));
     }
+
+    private <T> void injectMock(final T instance, final Field field) {
+        mockStore.forEachType(asList(field.getType()), false, (mockField, mock) -> {
+            try {
+                field.set(instance, mock);
+            } catch (final IllegalAccessException e) {
+                throw new TestEEfiException("Failed to inject mock", e);
+            }
+        });
+    }
+
+    private boolean injectsMock(final Object instance, final Field field) {
+        try {
+            if (field.get(instance) != null) {
+                return false;
+            }
+            if (field.getAnnotation(InjectMock.class) == null) {
+                return false;
+            }
+            return true;
+        } catch (final IllegalAccessException e) {
+            throw new TestEEfiException("Failed access member while processing @InjectMock annotations", e);
+        }
+    }
+
 
     public <T, X> void injectionPoints(
             final @Observes ProcessInjectionPoint<T, X> processInjectionPoint
     ) {
         final Type type = processInjectionPoint.getInjectionPoint().getType();
-        final Object mock = mockStore.findFor(type);
+        final Object mock = mockStore.findFor(type, true);
         if (mock == null) {
             return;
         }
@@ -115,10 +151,11 @@ public class MockingExtension implements Extension {
         final Collection<Type> types = mockedInjectionPoints.stream()
                 .map(it -> it.getType())
                 .collect(toSet());
-        mockStore.forEachType(types, (field, mock) -> {
+        mockStore.forEachType(types, true, (field, mock) -> {
             final Class<?> beanType = mock.getClass();
-            final AnnotatedType<?> annotatedType = beanManager.createAnnotatedType(beanType);
+            final AnnotatedType<?> annotatedType = beanManager.createAnnotatedType(field.getType());
             final AnnotatedType<?> wrapped = new AnnotatedTypeWrapper<>(annotatedType, MOCKED);
+            LOG.info("Creating mock bean for {} -> {}", field.getType(), wrapped.getAnnotations());
             final BeanAttributes<?> attributes = beanManager.createBeanAttributes(wrapped);
             final Bean<?> bean = beanManager.createBean(attributes, beanType, factory(mock));
             LOG.trace("Creating CDI mock bean for {}", annotatedType);
@@ -127,26 +164,7 @@ public class MockingExtension implements Extension {
     }
 
     private <T> ProducerFactory<T> factory(final Object mock) {
-        return new ProducerFactory<T>() {
-            @Override
-            public <T1> Producer<T1> createProducer(final Bean<T1> bean) {
-                return new Producer<T1>() {
-
-                    @Override
-                    public T1 produce(final CreationalContext<T1> ctx) {
-                        return (T1) mock;
-                    }
-
-                    @Override
-                    public void dispose(final T1 instance) {
-                    }
-
-                    @Override
-                    public Set<InjectionPoint> getInjectionPoints() {
-                        return Collections.emptySet();
-                    }
-                };
-            }
-        };
+        return new MockProducerFactory<>(mock);
     }
+
 }

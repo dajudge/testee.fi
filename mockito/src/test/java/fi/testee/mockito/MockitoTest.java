@@ -13,23 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.easymock;
+package fi.testee.mockito;
 
 import fi.testee.mocking.AbstractBaseMockingTest;
 import fi.testee.mocking.InterfaceNotInBeanArchive;
 import fi.testee.runtime.TestRuntime;
 import fi.testee.runtime.TestSetup;
-import org.easymock.Mock;
+import org.mockito.Mock;
 
 import javax.ejb.EJB;
 import javax.inject.Inject;
 import java.util.function.Consumer;
 
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class EasyMockTest extends AbstractBaseMockingTest {
+public class MockitoTest extends AbstractBaseMockingTest {
 
     @Override
     protected void test(
@@ -44,24 +44,20 @@ public class EasyMockTest extends AbstractBaseMockingTest {
 
         // When
         final TestSetup.TestInstance context = testSetup.prepareTestInstance("myInstance", testClassInstance, null);
-        if (cdiMockCount > 0) {
-            expect(testClassInstance.cdiMock.doIt()).andReturn("lolcats").times(cdiMockCount);
-        }
-        if (ejbMockCount > 0) {
-            expect(testClassInstance.ejbMock.doIt()).andReturn("lolcats").times(ejbMockCount);
-        }
-        if (pureMockCount > 0) {
-            expect(testClassInstance.noImplementation.doIt()).andReturn("lolcats").times(pureMockCount);
-        }
+        when(testClassInstance.cdiMock.doIt()).thenReturn("lolcats");
+        when(testClassInstance.ejbMock.doIt()).thenReturn("lolcats");
+        when(testClassInstance.noImplementation.doIt()).thenReturn("lolcats");
 
         try {
             // Then
-            replay(testClassInstance.cdiMock, testClassInstance.ejbMock, testClassInstance.noImplementation);
             test.accept(testClassInstance);
-            verify(testClassInstance.cdiMock, testClassInstance.ejbMock, testClassInstance.noImplementation);
         } finally {
             context.shutdown();
         }
+
+        verify(testClassInstance.cdiMock, times(cdiMockCount)).doIt();
+        verify(testClassInstance.ejbMock, times(ejbMockCount)).doIt();
+        verify(testClassInstance.noImplementation, times(pureMockCount)).doIt();
     }
 
     public static class TestBean implements TestBeanInterface {

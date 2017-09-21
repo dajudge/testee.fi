@@ -29,7 +29,6 @@ import fi.testee.spi.DependencyInjection;
 import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
-import fi.testee.spi.TestDataSetupAccessorFactory;
 import fi.testee.spi.scope.TestSetupScope;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;

@@ -13,13 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.testee.mockito;
+package fi.testee.mocking;
 
-import fi.testee.mocking.InterfaceNotInBeanArchive;
-import fi.testee.runtime.TestRuntime;
-import fi.testee.runtime.TestSetup;
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
 import javax.ejb.EJB;
 import javax.ejb.Singleton;
@@ -28,80 +25,84 @@ import javax.inject.Inject;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertFalse;
 
-public class InjectMockTest {
+public abstract class AbstractBaseMockingTest {
+
+    @Before
+    public void setup() {
+        TestInterceptor.invocations.clear();
+    }
 
     @Test
     public void cdiMock_in_cdiBean_via_inject() {
-        test(it -> {
-            assertEquals("lolcats", it.getCdiBean().getCdiMockInCdiViaInject().doIt());
-        });
+        test(it -> assertEquals("lolcats", it.getCdiBean().getCdiMockInCdiViaInject().doIt()), 1, 0, 0);
+        assertIntercepted("ExampleBean1:getCdiMockInCdiViaInject");
     }
 
     @Test
     public void ejbMock_in_cdiBean_via_ejb() {
-        test(it -> assertEquals("lolcats", it.getCdiBean().getEjbMockInCdiViaEjb().doIt()));
+        test(it -> assertEquals("lolcats", it.getCdiBean().getEjbMockInCdiViaEjb().doIt()), 0, 1, 0);
     }
 
     @Test
     public void ejbMock_in_cdiBean_via_inject() {
-        test(it -> assertEquals("lolcats", it.getCdiBean().getEjbMockInCdiViaInject().doIt()));
+        test(it -> assertEquals("lolcats", it.getCdiBean().getEjbMockInCdiViaInject().doIt()), 0, 1, 0);
     }
 
     @Test
     public void cdiMock_in_ejb_via_inject() {
-        test(it -> assertEquals("lolcats", it.getEjb().getCdiMockInEjbViaInject().doIt()));
+        test(it -> assertEquals("lolcats", it.getEjb().getCdiMockInEjbViaInject().doIt()), 1, 0, 0);
     }
 
     @Test
     public void ejbMock_in_ejb_via_ejb() {
-        test(it -> assertEquals("lolcats", it.getEjb().getEjbMockInEjbViaEjb().doIt()));
+        test(it -> assertEquals("lolcats", it.getEjb().getEjbMockInEjbViaEjb().doIt()), 0, 1, 0);
     }
 
     @Test
     public void ejbMock_in_ejb_via_inject() {
-        test(it -> assertEquals("lolcats", it.getEjb().getEjbMockInEjbViaInject().doIt()));
+        test(it -> assertEquals("lolcats", it.getEjb().getEjbMockInEjbViaInject().doIt()), 0, 1, 0);
     }
 
     @Test
     public void pureMock_in_cdi_via_inject() {
-        test(it -> assertEquals("lolcats", it.getCdiBean().getPureMockInCdiViaInject().doit()));
+        test(it -> assertEquals("lolcats", it.getCdiBean().getPureMockInCdiViaInject().doIt()), 0, 0, 1);
     }
 
     @Test
     public void pureMock_in_cdi_via_ejb() {
-        test(it -> assertEquals("lolcats", it.getCdiBean().getPureMockInCdiViaEjb().doit()));
+        test(it -> assertEquals("lolcats", it.getCdiBean().getPureMockInCdiViaEjb().doIt()), 0, 0, 1);
     }
 
     @Test
     public void pureMock_in_ejb_via_inject() {
-        test(it -> assertEquals("lolcats", it.getEjb().getPureMockInEjbViaInject().doit()));
+        test(it -> assertEquals("lolcats", it.getEjb().getPureMockInEjbViaInject().doIt()), 0, 0, 1);
     }
 
     @Test
     public void pureMock_in_ejb_via_ejb() {
-        test(it -> assertEquals("lolcats", it.getEjb().getPureMockInEjbViaEjb().doit()));
+        test(it -> assertEquals("lolcats", it.getEjb().getPureMockInEjbViaEjb().doIt()), 0, 0, 1);
     }
 
-    private void test(final Consumer<TestBean> test) {
-        // Given
-        final TestSetup testSetup = new TestSetup(TestBean.class, TestRuntime.instance()).init();
-        final TestBean testClassInstance = new TestBean();
+    protected abstract void test(
+            Consumer<TestBeanInterface> test,
+            int cdiMockCount,
+            int ejbMockCount,
+            int pureMockCount
+    );
 
-        // When
-        final TestSetup.TestInstance context = testSetup.prepareTestInstance("myInstance", testClassInstance, null);
-        when(testClassInstance.cdiMock.doIt()).thenReturn("lolcats");
-        when(testClassInstance.ejbMock.doIt()).thenReturn("lolcats");
-        when(testClassInstance.noImplementation.doit()).thenReturn("lolcats");
-
-        try {
-            // Then
-            test.accept(testClassInstance);
-        } finally {
-            context.shutdown();
-        }
+    private void assertIntercepted(final String fingerprint) {
+        assertFalse(
+                "No more intercepted invocations when looking for " + fingerprint,
+                TestInterceptor.invocations.isEmpty()
+        );
+        final String actual = TestInterceptor.invocations.remove(0);
+        assertEquals(
+                "Expected intercepted invocation " + fingerprint + " but found " + actual,
+                fingerprint,
+                actual
+        );
     }
 
     public interface SomeProduct {
@@ -110,12 +111,15 @@ public class InjectMockTest {
 
     public static class ProducerBean {
         @Produces
+        @UseInterceptor
         public SomeProduct produce() {
-            return mock(SomeProduct.class);
+            return new SomeProduct() {
+            };
         }
     }
 
     @Singleton
+    @UseInterceptor
     public static class ExampleSessionBean1 {
         @Inject
         private ExampleBean2 cdiMockInEjbViaInject;
@@ -159,12 +163,14 @@ public class InjectMockTest {
         }
     }
 
+    @UseInterceptor
     public static class ExampleBean2 {
         public String doIt() {
             return "I am IronMan";
         }
     }
 
+    @UseInterceptor
     public static class ExampleBean1 {
         @Inject
         private ExampleBean2 cdiMockInCdiViaInject;
@@ -201,37 +207,14 @@ public class InjectMockTest {
     }
 
     public interface NoImplementation {
-        String doit();
+        String doIt();
     }
 
-    public static class TestBean {
-        @Inject
-        private ExampleBean1 cdiBean;
-        @EJB
-        private ExampleSessionBean1 ejb;
-        @Mock
-        private ExampleBean2 cdiMock;
-        @Mock
-        private ExampleSessionBean2 ejbMock;
-        @Mock
-        private NoImplementation noImplementation;
-        @Mock
-        private InterfaceNotInBeanArchive someBaseInterface;
+    public interface TestBeanInterface {
 
-        public ExampleBean1 getCdiBean() {
-            return cdiBean;
-        }
+        ExampleBean1 getCdiBean();
 
-        public ExampleSessionBean1 getEjb() {
-            return ejb;
-        }
-
-        public ExampleBean2 getCdiMock() {
-            return cdiMock;
-        }
-
-        public ExampleSessionBean2 getEjbMock() {
-            return ejbMock;
-        }
+        ExampleSessionBean1 getEjb();
     }
+
 }

@@ -33,6 +33,7 @@ import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
 import org.jboss.weld.bootstrap.spi.Metadata;
+import org.jboss.weld.config.WeldConfiguration;
 import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.context.api.ContextualInstance;
 import org.jboss.weld.manager.BeanManagerImpl;
@@ -82,7 +83,18 @@ public class DependencyInjectionRealm implements DependencyInjection {
         );
         bootstrap = new WeldBootstrap()
                 .startContainer(contextId, environment, deployment)
-                .startInitialization()
+                .startInitialization();
+        final WeldConfiguration config = serviceRegistry.get(WeldConfiguration.class);
+        serviceRegistry.add(WeldConfiguration.class, new WeldConfiguration(serviceRegistry, deployment){
+            @Override
+            public boolean isFinalMethodIgnored(String className) {
+                return true;
+            }
+        });
+        if(config == null) {
+            throw new RuntimeException("WTF?");
+        }
+        bootstrap
                 .deployBeans()
                 .validateBeans()
                 .endInitialization();
