@@ -140,7 +140,7 @@ ext {
     // Dependencies
     libSlf4j = 'org.slf4j:slf4j-api:1.7.21'
     libLogback = 'ch.qos.logback:logback-classic:1.1.7'
-    libWeld = 'org.jboss.weld:weld-core-impl:2.4.3.Final'
+    libWeld = 'org.jboss.weld:weld-core-impl:2.4.5.Final'
     libMockito = 'org.mockito:mockito-core:2.8.47'
     libEasyMock = 'org.easymock:easymock:3.4'
     libJavaEE = 'javax:javaee-api:7.0'
