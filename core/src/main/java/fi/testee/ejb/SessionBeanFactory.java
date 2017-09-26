@@ -49,7 +49,8 @@ public class SessionBeanFactory<T> {
         final SingletonHolder<T> singletonHolder = new SingletonHolder<>(
                 descriptor.getBeanClass(),
                 this::createNewInstance,
-                holder.getInterceptorChain()
+                holder.getInterceptorChain(),
+                holder.getInterceptorBindings()
         );
         singletonHolder.addLifecycleListener(lifecycleListener);
         return singletonHolder;

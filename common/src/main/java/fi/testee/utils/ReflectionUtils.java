@@ -22,6 +22,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.function.Predicate;
 
+import static java.lang.System.identityHashCode;
+
 public final class ReflectionUtils {
     private ReflectionUtils() {
     }
@@ -43,5 +45,9 @@ public final class ReflectionUtils {
             }
             return false;
         };
+    }
+
+    public static String objectId(final Object o) {
+        return o.getClass().getName() + "@" + identityHashCode(o);
     }
 }

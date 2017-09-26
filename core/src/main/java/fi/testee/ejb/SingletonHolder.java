@@ -15,12 +15,11 @@
  */
 package fi.testee.ejb;
 
-import fi.testee.deployment.InterceptorChain;
 import fi.testee.exceptions.TestEEfiException;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.implementation.InvocationHandlerAdapter;
-import net.bytebuddy.implementation.SuperMethodCall;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jboss.weld.ejb.spi.InterceptorBindings;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,12 +27,16 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.inject.spi.InterceptionType;
+import javax.enterprise.inject.spi.Interceptor;
 import javax.inject.Provider;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import static java.util.Arrays.stream;
@@ -41,16 +44,16 @@ import static java.util.stream.Collectors.toSet;
 import static javax.enterprise.inject.spi.InterceptionType.AROUND_INVOKE;
 import static javax.enterprise.inject.spi.InterceptionType.POST_CONSTRUCT;
 import static javax.enterprise.inject.spi.InterceptionType.PRE_DESTROY;
-import static net.bytebuddy.implementation.MethodDelegation.to;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 
 public class SingletonHolder<T> extends SessionBeanHolder<T> {
     private static final Logger LOG = LoggerFactory.getLogger(SingletonHolder.class);
     private final Class<T> beanClass;
     private final Provider<Pair<T, Collection<ResourceReference<?>>>> factory;
+    private final InterceptorBindings interceptorBindings;
     private final T proxyInstance;
     private T instance;
-    private InterceptorChain chain;
+    private InterceptorInvocationUtil.InterceptorChain chain;
     private int referenceCount = 0;
     private Collection<ResourceReference<?>> referenced;
     private boolean destroying;
@@ -58,17 +61,19 @@ public class SingletonHolder<T> extends SessionBeanHolder<T> {
     public SingletonHolder(
             final Class<T> beanClass,
             final Provider<Pair<T, Collection<ResourceReference<?>>>> factory,
-            final InterceptorChain chain
+            final InterceptorInvocationUtil.InterceptorChain chain,
+            final InterceptorBindings interceptorBindings
     ) {
         this.beanClass = beanClass;
         this.factory = factory;
+        this.interceptorBindings = interceptorBindings;
         proxyInstance = createProxy(beanClass, chain);
     }
 
     @SuppressWarnings("unchecked")
     private T createProxy(
             final Class<T> clazz,
-            final InterceptorChain chain
+            final InterceptorInvocationUtil.InterceptorChain chain
     ) {
         this.chain = chain;
         try {
@@ -92,6 +97,9 @@ public class SingletonHolder<T> extends SessionBeanHolder<T> {
             final Method method,
             final InterceptionType interceptionType
     ) throws Throwable {
+        final List<Interceptor<?>> interceptors = interceptorBindings == null
+                ? Collections.emptyList()
+                : new ArrayList<>(interceptorBindings.getAllInterceptors());
         return chain.invoke(target, method, args,
                 () -> {
                     try {
@@ -99,7 +107,7 @@ public class SingletonHolder<T> extends SessionBeanHolder<T> {
                     } catch (final InvocationTargetException e) {
                         throw e.getTargetException();
                     }
-                }, interceptionType);
+                }, interceptionType, interceptors);
     }
 
     @Override

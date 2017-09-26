@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static fi.testee.utils.ReflectionUtils.objectId;
+
 /**
  * Injection of JPA persistence units. Thread safe.
  *
@@ -43,9 +45,10 @@ import java.util.function.Supplier;
  */
 public class JpaInjectionServicesImpl implements JpaInjectionServices {
     private static final Logger LOG = LoggerFactory.getLogger(JpaInjectionServicesImpl.class);
-    public static final Supplier<RuntimeException> NOT_SUPPORTED = () -> new UnsupportedOperationException("This is not implemented, yet");
+    private static final Supplier<RuntimeException> NOT_SUPPORTED = () -> new UnsupportedOperationException("This is not implemented, yet");
     private PersistenceUnitDiscovery persistenceUnitDiscovery;
     private Map<String, EntityManager> entityManagers = new HashMap<>();
+    private boolean isInvalidated;
 
     public JpaInjectionServicesImpl(final PersistenceUnitDiscovery persistenceUnitDiscovery) {
         this.persistenceUnitDiscovery = persistenceUnitDiscovery;
@@ -55,6 +58,7 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
     public ResourceReferenceFactory<EntityManager> registerPersistenceContextInjectionPoint(
             final InjectionPoint injectionPoint
     ) {
+        ensureValid();
         final PersistenceContext persistenceContext = injectionPoint
                 .getAnnotated()
                 .getAnnotation(PersistenceContext.class);
@@ -63,13 +67,18 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
     }
 
     public ResourceReferenceFactory<EntityManager> registerPersistenceContextInjectionPoint(final String unitName) {
+        ensureValid();
         LOG.debug("Creating persistence context for unit '{}'", unitName);
         final PersistenceUnitInfo unit = persistenceUnitDiscovery.findByUnitName(unitName);
         if (unit == null) {
             throw new IllegalStateException("Unknown persistence unit: " + unitName);
         }
         final EntityManager entityManager = ProxyUtils.lazy(
-                () -> getEntityManager(unit),
+                () -> {
+                    final EntityManager actualInstance = getEntityManager(unit);
+                    LOG.trace("Lazy instantiated entity manager for unit {}: {}", unit, objectId(actualInstance));
+                    return ProxyUtils.trace(actualInstance, EntityManager.class);
+                },
                 EntityManager.class
         );
         return () -> new SimpleResourceReference<>(safeguard(entityManager));
@@ -136,6 +145,8 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
 
     @Override
     public void cleanup() {
+        ensureValid();
+        LOG.trace("Cleaning up JPA injection services");
         // TODO find out why this gets called so insanely often
         entityManagers.values().forEach(it -> {
             if (it.isOpen()) {
@@ -145,7 +156,8 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
     }
 
     public void flush() {
-        LOG.debug("Flushing EntityManagers");
+        ensureValid();
+        LOG.trace("Flushing EntityManagers");
         entityManagers.values().forEach(it -> {
             if (it.isOpen() && it.getTransaction().isActive()) {
                 it.flush();
@@ -153,7 +165,9 @@ public class JpaInjectionServicesImpl implements JpaInjectionServices {
         });
     }
 
-    public EntityManager resolvePersistenceContext(final PersistenceContext persistenceContext) {
-        return registerPersistenceContextInjectionPoint(persistenceContext.unitName()).createResource().getInstance();
+    private void ensureValid() {
+        if(isInvalidated) {
+            throw new TestEEfiException("Invalid access to JPA injection services after shutdown");
+        }
     }
 }

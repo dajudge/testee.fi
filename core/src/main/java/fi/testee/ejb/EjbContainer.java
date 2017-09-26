@@ -16,8 +16,13 @@
 package fi.testee.ejb;
 
 import fi.testee.exceptions.TestEEfiException;
+import fi.testee.utils.MutableContainer;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.jboss.weld.bean.SessionBean;
+import org.jboss.weld.ejb.api.SessionObjectReference;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
+import org.jboss.weld.ejb.spi.EjbServices;
+import org.jboss.weld.ejb.spi.InterceptorBindings;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.manager.BeanManagerImpl;
@@ -32,6 +37,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -48,28 +54,32 @@ import static org.jboss.weld.resolution.CovariantTypes.isAssignableFrom;
  *
  * @author Alex Stockinger, IT-Stockinger
  */
-public class EjbContainer {
+public class EjbContainer implements EjbServices {
     private static final Logger LOG = LoggerFactory.getLogger(EjbContainer.class);
 
     private final Set<SessionBeanHolder<?>> existingBeans = new HashSet<>();
     private Map<Type, EjbDescriptor<?>> ejbDescriptors;
+    private final InterceptorInvocationUtil.InterceptorChain interceptorChain;
     private Map<EjbDescriptor<?>, ResourceReferenceFactory<?>> containers;
+    private final Map<EjbDescriptor, InterceptorBindings> interceptorBindings = new HashMap<>();
 
     public EjbContainer(
-            final Collection<EjbDescriptor<?>> ejbDescriptors
+            final Collection<EjbDescriptor<?>> ejbDescriptors,
+            final InterceptorInvocationUtil.InterceptorChain interceptorChain
     ) {
         this.ejbDescriptors = ejbDescriptors.stream().collect(toMap(
                 it -> it.getBeanClass(),
                 it -> it
         ));
+        this.interceptorChain = interceptorChain;
     }
 
     public void init(
-            final EjbDescriptorHolderResolver holderResolver,
             final Function<Object, Collection<ResourceReference<?>>> cdiInjection,
             final Injection<Resource> resourceInjection,
             final Injection<PersistenceContext> jpaInjection,
-            final Injection<EJB> ejbInjection
+            final Injection<EJB> ejbInjection,
+            final Function<Class<?>, BeanManagerImpl> archiveResolver
     ) {
         LOG.debug("Starting EJB container with descriptors {}", ejbDescriptors);
         final EjbInjection injection = (o, b, m) -> {
@@ -102,9 +112,66 @@ public class EjbContainer {
                         it -> createFactory(
                                 injection,
                                 lifecycleListener,
-                                holderResolver.resolve(it)
+                                resolveHolder(it, archiveResolver)
                         ).getResourceReferenceFactory()
                 ));
+    }
+
+    private <T> EjbDescriptorHolder<T> resolveHolder(
+            final EjbDescriptor<T> desc,
+            final Function<Class<?>, BeanManagerImpl> archiveResolver
+    ) {
+        final BeanManagerImpl archive = archiveResolver.apply(desc.getBeanClass());
+        final SessionBean<T> sessionBean = archive.getBean(desc);
+        if (sessionBean == null) {
+            throw new TestEEfiException("Failed to find session bean for " + desc);
+        }
+        final InterceptorBindings interceptorBindings = getInterceptorBindings(desc);
+        return new EjbDescriptorHolder<T>(desc, interceptorChain, sessionBean, archive, interceptorBindings);
+    }
+
+    @Override
+    public SessionObjectReference resolveEjb(EjbDescriptor<?> ejbDescriptor) {
+        final MutableContainer<Boolean> removed = new MutableContainer<>(false);
+        final ResourceReferenceFactory<Object> reference = createInstance((EjbDescriptor<Object>) ejbDescriptor);
+        return new SessionObjectReference() {
+            @Override
+            public <S> S getBusinessObject(final Class<S> businessInterfaceType) {
+                return (S) reference.createResource().getInstance();
+            }
+
+            @Override
+            public void remove() {
+                // TODO do we have to do something here?
+            }
+
+            @Override
+            public boolean isRemoved() {
+                return removed.getObject();
+            }
+        };
+    }
+
+    @Override
+    public void registerInterceptors(
+            final EjbDescriptor<?> ejbDescriptor,
+            final InterceptorBindings interceptorBindings
+    ) {
+        LOG.debug(
+                "Registering interceptors {} on {}",
+                interceptorBindings.getAllInterceptors(),
+                ejbDescriptor.getBeanClass()
+        );
+        this.interceptorBindings.put(ejbDescriptor, interceptorBindings);
+    }
+
+    @Override
+    public void cleanup() {
+
+    }
+
+    public <T> InterceptorBindings getInterceptorBindings(final EjbDescriptor<T> desc) {
+        return interceptorBindings.get(desc);
     }
 
     private interface Injector {
@@ -174,10 +241,6 @@ public class EjbContainer {
         while (!existingBeans.isEmpty()) {
             existingBeans.iterator().next().forceDestroy();
         }
-    }
-
-    public interface EjbDescriptorHolderResolver {
-        <T> EjbDescriptorHolder<T> resolve(EjbDescriptor<T> descriptor);
     }
 
     public interface Injection<A extends Annotation> {

@@ -19,13 +19,9 @@ import fi.testee.deployment.BeanArchive;
 import fi.testee.deployment.BeanArchiveDiscovery;
 import fi.testee.deployment.BeanDeployment;
 import fi.testee.deployment.EjbDescriptorImpl;
-import fi.testee.deployment.InterceptorChain;
 import fi.testee.ejb.EjbContainer;
-import fi.testee.ejb.EjbDescriptorHolder;
-import fi.testee.exceptions.TestEEfiException;
 import fi.testee.jpa.PersistenceUnitDiscovery;
 import fi.testee.services.EjbInjectionServicesImpl;
-import fi.testee.services.EjbServicesImpl;
 import fi.testee.services.ExecutorServicesImpl;
 import fi.testee.services.JpaInjectionServicesImpl;
 import fi.testee.services.ProxyServicesImpl;
@@ -35,14 +31,15 @@ import fi.testee.services.TransactionServicesImpl;
 import fi.testee.spi.BeansXmlModifier;
 import fi.testee.spi.DynamicArchiveContributor;
 import fi.testee.spi.PersistenceUnitPropertyContributor;
+import fi.testee.spi.ReleaseCallbackHandler;
 import fi.testee.spi.Releaser;
 import fi.testee.spi.ResourceProvider;
 import fi.testee.spi.SessionBeanAlternatives;
-import org.jboss.weld.bean.SessionBean;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.jboss.weld.bootstrap.spi.Metadata;
+import org.jboss.weld.context.CreationalContextImpl;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
@@ -59,6 +56,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
+import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.Bean;
@@ -73,6 +71,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import static fi.testee.deployment.BeanDeployment.and;
+import static fi.testee.ejb.InterceptorInvocationUtil.getInterceptorChain;
 import static fi.testee.utils.InjectionPointUtils.injectionPointOf;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
@@ -116,7 +115,7 @@ public class TransactionalContext {
                         it -> it,
                         it -> it
                 ));
-        ejbContainer = new EjbContainer(ejbDescriptors.keySet());
+        ejbContainer = new EjbContainer(ejbDescriptors.keySet(), getInterceptorChain(this::contextFor));
         final Set<ResourceProvider> resourceProviders = new HashSet<>(setupResolvers);
         stream(scopes).forEach(it -> resourceProvidersInstance.select(it).forEach(resourceProviders::add));
         LOG.trace("Resource providers: {}", resourceProviders);
@@ -124,8 +123,7 @@ public class TransactionalContext {
                 resourceProviders,
                 beanArchiveDiscovery,
                 sessionBeanAlternatives,
-                ejbContainer::lookupDescriptor,
-                ejbContainer::createInstance,
+                ejbContainer,
                 propertyContributor()
         );
         final BeanDeployment beanDeployment = new BeanDeployment(beanArchiveDiscovery, archiveFilter);
@@ -137,31 +135,19 @@ public class TransactionalContext {
                 and(archiveContributors, beanDeployment)
         );
         ejbContainer.init(
-                new EjbContainer.EjbDescriptorHolderResolver() {
-                    @Override
-                    public <T> EjbDescriptorHolder<T> resolve(final EjbDescriptor<T> descriptor) {
-                        return holderResolver(descriptor, ejbDescriptors);
-                    }
-                },
                 this::cdiInjection,
                 this::resourceInjection,
                 this::jpaInjection,
-                this::ejbInjection
+                this::ejbInjection,
+                realm::findArchiveFor
         );
     }
 
-    private <T> EjbDescriptorHolder<T> holderResolver(
-            final EjbDescriptor<T> desc,
-            final Map<EjbDescriptor<?>, EjbDescriptorImpl<?>> impls
+    private <T> CreationalContextImpl<T> contextFor(
+            final Contextual<T> contextual,
+            final ReleaseCallbackHandler releaseCallbackHandler
     ) {
-        final BeanManagerImpl archive = realm.findArchiveFor(desc.getBeanClass());
-        final SessionBean<T> sessionBean = archive.getBean(desc);
-        if (sessionBean == null) {
-            throw new TestEEfiException("Failed to find session bean for " + desc);
-        }
-        final EjbDescriptorImpl<?> descImpl = impls.get(desc);
-        final InterceptorChain chain = descImpl.getInterceptorChain(realm::contextFor);
-        return new EjbDescriptorHolder<T>(desc, chain, sessionBean, archive);
+        return realm.contextFor(contextual, releaseCallbackHandler);
     }
 
     private Collection<ResourceReference<?>> cdiInjection(final Object o) {
@@ -220,8 +206,7 @@ public class TransactionalContext {
             final Collection<ResourceProvider> resourceProviders,
             final BeanArchiveDiscovery beanArchiveDiscovery,
             final SessionBeanAlternatives alternatives,
-            final EjbInjectionServicesImpl.EjbLookup ejbLookup,
-            final EjbInjectionServicesImpl.EjbFactory ejbFactory,
+            final EjbContainer ejbContainer,
             final PersistenceUnitPropertyContributor propertyContributor
     ) {
         final ServiceRegistry serviceRegistry = new SimpleServiceRegistry();
@@ -238,17 +223,13 @@ public class TransactionalContext {
         );
         serviceRegistry.add(JpaInjectionServices.class, jpaInjectionService);
         serviceRegistry.add(JpaInjectionServicesImpl.class, jpaInjectionService);
-        serviceRegistry.add(EjbInjectionServices.class, new EjbInjectionServicesImpl(
-                ejbLookup,
-                ejbFactory,
-                alternatives
-        ));
+        serviceRegistry.add(EjbInjectionServices.class, new EjbInjectionServicesImpl(ejbContainer, alternatives));
         // Only stubs from here on
         serviceRegistry.add(TransactionServices.class, new TransactionServicesImpl());
         serviceRegistry.add(SecurityServices.class, new SecurityServicesImpl());
         serviceRegistry.add(ProxyServices.class, new ProxyServicesImpl());
         serviceRegistry.add(ExecutorServices.class, new ExecutorServicesImpl());
-        serviceRegistry.add(EjbServices.class, new EjbServicesImpl(ejbFactory));
+        serviceRegistry.add(EjbServices.class, ejbContainer);
         return serviceRegistry;
     }
 

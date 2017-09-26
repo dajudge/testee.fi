@@ -51,7 +51,6 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
     private final Collection<BusinessInterfaceDescriptor<?>> localBusinessInterfaces;
     private final Collection<BusinessInterfaceDescriptor<?>> remoteBusinessInterfaces;
     private final Class<T> clazz;
-    private InterceptorBindings interceptorBindings;
 
     public EjbDescriptorImpl(final Class<T> clazz) {
         LOG.trace("Creating EJB descriptor for {}", clazz);
@@ -124,143 +123,6 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
         return false;
     }
 
-    public void setInterceptorBindings(final InterceptorBindings interceptorBindings) {
-        this.interceptorBindings = interceptorBindings;
-    }
-
-
-    private interface Proceed {
-        Object run() throws Throwable;
-    }
-
-    public InterceptorChain getInterceptorChain(
-            final ContextFactory contextFactory
-    ) {
-        return new InterceptorChain() {
-            @Override
-            public <T> Object invoke(
-                    final Object target,
-                    final Method method,
-                    final Object[] args,
-                    final ChainEnd<T> next,
-                    final InterceptionType interceptionType
-            ) throws Throwable {
-                if (interceptorBindings == null) {
-                    return next.invoke();
-                }
-                return processInterceptorChain(
-                        new ArrayList<>(interceptorBindings.getAllInterceptors()),
-                        target,
-                        method,
-                        args,
-                        contextFactory,
-                        next,
-                        interceptionType
-                );
-            }
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> Object processInterceptorChain(
-            final List<Interceptor<?>> chain,
-            final Object target,
-            final Method method,
-            final Object[] args,
-            final ContextFactory contextFactory,
-            final InterceptorChain.ChainEnd<T> next,
-            final InterceptionType interceptionType
-    ) throws Throwable {
-        if (chain.isEmpty()) {
-            return next.invoke();
-        }
-        final Interceptor<Object> it = (Interceptor<Object>) chain.remove(0);
-        final Releaser releaser = new Releaser();
-        try {
-            return intercept(
-                    it,
-                    it.create(contextFactory.create(it, releaser)),
-                    target,
-                    method,
-                    args,
-                    () -> processInterceptorChain(chain, target, method, args, contextFactory, next, interceptionType),
-                    interceptionType
-            );
-        } finally {
-            releaser.release();
-        }
-    }
-
-    private <T> Object intercept(
-            final Interceptor<T> it,
-            final T instance,
-            final Object target,
-            final Method method,
-            final Object[] args,
-            final Proceed proceed,
-            final InterceptionType interceptionType
-    ) throws Exception {
-        return it.intercept(
-                interceptionType,
-                instance,
-                context(target, interceptionType == InterceptionType.AROUND_INVOKE ? method : null, args, proceed)
-        );
-    }
-
-    private InvocationContext context(
-            final Object target,
-            final Method method,
-            final Object[] args,
-            final Proceed proceed
-    ) {
-        return new InvocationContext() {
-            @Override
-            public Object getTarget() {
-                return target;
-            }
-
-            @Override
-            public Object getTimer() {
-                return null;
-            }
-
-            @Override
-            public Method getMethod() {
-                return method;
-            }
-
-            @Override
-            public Constructor<?> getConstructor() {
-                return null;
-            }
-
-            @Override
-            public Object[] getParameters() {
-                return args;
-            }
-
-            @Override
-            public void setParameters(final Object[] params) {
-                throw new UnsupportedOperationException("Changing parameters is not supported, yet");
-            }
-
-            @Override
-            public Map<String, Object> getContextData() {
-                return new HashMap<>();
-            }
-
-            @Override
-            public Object proceed() throws Exception {
-                try {
-                    return proceed.run();
-                } catch (final Exception e) {
-                    throw e;
-                } catch (final Throwable throwable) {
-                    throw new TestEEfiException("Failed to process interceptor chain", throwable);
-                }
-            }
-        };
-    }
 
     @Override
     public String toString() {
@@ -290,7 +152,4 @@ public class EjbDescriptorImpl<T> implements EjbDescriptor<T> {
         return clazz.hashCode();
     }
 
-    public interface ContextFactory {
-        <T> CreationalContextImpl<T> create(Contextual<T> ctx, ReleaseCallbackHandler releaser);
-    }
 }

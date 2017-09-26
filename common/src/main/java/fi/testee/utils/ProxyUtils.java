@@ -20,11 +20,12 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
+import java.util.UUID;
 import java.util.function.Supplier;
 
-import static java.lang.System.identityHashCode;
+import static fi.testee.utils.ReflectionUtils.objectId;
 import static java.lang.reflect.Proxy.newProxyInstance;
+import static java.util.Arrays.asList;
 
 /**
  * Tools useful for development.
@@ -70,22 +71,23 @@ public final class ProxyUtils {
      */
     @SuppressWarnings("unchecked")
     public static <T> T trace(final Object delegate, final Class<T> iface) {
-        final String oid = delegate.getClass().getName() + "@" + identityHashCode(delegate);
+        final String oid = objectId(delegate);
         return (T) newProxyInstance(
                 JdbcUtils.class.getClassLoader(),
                 new Class<?>[]{iface},
                 (proxy, method, args) -> {
+                    final String callId = UUID.randomUUID().toString();
                     try {
-                        LOG.trace("CALL {} {} {}", oid, method, args == null ? "[]" : Arrays.asList(args));
-                        if (method.getReturnType().isInterface()) {
-                            return trace(method.invoke(delegate, args), method.getReturnType());
-                        } else {
-                            return method.invoke(delegate, args);
-                        }
+                        LOG.trace("ENTER {} {} {} {}", callId, oid, method, args == null ? "[]" : asList(args));
+                        final Object ret = method.invoke(delegate, args);
+                        LOG.trace("RETURN {} {} {} {} {}", callId, oid, method, args == null ? "[]" : asList(args), ret);
+                        return ret;
                     } catch (final InvocationTargetException e) {
+                        LOG.trace("THROW {} {} {} {} {}", callId, oid, method, args == null ? "[]" : asList(args), e);
                         throw e.getTargetException();
                     }
                 }
         );
     }
+
 }

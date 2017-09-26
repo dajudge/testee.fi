@@ -62,7 +62,6 @@ public class TestInterceptor {
 
     @PostConstruct
     public Object logPostConstruct(final InvocationContext invocationContext) throws Exception {
-
         LOG.info("PostConstruct: {} {}", invocationContext.getTarget(), invocationContext.getMethod());
         INVOCATIONS.add(new Invocation(invocationContext.getTarget(), invocationContext.getMethod(), POST_CONSTRUCT));
         return invocationContext.proceed();
